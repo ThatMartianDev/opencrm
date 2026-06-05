@@ -1,0 +1,232 @@
+/*  Backdrop  */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/*  Toolbar  */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+  user-select: none;
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.fileName {
+  color: #fff;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+
+.toolbarCenter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.toolbarBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: #fff;
+  transition: background 0.15s;
+}
+
+.toolbarBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.toolbarBtn:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.toolbarDivider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0 4px;
+}
+
+.zoomLabel {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: var(--font-size-xs);
+  min-width: 44px;
+  text-align: center;
+}
+
+/*  Content Area  */
+.viewerContent {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.viewerContent > div {
+    height: 100%;
+    width: 100%;
+}
+
+
+
+/*  Image Viewer  */
+.imageContainer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.imageElement {
+  max-width: 100%;
+  max-height: 100%;
+  height: 80%;
+  aspect-ratio: auto;
+  object-fit: contain;
+  transition: transform 0.15s ease;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.imageElement.dragging {
+  transition: none;
+  cursor: grabbing;
+}
+
+.imageElement.zoomedIn {
+  cursor: grab;
+  max-width: none;
+  max-height: none;
+}
+
+/*  Video Viewer  */
+.videoContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 40px;
+}
+
+.videoElement {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 8px;
+  background: #000;
+}
+
+/*  Audio Viewer  */
+.audioContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 40px;
+}
+
+.audioIcon {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.audioFileName {
+  color: #fff;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  text-align: center;
+  max-width: 400px;
+  word-break: break-word;
+}
+
+.audioElement {
+  width: 100%;
+  max-width: 400px;
+}
+
+/*  PDF Viewer  */
+.pdfContainer {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px;
+  overflow: auto;
+}
+
+.pdfContainer canvas {
+  border-radius: 4px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+/*  Unsupported fallback  */
+.unsupportedContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.unsupportedText {
+  font-size: var(--font-size-sm);
+}
+
+.downloadLink {
+  color: var(--primary-color);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.downloadLink:hover {
+  color: #6366F1;
+}

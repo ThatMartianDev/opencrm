@@ -1,0 +1,288 @@
+import "server-only";
+
+import { prisma } from "@/lib/db/client";
+import { getSupabaseAdmin, STORAGE_BUCKET } from "@/lib/supabase/client";
+import type { CreateFolderInput, CreateExternalFileInput, EntityScope } from "./types";
+
+export const FilesService = {
+  /**
+   * Search files by name across the entire entity scope (ignores folder nesting).
+   */
+  async searchFiles(
+    organizationId: string,
+    scope: EntityScope,
+    query: string,
+  ) {
+    return prisma.file.findMany({
+      where: {
+        organizationId,
+        ...scope,
+        name: { contains: query, mode: "insensitive" },
+      },
+      orderBy: [{ type: "asc" }, { name: "asc" }],
+    });
+  },
+
+  /**
+   * List files/folders at a given level (parentId=null for root).
+   */
+  async listFiles(
+    organizationId: string,
+    scope: EntityScope,
+    parentId: string | null,
+  ) {
+    return prisma.file.findMany({
+      where: {
+        organizationId,
+        parentId: parentId ?? null,
+        ...scope,
+      },
+      orderBy: [{ type: "asc" }, { name: "asc" }], // Folders first, then alphabetical
+    });
+  },
+
+  /**
+   * Get a single file/folder by ID (with children for breadcrumb/tree).
+   */
+  async getById(fileId: string, organizationId: string) {
+    return prisma.file.findFirst({
+      where: { id: fileId, organizationId },
+      include: { children: { orderBy: [{ type: "asc" }, { name: "asc" }] } },
+    });
+  },
+
+  /**
+   * Create a folder.
+   */
+  async createFolder(
+    organizationId: string,
+    memberId: string,
+    input: CreateFolderInput,
+  ) {
+    // Validate parentId belongs to same org
+    if (input.parentId) {
+      const parent = await prisma.file.findFirst({
+        where: { id: input.parentId, organizationId, type: "FOLDER" },
+      });
+      if (!parent) throw new Error("Invalid parent folder");
+    }
+
+    return prisma.file.create({
+      data: {
+        organizationId,
+        name: input.name,
+        type: "FOLDER",
+        source: "SUPABASE",
+        parentId: input.parentId ?? null,
+        dealId: input.dealId ?? null,
+        contactId: input.contactId ?? null,
+        companyId: input.companyId ?? null,
+        uploadedById: memberId,
+      },
+    });
+  },
+
+  /**
+   * Upload a file to Supabase Storage and create the DB record.
+   */
+  async uploadFile(
+    organizationId: string,
+    memberId: string,
+    file: File,
+    scope: EntityScope,
+    parentId: string | null,
+  ) {
+    // Build the storage path
+    const entityType = scope.dealId
+      ? "deals"
+      : scope.contactId
+        ? "contacts"
+        : scope.companyId
+          ? "companies"
+          : "general";
+    const entityId = scope.dealId ?? scope.contactId ?? scope.companyId ?? "shared";
+    const timestamp = Date.now();
+    const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const storagePath = `${organizationId}/${entityType}/${entityId}/${timestamp}_${sanitizedName}`;
+
+    // Upload to Supabase Storage
+    const { error } = await getSupabaseAdmin().storage
+      .from(STORAGE_BUCKET)
+      .upload(storagePath, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (error) {
+      throw new Error(`Storage upload failed: ${error.message}`);
+    }
+
+    // Create DB record
+    return prisma.file.create({
+      data: {
+        organizationId,
+        name: file.name,
+        type: "FILE",
+        source: "SUPABASE",
+        storagePath,
+        fileSize: file.size,
+        mimeType: file.type,
+        parentId: parentId ?? null,
+        dealId: scope.dealId ?? null,
+        contactId: scope.contactId ?? null,
+        companyId: scope.companyId ?? null,
+        uploadedById: memberId,
+      },
+    });
+  },
+
+  /**
+   * Add an external file reference (Google Drive, Dropbox, etc.)
+   */
+  async addExternalFile(
+    organizationId: string,
+    memberId: string,
+    input: CreateExternalFileInput,
+  ) {
+    return prisma.file.create({
+      data: {
+        organizationId,
+        name: input.name,
+        type: "FILE",
+        source: input.source,
+        externalUrl: input.externalUrl,
+        externalId: input.externalId ?? null,
+        mimeType: input.mimeType ?? null,
+        fileSize: input.fileSize ?? null,
+        parentId: input.parentId ?? null,
+        dealId: input.dealId ?? null,
+        contactId: input.contactId ?? null,
+        companyId: input.companyId ?? null,
+        uploadedById: memberId,
+      },
+    });
+  },
+
+  /**
+   * Get a signed download URL for a Supabase-hosted file.
+   */
+  async getDownloadUrl(fileId: string, organizationId: string) {
+    const file = await prisma.file.findFirst({
+      where: { id: fileId, organizationId, type: "FILE" },
+    });
+
+    if (!file) throw new Error("File not found");
+
+    if (file.source !== "SUPABASE" || !file.storagePath) {
+      // External file — return the external URL directly
+      return file.externalUrl;
+    }
+
+    const { data, error } = await getSupabaseAdmin().storage
+      .from(STORAGE_BUCKET)
+      .createSignedUrl(file.storagePath, 3600, { download: file.name }); // 1 hour expiry, forces download
+
+    if (error) throw new Error(`Failed to generate download URL: ${error.message}`);
+    return data.signedUrl;
+  },
+
+  /**
+   * Get signed URLs for multiple image files (for thumbnails).
+   */
+  async getImageUrls(fileIds: string[], organizationId: string): Promise<Record<string, string>> {
+    const files = await prisma.file.findMany({
+      where: {
+        id: { in: fileIds },
+        organizationId,
+        type: "FILE",
+      },
+      select: { id: true, storagePath: true, source: true, externalUrl: true },
+    });
+
+    const urls: Record<string, string> = {};
+
+    for (const file of files) {
+      if (file.source !== "SUPABASE" || !file.storagePath) {
+        if (file.externalUrl) urls[file.id] = file.externalUrl;
+        continue;
+      }
+      const { data } = await getSupabaseAdmin().storage
+        .from(STORAGE_BUCKET)
+        .createSignedUrl(file.storagePath, 3600);
+      if (data?.signedUrl) urls[file.id] = data.signedUrl;
+    }
+
+    return urls;
+  },
+
+  /**
+   * Rename a file or folder.
+   */
+  async rename(fileId: string, organizationId: string, newName: string) {
+    return prisma.file.update({
+      where: { id: fileId, organizationId },
+      data: { name: newName },
+    });
+  },
+
+  /**
+   * Delete a file/folder. For folders, recursively deletes children.
+   * For Supabase files, also removes from storage.
+   */
+  async delete(data: {
+    fileId: string;
+    organizationId: string;
+    memberId: string;
+    canDeleteAny: boolean;
+  }) {
+    const file = await prisma.file.findFirst({
+      where: { id: data.fileId, organizationId: data.organizationId },
+    });
+
+    if (!file) throw new Error("File not found.");
+    if (!data.canDeleteAny && file.uploadedById !== data.memberId) {
+      throw new Error("You can only delete files you uploaded.");
+    }
+
+    if (file.type === "FOLDER") {
+      // Recursively delete children (folder owner can delete all contents)
+      const children = await prisma.file.findMany({
+        where: { parentId: data.fileId, organizationId: data.organizationId },
+      });
+      for (const child of children) {
+        await this.delete({ ...data, fileId: child.id, canDeleteAny: true });
+      }
+    }
+
+    // Delete from storage if it's a Supabase file
+    if (file.source === "SUPABASE" && file.storagePath) {
+      await getSupabaseAdmin().storage
+        .from(STORAGE_BUCKET)
+        .remove([file.storagePath]);
+    }
+
+    // Delete the DB record
+    return prisma.file.delete({ where: { id: data.fileId } });
+  },
+
+  /**
+   * Build breadcrumb path from a file/folder to root.
+   */
+  async getBreadcrumbs(fileId: string, organizationId: string): Promise<{ id: string; name: string }[]> {
+    const breadcrumbs: { id: string; name: string }[] = [];
+    let currentId: string | null = fileId;
+
+    while (currentId) {
+      const record: { id: string; name: string; parentId: string | null } | null = await prisma.file.findFirst({
+        where: { id: currentId, organizationId },
+        select: { id: true, name: true, parentId: true },
+      });
+      if (!record) break;
+      breadcrumbs.unshift({ id: record.id, name: record.name });
+      currentId = record.parentId;
+    }
+
+    return breadcrumbs;
+  },
+
+};

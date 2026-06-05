@@ -1,0 +1,56 @@
+.card {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 11px;
+    text-align: left;
+    width: 100%;
+    transition: opacity 0.15s;
+    overflow: hidden;
+}
+
+.card:hover {
+    opacity: 0.8;
+}
+
+.card.deal {
+    background: rgba(14, 118, 185, 0.12);
+    color: rgba(14, 118, 185, 1);
+}
+
+.card.contact {
+    background: rgba(76, 175, 80, 0.12);
+    color: rgba(56, 142, 60, 1);
+}
+
+.card.company {
+    background: rgba(255, 152, 0, 0.12);
+    color: rgba(230, 126, 0, 1);
+}
+
+.card.default {
+    background: rgba(156, 39, 176, 0.1);
+    color: rgba(156, 39, 176, 1);
+}
+
+.time {
+    flex-shrink: 0;
+    font-weight: 600;
+    font-size: 10px;
+}
+
+.title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.linked {
+    flex-shrink: 0;
+    font-size: 8px;
+}

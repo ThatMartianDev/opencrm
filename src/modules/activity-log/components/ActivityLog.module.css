@@ -1,0 +1,123 @@
+#activityLog {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border-left: 1px solid var(--border-100);
+    overflow: hidden;
+}
+
+.activity_header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border-100);
+}
+
+.activity_header h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--font-size-md);
+    font-weight: 600;
+}
+
+.log_btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid var(--border-100);
+    border-radius: 8px;
+    background: var(--bg-00);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    transition: background 0.15s;
+}
+
+.log_btn:hover {
+    background: var(--bg-02);
+}
+
+.content_wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.activity_list {
+    display: flex;
+    flex-direction: column;
+    padding: 16px 20px;
+    overflow-y: auto;
+    flex: 1;
+    gap: 20px;
+    background-color: var(--bg-02);
+    height: max-content;
+}
+
+.date_group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.date_label {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    background: var(--bg-02);
+    border-radius: 8px;
+    width: fit-content;
+}
+
+.activity_item {
+    align-items: center;
+    gap: 10px;
+    display: flex;
+}
+
+.activity_body {
+    flex: 1;
+    gap: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.activity_body p {
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
+    color: var(--text-color);
+    font-weight: 450;
+    max-width: 80%;
+}
+
+.activity_time {
+    font-size: var(--font-size-xs);
+    opacity: 0.6;
+}
+
+.activity_note {
+    margin-top: 6px;
+    padding: 8px 12px;
+    background: var(--bg-02);
+    border-radius: 8px;
+    border-left: 3px solid var(--border-200);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.empty_state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
+}

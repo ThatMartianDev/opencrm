@@ -1,0 +1,79 @@
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.field label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.field input,
+.field textarea {
+    padding: 10px 12px;
+    border: 1px solid var(--border-100);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: var(--bg-00);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.field input:focus,
+.field textarea:focus {
+    border-color: var(--accent-primary);
+}
+
+.field textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+.row {
+    display: flex;
+    gap: 12px;
+}
+
+.row .field {
+    flex: 1;
+}
+
+.checkboxField {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.checkboxField input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent-primary);
+}
+
+.checkboxField label {
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.hint {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.pickerTrigger {
+    padding: 10px 12px;
+    border: 1px solid var(--border-100);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.pickerTrigger:hover {
+    border-color: var(--accent-primary);
+}

@@ -1,0 +1,162 @@
+.title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 4px;
+}
+
+.subtitle {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 32px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    color: var(--text-tertiary);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.table td {
+    padding: 12px;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-primary);
+    vertical-align: middle;
+}
+
+.memberCell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.memberInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.memberName {
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+.memberEmail {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.roleSelect {
+    padding: 4px 8px;
+    font-size: 0.8125rem;
+    border: 1px solid var(--border-primary);
+    border-radius: 4px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.roleSelect:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.roleBadge {
+    display: inline-block;
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 4px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+.removeBtn {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: none;
+    border: 1px solid #ef4444;
+    color: #ef4444;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.removeBtn:hover {
+    background: #ef4444;
+    color: white;
+}
+
+.removeBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.invitationsSection {
+    margin-top: 48px;
+}
+
+.sectionTitle {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 16px;
+}
+
+.inviteActions {
+    display: flex;
+    gap: 8px;
+}
+
+.inviteActionBtn {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: none;
+    border: 1px solid var(--border-primary);
+    color: var(--text-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.inviteActionBtn:hover {
+    border-color: var(--text-primary);
+    color: var(--text-primary);
+}
+
+.revokeBtn {
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+.revokeBtn:hover {
+    background: #ef4444;
+    color: white;
+}
+
+.emptyState {
+    padding: 24px;
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--text-tertiary);
+}

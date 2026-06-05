@@ -1,0 +1,183 @@
+.title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 4px;
+}
+
+.subtitle {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0 0 32px;
+}
+
+.tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border-primary);
+    margin-bottom: 32px;
+}
+
+.tab {
+    padding: 10px 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border: none;
+    background: none;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.tab:hover {
+    color: var(--text-primary);
+}
+
+.tabActive {
+    color: var(--text-primary);
+    border-bottom-color: var(--accent-primary);
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.section h4 {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    margin-top: 16px;
+}
+
+.accountCard {
+    border: 1px solid var(--border-100);
+    background: var(--bg-00);
+    border-radius: 8px;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 16px 8px 8px;
+    display: flex;
+}
+
+.accountIcon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    flex-shrink: 0;
+}
+
+.accountInfo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.accountProvider {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.accountEmail {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.accountDate {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    margin: 0;
+}
+
+.disconnectBtn {
+    padding: 6px 14px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    border: 1px solid var(--border-100);
+    border-radius: 6px;
+    background: var(--bg-00);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.disconnectBtn:hover {
+    background: #fef2f2;
+    color: #ef4444;
+    border-color: #fecaca;
+}
+
+.connectBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid var(--border-100);
+    border-radius: 8px;
+    background: var(--bg-00);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.15s, border-color 0.15s;
+}
+
+.connectBtn:hover {
+    background: var(--bg-04);
+    border-color: var(--border-100);
+}
+
+.emptyState {
+    padding: 32px;
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 0.875rem;
+    border: 1px dashed var(--border-primary);
+    border-radius: 8px;
+}
+
+.comingSoon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 48px 32px;
+    text-align: center;
+    border: 1px dashed var(--border-primary);
+    border-radius: 8px;
+}
+
+.comingSoonTitle {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.comingSoonHint {
+    font-size: 0.8125rem;
+    color: var(--text-tertiary);
+    margin: 0;
+}
+
+.calendarDescription {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0 0 16px;
+    max-width: 480px;
+}
+
+.calendarHint {
+    font-size: 0.8125rem;
+    color: var(--text-tertiary);
+    margin: 8px 0 0;
+}

@@ -1,0 +1,118 @@
+.TabsControlHeader {
+    width: 100%;
+    position: relative;
+}
+
+
+.header_content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 24px;
+    border-bottom: 1px solid var(--border-100);
+    overflow: hidden;
+}
+
+.tabs_btns,
+.controls,
+.main_controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.tab_btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    transition: all 0.15s ease-in-out;
+    border: 1px solid transparent;
+    opacity: 0.7;
+}
+.tab_btn:hover {
+    opacity: 1;
+    background-color: var(--bg-02);
+}
+.tab_btn.active {
+    opacity: 1;
+    background-color: var(--tab-bg-active-color, var(--bg-02));
+    border-color: var(--border-100);
+}
+.tab_btn::after {
+    position: absolute;
+    content: "";
+    bottom: 0;
+    left: 50%;
+    width: 60%;
+    height: 3px;
+    background-color: #000;
+    transform: translate(-50%, 20px);
+    transition: all 0.3s ease;
+}
+.tab_btn.active::after {
+    transform: translate(-50%, 8px);
+}
+
+
+.tab_btn p {
+    font-size: var(--font-size-sm);
+    font-weight: 400;
+    color: #242529;
+}
+.tab_btn.active p {
+    /* color: var(--tab-color); */
+    font-weight: 500;
+}
+
+
+.tab_btn.with_icon {
+    gap: 5px;
+    padding: 0;
+    padding-right: 12px;
+}
+
+.tab_btn.with_icon .tab_icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    padding-right: 0;
+}
+.tab_btn.tab_btn.with_icon .tab_icon svg {
+    width: 20px;
+    height: 20px;
+    fill: var(--tab-color);
+}
+.tab_btn.tab_btn.with_icon .tab_icon svg path {
+    fill: var(--tab-color);
+}
+
+
+.icon_buttons {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: 8px;
+}
+
+.icon_button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border-100);
+    transition: all 0.2s ease;
+}
+.icon_button:hover {
+    background-color: var(--bg-04);
+}
+.icon_button svg {
+    width: 70%;
+    height: 70%;
+}

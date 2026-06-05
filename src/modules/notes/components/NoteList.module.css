@@ -1,0 +1,218 @@
+.noteList {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 16px 24px;
+}
+
+.noteListHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0 16px;
+}
+
+.noteListHeader h3 {
+    font-size: var(--font-size-md);
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.addBtn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-100);
+    background: var(--bg-00);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    color: var(--text-color);
+    transition: background 0.15s ease;
+}
+
+.addBtn:hover {
+    background: var(--bg-02);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.noteCard {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border-100);
+    background: var(--bg-00);
+    transition: all 0.15s ease;
+    cursor: default;
+    position: relative;
+    min-height: 200px;
+}
+
+.noteCard:hover {
+    border-color: var(--grey-100);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.noteCardHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+
+/**/
+.noteActions {
+    display: none;
+    grid-auto-columns: 100%;
+    width: 90%;
+    max-width: 150px;
+    background-color: #fff;
+    border: 1px solid var(--border-100);
+    border-radius: 8px;
+    position: absolute;
+    top: 25%;
+    right: 5%;
+    z-index: 10;
+}
+.noteActions.show {
+    display: grid;
+}
+
+.noteActions button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    font-size: var(--font-size-sm);
+    color: var(--text-color);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+
+/**/
+.noteTitle {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.noteContent {
+    font-size: var(--font-size-sm);
+    color: var(--text-color);
+    opacity: 0.8;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.noteFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 8px;
+}
+
+.noteDate {
+    font-size: var(--font-size-xs);
+    color: var(--text-color);
+    opacity: 0.5;
+}
+
+.linkedRecord {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    background: var(--bg-02);
+    color: var(--text-color);
+    white-space: nowrap;
+}
+
+.linkedRecord.deal {
+    background: rgba(0, 130, 54, 0.08);
+    color: rgba(0, 130, 54, 1);
+}
+
+.linkedRecord.contact {
+    background: rgba(109, 58, 146, 0.08);
+    color: rgba(109, 58, 146, 1);
+}
+
+.linkedRecord.company {
+    background: rgba(14, 118, 185, 0.08);
+    color: rgba(14, 118, 185, 1);
+}
+
+
+.showActionsMenu {
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: var(--font-size-xs);
+    color: var(--text-color);
+    opacity: 0.7;
+    transition: all 0.15s ease;
+}
+
+.showActionsMenu:hover {
+    background: var(--bg-03);
+    opacity: 1;
+}
+
+.showActionsMenu.delete:hover {
+    color: rgba(200, 50, 50, 1);
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    gap: 8px;
+    opacity: 0.6;
+}
+
+.emptyState p {
+    font-size: var(--font-size-sm);
+    color: var(--text-color);
+}
+
+.noteAuthor {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--font-size-xs);
+    color: var(--text-color);
+    opacity: 0.6;
+}

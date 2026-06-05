@@ -1,0 +1,78 @@
+
+
+.loginForm {
+    display: grid;
+    grid-template-columns: 100%;
+    row-gap: 12px;
+    width: 96%;
+    max-width: 400px;
+    background-color: var(--bg-00);
+    border: 1px solid var(--border-100);
+    padding: 24px;
+    border-radius: 10px;
+}
+
+.loginForm h1 {
+    font-size: var(--font-size-md);
+    margin: 0 0 8px;
+}
+
+
+.loginForm form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.loginForm button[type="submit"] {
+    padding: 10px 16px;
+    background-color: #242424;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all 0.15s;
+    width: 100%;
+}
+
+
+.divider {
+    display: flex;
+    width: 100%;
+    gap: 4px;
+    align-items: center;
+}
+
+.line {
+    flex: 1;
+    height: 1px;
+    background-color: var(--border-100);
+}
+
+.or {
+    font-size: var(--font-size-sm);
+    padding: 0 8px;
+    opacity: 0.8;
+}
+
+
+.oauthBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border-100);
+    background-color: var(--bg-00);
+    gap: 8px;
+}
+
+.oauthBtn:hover {
+    background-color: var(--bg-02);
+}
+
+.oauthBtn p {
+    font-size: var(--font-size-sm);
+    font-weight: 400;
+}
