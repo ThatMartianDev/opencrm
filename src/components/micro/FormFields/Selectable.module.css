@@ -1,0 +1,44 @@
+.selectable {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.selectable input {
+    display: none;
+}
+
+.selectable.active .checkmark {
+    background-color: #1a1a1a;
+    border-color: #1a1a1a;
+}
+
+.checkmark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--border-200);
+    background-color: var(--bg-00);
+    transition: all 0.1s ease;
+}
+
+.checkmark svg {
+    width: 12px;
+    height: 12px;
+    color: var(--bg-00);
+}
+
+.selectable.isCheckbox .checkmark {
+    border-radius: 4px;
+}
+.selectable.isRadio .checkmark {
+    border-radius: 50%;
+}
+
+.label {
+    font-size: var(--font-size-xs);
+    text-align: left;
+}

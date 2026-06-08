@@ -76,7 +76,7 @@ export const NotesService = {
     });
   },
 
-  async deleteNote(input: {
+  async deleteNote(data: {
     noteId: string;
     organizationId: string;
     memberId: string;
@@ -84,9 +84,9 @@ export const NotesService = {
   }) {
     const result = await prisma.note.deleteMany({
       where: {
-        id: input.noteId,
-        organizationId: input.organizationId,
-        ...(input.canDeleteAny ? {} : { createdById: input.memberId }),
+        id: data.noteId,
+        organizationId: data.organizationId,
+        ...(data.canDeleteAny ? {} : { createdById: data.memberId }),
       },
     });
 
@@ -96,8 +96,8 @@ export const NotesService = {
 
     const noteExists = await prisma.note.findFirst({
       where: {
-        id: input.noteId,
-        organizationId: input.organizationId,
+        id: data.noteId,
+        organizationId: data.organizationId,
       },
       select: { id: true },
     });

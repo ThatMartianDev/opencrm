@@ -1,0 +1,383 @@
+.backdrop {
+    position: fixed;
+    inset: 0;
+    background: transparent;
+    z-index: 1600;
+}
+
+.dateTimePopover {
+    position: fixed;
+    width: min(500px, calc(100vw - 16px));
+    /* max-height: min(700px, calc(100vh - 16px)); */
+    overflow: auto;
+    border: 1px solid var(--border-100);
+    border-radius: 12px;
+    background: var(--bg-00);
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.16);
+    z-index: 1601;
+}
+
+.tabBar {
+    display: flex;
+    border-bottom: 1px solid var(--border-100);
+    padding: 8px 12px 0;
+    gap: 6px;
+}
+
+.tabBar button {
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.tabActive {
+    background: var(--bg-00);
+    color: var(--text-primary) !important;
+    border-color: var(--border-100) !important;
+}
+
+.sliderViewport {
+    overflow: hidden;
+}
+
+.sliderTrack {
+    width: 100%;
+    transition: transform .26s;
+    display: grid;
+    grid-template-columns: 100% 100%;
+}
+
+.tabPanel {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.panelLayout {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+}
+
+.quickPanel {
+    border-right: 1px solid var(--border-100);
+    display: flex;
+    flex-direction: column;
+    align-self: start;
+    padding: 2px;
+    height: 100%;
+}
+
+.quickTitle {
+    display: none;
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.quickSubtitle {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.quickAction {
+    border-radius: 8px;
+    background: var(--bg-00);
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.quickAction small {
+    font-size: .75rem;
+    opacity: 0.5;
+    font-weight: 500;
+}
+
+.quickAction:hover {
+    background: var(--bg-02);
+}
+
+.quickActionActive {
+    background: var(--bg-03);
+}
+
+.detailPanel {
+    min-width: 0;
+    padding: 12px;
+}
+
+.datePicker {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.datePickerHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.datePickerHeader select {
+    flex: 1;
+    min-width: 0;
+    padding: 7px 10px;
+    border: 1px solid var(--border-100);
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    background: var(--bg-00);
+    outline: none;
+}
+
+.nav_btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border-100);
+    border-radius: 8px;
+    background: var(--bg-00);
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.nav_btn:hover {
+    background: var(--bg-01);
+}
+
+.weekDays {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 3px;
+}
+
+.weekDay {
+    text-align: center;
+    color: var(--text-tertiary);
+    padding: 4px 0;
+    font-size: var(--font-size-xs);
+    font-weight: 400;
+}
+
+.dates {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 3px;
+}
+
+.date {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 1;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 0.8125rem;
+    cursor: pointer;
+}
+
+.date:hover {
+    background: var(--bg-04);
+}
+
+.date.today::after {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    background: #1a1a1a;
+    border-radius: 50%;
+    height: 6px;
+    width: 6px;
+}
+.date.selectedDate.today::after {
+    background: #fff;
+}
+
+.otherMonth {
+    color: var(--text-tertiary);
+    opacity: 0.45;
+    cursor: default;
+}
+
+.otherMonth:hover {
+    background: transparent;
+}
+
+.selectedDate {
+    background: #1a1a1a;
+    color: #fff;
+}
+
+.selectedDate:hover {
+    background: #1a1a1ad3;
+}
+
+.timePickersRow {
+    display: grid;
+    grid-template-columns: 100%;
+    gap: 12px;
+    padding-top: 12px;
+}
+
+.timePicker {
+    border: 1px solid var(--border-100);
+    border-radius: 10px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.timeLabel {
+    margin: 0;
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.timePickerRow {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-around;
+}
+
+.periodToggle {
+    border: 1px solid var(--border-100);
+    border-radius: 8px;
+    overflow: hidden;
+    display: inline-flex;
+}
+
+.periodToggle button {
+    border: none;
+    background: var(--bg-04);
+    padding: 8px 10px;
+    font-size: var(--font-size-xs);
+    font-weight: 400;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+}
+
+.periodToggle button+button {
+    border-left: 1px solid var(--border-100);
+}
+
+.periodToggle button.periodActive {
+    background: var(--bg-00);
+    font-weight: 500;
+    opacity: 1;
+}
+
+.timeFields {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.colon {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.spinner {
+    border: 1px solid var(--border-100);
+    border-radius: 8px;
+    overflow: hidden;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 58px;
+}
+
+.spinnerArrow {
+    border: none;
+    background: var(--bg-00);
+    color: var(--text-secondary);
+    height: 18px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.spinnerArrow:hover {
+    background: var(--bg-01);
+}
+
+.spinnerInput {
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-size: 0.875rem;
+    font-weight: 700;
+    height: 26px;
+    outline: none;
+}
+
+.popoverFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 8px;
+    border-top: 1px solid var(--border-100);
+}
+
+.secondaryFooterButton {
+    border: 1px solid var(--border-100);
+    border-radius: 8px;
+    background: var(--bg-00);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    padding: 7px 12px;
+    cursor: pointer;
+}
+
+.secondaryFooterButton:hover {
+    border-color: var(--accent-primary);
+}
+
+.doneButton {
+    border: none;
+    border-radius: 8px;
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    padding: 7px 12px;
+    cursor: pointer;
+}
+
+.doneButton:hover {
+    opacity: 0.9;
+}
+
+@media (max-width: 860px) {
+    .dateTimePopover {
+        width: calc(100vw - 12px);
+    }
+
+    .panelLayout {
+        grid-template-columns: 1fr;
+    }
+
+    .timePickersRow {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,31 @@
+.selector {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border-200);
+    border-radius: 8px;
+    overflow: hidden;
+    padding: 2px;
+    background: var(--bg-03);
+}
+
+.option {
+    padding: 6px 14px;
+    font-size: var(--font-size-xs);
+    font-weight: 400;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border-radius: 4px;
+    opacity: 0.7;
+}
+
+.option:hover {
+    background: var(--bg-01);
+}
+
+.option.active {
+    background: var(--bg-00);
+    font-weight: 600;
+    opacity: 1;
+}

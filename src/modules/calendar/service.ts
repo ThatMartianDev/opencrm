@@ -1,7 +1,15 @@
 import { prisma } from "@/lib/db/client";
+import { Prisma } from "@/generated/prisma/client";
 import { refreshAccessToken } from "@/lib/auth/google";
 
 const GOOGLE_CALENDAR_API = "https://www.googleapis.com/calendar/v3";
+
+type GoogleCalendarConferenceData = {
+  entryPoints?: Array<{
+    entryPointType?: string;
+    uri?: string;
+  }>;
+};
 
 type GoogleCalendarEvent = {
   id: string;
@@ -12,6 +20,8 @@ type GoogleCalendarEvent = {
   end: { dateTime?: string; date?: string };
   status?: string;
   htmlLink?: string;
+  hangoutLink?: string;
+  conferenceData?: GoogleCalendarConferenceData;
   attendees?: Array<{
     email: string;
     displayName?: string;
@@ -24,6 +34,40 @@ type GoogleCalendarListResponse = {
   nextSyncToken?: string;
   nextPageToken?: string;
 };
+
+function extractMeetingLink(event: Pick<GoogleCalendarEvent, "hangoutLink" | "conferenceData">): string | null {
+  if (event.hangoutLink?.trim()) {
+    return event.hangoutLink.trim();
+  }
+
+  const videoEntry = event.conferenceData?.entryPoints?.find(
+    (entry) => entry.entryPointType === "video" && !!entry.uri?.trim()
+  );
+
+  return videoEntry?.uri?.trim() || null;
+}
+
+function mergeMeetingLinkIntoDescription(
+  description: string | null | undefined,
+  meetingLink: string | null | undefined
+): string | null {
+  const normalizedDescription = description?.trim() || "";
+  const normalizedMeetingLink = meetingLink?.trim() || "";
+
+  if (!normalizedMeetingLink) {
+    return normalizedDescription || null;
+  }
+
+  if (normalizedDescription.includes(normalizedMeetingLink)) {
+    return normalizedDescription;
+  }
+
+  const meetingLine = `Meeting link: ${normalizedMeetingLink}`;
+
+  return normalizedDescription
+    ? `${normalizedDescription}\n\n${meetingLine}`
+    : meetingLine;
+}
 
 /**
  * Get a valid access token for the user's calendar account.
@@ -125,6 +169,7 @@ export async function syncCalendarEvents(
         maxResults: "250",
         singleEvents: "true",
         orderBy: "startTime",
+        conferenceDataVersion: "1",
       });
 
       if (syncToken) {
@@ -197,19 +242,23 @@ export async function syncCalendarEvents(
       if (!startTime || !endTime) continue;
 
       const allDay = !event.start?.dateTime;
+      const descriptionWithMeetingLink = mergeMeetingLinkIntoDescription(
+        event.description || null,
+        extractMeetingLink(event)
+      );
 
       await prisma.calendarEvent.upsert({
         where: { userId_googleEventId: { userId, googleEventId: event.id } },
         update: {
           title: event.summary || "(No title)",
-          description: event.description || null,
+          description: descriptionWithMeetingLink,
           location: event.location || null,
           startTime,
           endTime,
           allDay,
           status: event.status || null,
           htmlLink: event.htmlLink || null,
-          attendees: event.attendees || null,
+          attendees: event.attendees ?? Prisma.JsonNull,
           syncedAt: new Date(),
         },
         create: {
@@ -217,14 +266,14 @@ export async function syncCalendarEvents(
           userId,
           organizationId,
           title: event.summary || "(No title)",
-          description: event.description || null,
+          description: descriptionWithMeetingLink,
           location: event.location || null,
           startTime,
           endTime,
           allDay,
           status: event.status || null,
           htmlLink: event.htmlLink || null,
-          attendees: event.attendees || null,
+          attendees: event.attendees ?? Prisma.JsonNull,
         },
       });
 
@@ -259,6 +308,8 @@ export async function createCalendarEvent(
     title: string;
     description?: string;
     location?: string;
+    meetingLink?: string;
+    autoGoogleMeet?: boolean;
     startTime: Date;
     endTime: Date;
     allDay?: boolean;
@@ -272,10 +323,13 @@ export async function createCalendarEvent(
   if (!tokenResult) throw new Error("Google Calendar not connected");
 
   const { accessToken } = tokenResult;
+  const manualMeetingLink = event.location?.trim() || null;
+  const shouldAutoCreateGoogleMeet = !!event.autoGoogleMeet && !event.allDay && !manualMeetingLink;
+  const descriptionWithManualMeetingLink = mergeMeetingLinkIntoDescription(event.description, manualMeetingLink);
 
   const body: Record<string, unknown> = {
     summary: event.title,
-    description: event.description,
+    description: descriptionWithManualMeetingLink,
     location: event.location,
   };
 
@@ -300,7 +354,20 @@ export async function createCalendarEvent(
     body.attendees = event.attendees.map((a) => ({ email: a.email }));
   }
 
-  const response = await fetch(`${GOOGLE_CALENDAR_API}/calendars/primary/events`, {
+  if (shouldAutoCreateGoogleMeet) {
+    body.conferenceData = {
+      createRequest: {
+        requestId: crypto.randomUUID(),
+        conferenceSolutionKey: { type: "hangoutsMeet" },
+      },
+    };
+  }
+
+  const createEventEndpoint = shouldAutoCreateGoogleMeet
+    ? `${GOOGLE_CALENDAR_API}/calendars/primary/events?conferenceDataVersion=1`
+    : `${GOOGLE_CALENDAR_API}/calendars/primary/events`;
+
+  const response = await fetch(createEventEndpoint, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -315,6 +382,11 @@ export async function createCalendarEvent(
   }
 
   const created: GoogleCalendarEvent = await response.json();
+  const resolvedMeetingLink = extractMeetingLink(created) || manualMeetingLink;
+  const descriptionWithMeetingLink = mergeMeetingLinkIntoDescription(
+    created.description || descriptionWithManualMeetingLink,
+    resolvedMeetingLink
+  );
 
   // Store locally with CRM links
   const calendarEvent = await prisma.calendarEvent.create({
@@ -323,14 +395,14 @@ export async function createCalendarEvent(
       userId,
       organizationId,
       title: created.summary || event.title,
-      description: created.description || event.description || null,
+      description: descriptionWithMeetingLink,
       location: created.location || event.location || null,
       startTime: event.startTime,
       endTime: event.endTime,
       allDay: event.allDay || false,
       status: created.status || "confirmed",
       htmlLink: created.htmlLink || null,
-      attendees: created.attendees || null,
+      attendees: created.attendees ?? Prisma.JsonNull,
       dealId: event.dealId || null,
       contactId: event.contactId || null,
       companyId: event.companyId || null,
@@ -338,6 +410,153 @@ export async function createCalendarEvent(
   });
 
   return calendarEvent.id;
+}
+
+/**
+ * Update a calendar event in Google Calendar and locally
+ */
+export async function updateCalendarEvent(
+  eventId: string,
+  userId: string,
+  data: {
+    title: string;
+    description?: string;
+    location?: string;
+    autoGoogleMeet?: boolean;
+    startTime: Date;
+    endTime: Date;
+    allDay?: boolean;
+    attendees?: Array<{ email: string }>;
+    contactId?: string;
+    companyId?: string;
+  }
+): Promise<void> {
+  const calendarEvent = await prisma.calendarEvent.findFirst({
+    where: { id: eventId, userId },
+  });
+  if (!calendarEvent) throw new Error("Event not found");
+
+  const tokenResult = await getValidAccessToken(userId);
+  if (!tokenResult) throw new Error("Google Calendar not connected");
+
+  const { accessToken } = tokenResult;
+  const manualMeetingLink = data.location?.trim() || null;
+  const shouldAutoCreateGoogleMeet = !!data.autoGoogleMeet && !data.allDay && !manualMeetingLink;
+  const descriptionWithManualMeetingLink = mergeMeetingLinkIntoDescription(data.description, manualMeetingLink);
+
+  const body: Record<string, unknown> = {
+    summary: data.title,
+    description: descriptionWithManualMeetingLink,
+    location: data.location,
+  };
+
+  if (data.allDay) {
+    const startDateStr = data.startTime.toISOString().split("T")[0];
+    const endDate = new Date(data.endTime);
+    endDate.setDate(endDate.getDate() + 1);
+    const endDateStr = endDate.toISOString().split("T")[0];
+    body.start = { date: startDateStr };
+    body.end = { date: endDateStr };
+  } else {
+    const end = data.endTime > data.startTime
+      ? data.endTime
+      : new Date(data.startTime.getTime() + 60 * 60 * 1000);
+    body.start = { dateTime: data.startTime.toISOString() };
+    body.end = { dateTime: end.toISOString() };
+  }
+
+  if (data.attendees?.length) {
+    body.attendees = data.attendees.map((a) => ({ email: a.email }));
+  }
+
+  if (shouldAutoCreateGoogleMeet) {
+    body.conferenceData = {
+      createRequest: {
+        requestId: crypto.randomUUID(),
+        conferenceSolutionKey: { type: "hangoutsMeet" },
+      },
+    };
+  }
+
+  const updateEventEndpoint = shouldAutoCreateGoogleMeet
+    ? `${GOOGLE_CALENDAR_API}/calendars/primary/events/${calendarEvent.googleEventId}?conferenceDataVersion=1`
+    : `${GOOGLE_CALENDAR_API}/calendars/primary/events/${calendarEvent.googleEventId}`;
+
+  const response = await fetch(
+    updateEventEndpoint,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to update calendar event: ${error}`);
+  }
+
+  const updated: GoogleCalendarEvent = await response.json();
+  const resolvedMeetingLink = extractMeetingLink(updated) || manualMeetingLink;
+  const descriptionWithMeetingLink = mergeMeetingLinkIntoDescription(
+    updated.description || descriptionWithManualMeetingLink,
+    resolvedMeetingLink
+  );
+
+  await prisma.calendarEvent.update({
+    where: { id: eventId },
+    data: {
+      title: updated.summary || data.title,
+      description: descriptionWithMeetingLink,
+      location: updated.location || data.location || null,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      allDay: data.allDay || false,
+      status: updated.status || "confirmed",
+      htmlLink: updated.htmlLink || null,
+      attendees: updated.attendees ?? Prisma.JsonNull,
+      contactId: data.contactId || null,
+      companyId: data.companyId || null,
+      syncedAt: new Date(),
+    },
+  });
+}
+
+/**
+ * Delete a calendar event from Google Calendar and locally
+ */
+export async function deleteCalendarEvent(
+  eventId: string,
+  userId: string
+): Promise<void> {
+  const calendarEvent = await prisma.calendarEvent.findFirst({
+    where: { id: eventId, userId },
+  });
+  if (!calendarEvent) throw new Error("Event not found");
+
+  const tokenResult = await getValidAccessToken(userId);
+  if (!tokenResult) throw new Error("Google Calendar not connected");
+
+  const { accessToken } = tokenResult;
+
+  const response = await fetch(
+    `${GOOGLE_CALENDAR_API}/calendars/primary/events/${calendarEvent.googleEventId}`,
+    {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }
+  );
+
+  // 204 = success, 410 = already deleted
+  if (!response.ok && response.status !== 410) {
+    const error = await response.text();
+    throw new Error(`Failed to delete calendar event: ${error}`);
+  }
+
+  await prisma.calendarEvent.delete({ where: { id: eventId } });
 }
 
 /**
@@ -352,8 +571,10 @@ export async function getCalendarEvents(
     where: {
       userId,
       organizationId,
-      startTime: { gte: options.start },
-      endTime: { lte: options.end },
+      AND: [
+        { startTime: { lt: options.end } },
+        { endTime: { gt: options.start } },
+      ],
     },
     include: {
       deal: { select: { id: true, title: true, stage: true } },
@@ -412,7 +633,7 @@ async function autoLinkCalendarEvents(userId: string, organizationId: string): P
       dealId: null,
       contactId: null,
       companyId: null,
-      attendees: { not: null },
+      attendees: { not: Prisma.AnyNull },
     },
   });
 

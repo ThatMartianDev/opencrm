@@ -77,3 +77,37 @@
 .pickerTrigger:hover {
     border-color: var(--accent-primary);
 }
+
+.whenTrigger {
+    text-align: left;
+    color: var(--text-tertiary);
+    background: var(--bg-00);
+}
+
+.whenValueFilled {
+    color: var(--text-primary);
+}
+
+.moreOptionsToggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 0;
+    background: none;
+    border: none;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--accent-primary);
+    cursor: pointer;
+}
+
+.moreOptionsToggle:hover {
+    opacity: 0.8;
+}
+
+.moreOptions {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-top: 4px;
+}

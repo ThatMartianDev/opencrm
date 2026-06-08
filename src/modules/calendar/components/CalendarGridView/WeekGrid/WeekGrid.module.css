@@ -1,0 +1,129 @@
+.weekGrid {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    margin: 20px;
+    margin-top: 0;
+    border-radius: 20px;
+    border: 1px solid var(--border-200);
+}
+
+.header {
+    display: grid;
+    border-bottom: 1px solid var(--border-100);
+    position: sticky;
+    top: 0;
+    background: var(--bg-primary, #fff);
+    z-index: 2;
+}
+
+
+.header,
+.allDayRow {
+    grid-template-columns: 60px repeat(7, 1fr);
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+
+.timeGutter {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 60px;
+    min-width: 60px;
+    min-height: 48px;
+    padding: 6px;
+    background-color: var(--bg-02);
+}
+
+.timeLabel {
+    font-size: 11px;
+    color: var(--text-secondary, #666);
+    white-space: nowrap;
+}
+
+.dayHeader {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2px;
+    padding: 8px;
+    display: flex;
+    border-left: 1px solid var(--border-100);
+}
+
+.todayHeader {
+    color: rgba(156, 39, 176, 1);
+}
+
+.dayName {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-secondary, #666);
+}
+
+.todayHeader .dayName {
+    color: #1a1a1a;
+}
+
+.dayNum {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary, #1a1a1a);
+}
+
+.todayNum {
+    background: var(--gradient-1);
+    color: #fff;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.allDayRow {
+    display: grid;
+    border-bottom: 1px solid var(--border-100);
+    min-height: 32px;
+}
+
+.allDayCell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 2px 4px;
+    border-left: 1px solid var(--border-100);
+}
+
+.timeGrid {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.hourRow {
+    display: grid;
+    grid-template-columns: 60px repeat(7, 1fr);
+    border-bottom: 1px solid var(--border-100);
+    height: max-content;
+}
+
+.hourCell {
+    border-left: 1px solid var(--border-100);
+    padding: 2px 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.hourCell.dragSelected {
+    background: rgba(156, 39, 176, 0.08);
+}

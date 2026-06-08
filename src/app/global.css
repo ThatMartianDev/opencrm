@@ -11,6 +11,12 @@
     --background-color: #FFFFFF;
     --text-color: #111111;
 
+    --gradient-1: radial-gradient(circle at 0 0, #f07548 0%, #6d3a92 70%, #0e76b9 100%);
+
+    --contact-color: rgb(109, 58, 146);
+    --company-color: rgb(14, 118, 185);
+    --deal-color: rgb(0, 130, 54);
+
     --bg-00: #FFF;
     --bg-01: #F3F4F6;
     --bg-02: #FBFBFB;

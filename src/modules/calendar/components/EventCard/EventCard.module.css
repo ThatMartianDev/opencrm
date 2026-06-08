@@ -1,9 +1,11 @@
 .card {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
     gap: 4px;
-    padding: 2px 6px;
-    border-radius: 4px;
+    padding: 8px;
+    border-radius: 8px;
     border: none;
     cursor: pointer;
     font-size: 11px;
@@ -11,6 +13,9 @@
     width: 100%;
     transition: opacity 0.15s;
     overflow: hidden;
+    min-height: 80px;
+    background: var(--bg-02);
+    border: 1px solid var(--border-300);
 }
 
 .card:hover {
@@ -20,34 +25,34 @@
 .card.deal {
     background: rgba(14, 118, 185, 0.12);
     color: rgba(14, 118, 185, 1);
+    border-color: rgba(14, 118, 185, 0.3);
 }
 
 .card.contact {
     background: rgba(76, 175, 80, 0.12);
     color: rgba(56, 142, 60, 1);
+    border-color: rgba(56, 142, 60, 0.3);
 }
 
 .card.company {
     background: rgba(255, 152, 0, 0.12);
     color: rgba(230, 126, 0, 1);
+    border-color: rgba(230, 126, 0, 0.3);
 }
 
-.card.default {
-    background: rgba(156, 39, 176, 0.1);
-    color: rgba(156, 39, 176, 1);
+
+.title {
+    font-size: var(--font-size-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
 }
 
 .time {
     flex-shrink: 0;
     font-weight: 600;
-    font-size: 10px;
-}
-
-.title {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex: 1;
+    font-size: var(--font-size-xs);
 }
 
 .linked {

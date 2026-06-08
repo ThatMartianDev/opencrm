@@ -161,6 +161,9 @@ export const DealsService = {
     organizationId: string,
     memberId: string,
   ) {
+    const deal = await prisma.deal.findFirst({ where: { id: dealId, organizationId, deletedAt: null } });
+    if (!deal) throw new Error("Deal not found");
+
     const updated = await prisma.deal.update({
       where: { id: dealId },
       data: { assignedToId },
@@ -189,6 +192,9 @@ export const DealsService = {
     organizationId: string,
     memberId: string,
   ) {
+    const deal = await prisma.deal.findFirst({ where: { id: dealId, organizationId, deletedAt: null } });
+    if (!deal) throw new Error("Deal not found");
+
     const updated = await prisma.deal.update({
       where: { id: dealId },
       data: { [field]: value },

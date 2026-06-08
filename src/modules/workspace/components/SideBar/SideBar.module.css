@@ -98,7 +98,7 @@
     justify-content: center;
     padding: 2px;
     border-radius: 8px;
-    background-image: radial-gradient(circle at top left, #F07548 0%, #6D3A92 70%, #0E76B9 100%);
+    background-image: var(--gradient-1);
     width: 24px;
     aspect-ratio: 1 / 1;
 }

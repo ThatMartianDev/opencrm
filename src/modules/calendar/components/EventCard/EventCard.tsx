@@ -21,11 +21,20 @@ const EventCard = ({ event, onClick }: EventCardProps) => {
     : Styles.default;
 
   return (
-    <button className={`${Styles.card} ${colorClass}`} onClick={onClick}>
+    <button
+      type="button"
+      data-calendar-event-card="true"
+      className={`${Styles.card} ${colorClass}`}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+    >
+      <span className={Styles.title}>{event.title}</span>
       <span className={Styles.time}>
         {event.allDay ? "All day" : format(new Date(event.startTime), "h:mm a")}
       </span>
-      <span className={Styles.title}>{event.title}</span>
       {hasLink && <span className={Styles.linked}>●</span>}
     </button>
   );

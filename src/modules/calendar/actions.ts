@@ -5,6 +5,8 @@ import {
   syncCalendarEvents,
   getCalendarEvents,
   createCalendarEvent,
+  updateCalendarEvent,
+  deleteCalendarEvent,
   linkCalendarEvent,
   unlinkCalendarEvent,
   disconnectCalendar,
@@ -41,6 +43,8 @@ export async function createEvent(data: {
   title: string;
   description?: string;
   location?: string;
+  meetingLink?: string;
+  autoGoogleMeet?: boolean;
   startTime: string;
   endTime: string;
   allDay?: boolean;
@@ -73,6 +77,47 @@ export async function linkEvent(
     return { success: true };
   } catch {
     return { success: false, error: "Failed to link event" };
+  }
+}
+
+export async function updateEvent(
+  eventId: string,
+  data: {
+    title: string;
+    description?: string;
+    location?: string;
+    meetingLink?: string;
+    autoGoogleMeet?: boolean;
+    startTime: string;
+    endTime: string;
+    allDay?: boolean;
+    attendees?: Array<{ email: string }>;
+    contactId?: string;
+    companyId?: string;
+  }
+) {
+  const session = await getSessionClaims();
+  try {
+    await updateCalendarEvent(eventId, session.userId, {
+      ...data,
+      startTime: new Date(data.startTime),
+      endTime: new Date(data.endTime),
+    });
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to update event";
+    return { success: false, error: message };
+  }
+}
+
+export async function deleteEvent(eventId: string) {
+  const session = await getSessionClaims();
+  try {
+    await deleteCalendarEvent(eventId, session.userId);
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to delete event";
+    return { success: false, error: message };
   }
 }
 

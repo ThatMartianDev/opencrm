@@ -125,6 +125,9 @@ export const TasksService = {
         organizationId: string,
         memberId: string,
     ) {
+        const task = await prisma.task.findFirst({ where: { id: taskId, organizationId, deletedAt: null } });
+        if (!task) throw new Error("Task not found");
+
         const updated = await prisma.task.update({
             where: { id: taskId },
             data,
