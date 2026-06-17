@@ -12,6 +12,7 @@ import { getContacts } from "@/modules/contacts/actions";
 import { getCompanies } from "@/modules/companies/actions";
 import { useToast } from "@/components/macro/Toaster";
 import Styles from "./NoteModal.module.css";
+import S from "@/components/macro/ModalProvider/SharedStyles.module.css";
 import MainButton from "@/components/micro/MainButton/MainButton";
 
 type RecordOption = { id: string; label: string; type: "deal" | "contact" | "company" };
@@ -143,20 +144,20 @@ const NoteModal = ({ onClose, id, dealId, contactId, companyId }: NoteModalProps
     if (loading) return null;
 
     return (
-        <div className={Styles.noteModal} onKeyDown={handleKeyDown}>
-            <div className={Styles.noteModalHeader}>
+        <div className={S.modalCard} onKeyDown={handleKeyDown}>
+            <div className={S.modalHeader}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <NoteRegular fontSize={18} />
-                    <p style={{ fontSize: "var(--font-size-sm)", fontWeight: 600 }}>
+                    <NoteRegular fontSize={20} />
+                    <h2>
                         {isEditing ? "Edit note" : "New note"}
-                    </p>
+                    </h2>
                 </div>
-                <button className={Styles.closeBtn} onClick={onClose}>
+                <button className={S.closeBtn} onClick={onClose}>
                     <DismissRegular fontSize={16} />
                 </button>
             </div>
 
-            <div className={Styles.noteModalBody}>
+            <div className={S.modalBody}>
                 <input
                     className={Styles.titleInput}
                     type="text"
@@ -216,7 +217,7 @@ const NoteModal = ({ onClose, id, dealId, contactId, companyId }: NoteModalProps
                 />
             </div>
 
-            <div className={Styles.noteModalFooter}>
+            <div className={S.modalFooter}>
                 <MainButton type="secondary" text={isEditing ? "Discard changes" : "Discard"} onClick={onClose} />
                 <MainButton type="primary" text={isEditing ? "Save changes" : "Create note"} onClick={handleSave} />
             </div>

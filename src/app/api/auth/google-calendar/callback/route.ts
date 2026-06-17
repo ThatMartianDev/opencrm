@@ -69,7 +69,8 @@ export async function GET(request: NextRequest) {
     // Upsert the google_calendar account row
     await prisma.account.upsert({
       where: {
-        provider_providerAccountId: {
+        userId_provider_providerAccountId: {
+          userId: session.userId,
           provider: "google_calendar",
           providerAccountId,
         },

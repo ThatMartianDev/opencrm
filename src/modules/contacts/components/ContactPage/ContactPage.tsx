@@ -10,6 +10,8 @@ import {
     FolderFilled,
     NoteAddRegular,
     TaskListSquareAddRegular,
+    MailRegular,
+    MailFilled,
 } from "@fluentui/react-icons";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -25,6 +27,7 @@ import DealsTab from "./tabs/Deals";
 import NotesTab from "./tabs/Notes";
 import FilesTab from "./tabs/Files";
 import Styles from "./ContactPage.module.css";
+import EmailsTab from "./tabs/Emails";
 
 const tabs = [
     { label: "Overview", id: "overview" },
@@ -40,6 +43,12 @@ const tabs = [
         color: "rgb(245, 197, 66)",
         icon: { regular: <FolderRegular />, filled: <FolderFilled /> },
     },
+    {
+        label: "Emails",
+        id: "emails",
+        color: "rgb(66, 133, 244)",
+        icon: { regular: <MailRegular />, filled: <MailFilled /> },
+    },
 ];
 
 const ContactPage = () => {
@@ -52,13 +61,13 @@ const ContactPage = () => {
         {
             id: "create_task",
             tooltip: "Create Task",
-            icon: <TaskListSquareAddRegular />,
+            icon: <TaskListSquareAddRegular color="#474747"/>,
             onClick: () => openModal("task", { contactId }),
         },
         {
             id: "create_note",
             tooltip: "Add Note",
-            icon: <NoteAddRegular />,
+            icon: <NoteAddRegular color="#474747"/>,
             onClick: () => openModal("note", { contactId }),
         },
     ];
@@ -116,6 +125,7 @@ const ContactPage = () => {
                 {activeTab === "overview" && <OverviewTab contact={contact} onRefresh={refreshContact} />}
                 {activeTab === "notes" && <NotesTab contactId={contact.id} />}
                 {activeTab === "files" && <FilesTab contactId={contact.id} />}
+                {activeTab === "emails" && <EmailsTab contactId={contact.id} />}
             </div>
         </div>
     );

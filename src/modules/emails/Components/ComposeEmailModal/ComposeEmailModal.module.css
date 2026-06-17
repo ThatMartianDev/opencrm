@@ -1,0 +1,237 @@
+#composeEmailModal {
+    width: 700px;
+}
+
+.recipientsWrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+
+
+.formField {
+    display: grid;
+    grid-template-columns: calc(var(--font-size-sm) * 5) 1fr;
+    column-gap: 4px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    margin-bottom: 8px;
+}
+
+.formField label {
+    font-size: var(--font-size-sm);
+    opacity: 0.6;
+    padding: 6px;
+}
+
+.formField input {
+    padding: 6px 8px;
+    background-color: var(--bg-00);
+    font-size: var(--font-size-sm);
+    border-radius: 8px;
+}
+.formField input:focus {
+    outline: 1px solid var(--border-100);
+}
+
+/* ---- Rich body editor ---- */
+
+.BodyInput {
+    display: grid;
+    grid-template-columns: 100%;
+    width: 100%;
+}
+
+.bodyEditorWrap {
+    width: 100%;
+    background-color: var(--bg-00);
+    border-radius: 8px;
+    border: 1px solid var(--border-100);
+    overflow: hidden;
+}
+
+.editorToolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px;
+    border-top: 1px solid var(--border-100);
+    background-color: var(--bg-02);
+}
+
+.toolbarBtn {
+    border: 1px solid var(--border-100);
+    background-color: var(--bg-00);
+    color: var(--text-100);
+    border-radius: 6px;
+    font-size: var(--font-size-sm);
+    line-height: 1;
+    padding: 5px 8px;
+    cursor: pointer;
+    min-width: 28px;
+    border: 1px solid var(--border-100);
+}
+.toolbarBtn.active {
+    border-color: var(--border-200);
+    background-color: var(--bg-04);
+}
+
+.toolbarBtn:has(svg) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+}
+
+.toolbarBtn:hover {
+    background-color: var(--bg-02);
+}
+
+.toolbarSep {
+    width: 1px;
+    height: 16px;
+    background-color: var(--border-100);
+    margin: 0 2px;
+}
+
+.editorInner {
+    position: relative;
+}
+
+.bodyEditor {
+    min-height: 150px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 10px;
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    outline: none;
+    word-break: break-word;
+}
+
+.bodyEditor > p {
+    margin: 0;
+}
+
+.editorPlaceholder {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: var(--font-size-sm);
+    opacity: 0.6;
+    pointer-events: none;
+    user-select: none;
+}
+
+
+.quoteBlockWrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 12px;
+}
+
+.showQuoteBtn {
+    display: flex;
+    align-self: flex-start;
+    border: none;
+    padding: 2px 4px;
+    border-radius: 6px;
+    gap: 8px;
+    cursor: pointer;
+    background-color: var(--bg-01);
+}
+
+.showQuoteBtn p {
+    font-size: var(--font-size-xs);
+}
+
+.quoteBlock {
+    border: 1px solid var(--border-100);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    color: var(--text-200);
+    overflow-x: auto;
+}
+
+/* Lexical theme classes */
+.editorBold { font-weight: bold; }
+.editorItalic { font-style: italic; }
+.editorUnderline { text-decoration: underline; }
+.editorStrikethrough { text-decoration: line-through; }
+.editorParagraph { margin: 0; }
+.editorLink {
+    color: #007bff;
+    text-decoration: underline;
+    padding: 2px;
+}
+
+.editorUl {
+    margin: 4px 0;
+    padding-left: 20px;
+    list-style-type: disc;
+}
+.editorOl {
+    margin: 4px 0;
+    padding-left: 20px;
+    list-style-type: decimal;
+}
+.editorListItem {
+    margin: 2px 0;
+}
+
+.recipient {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 6px;
+    border-radius: 8px;
+    background-color: var(--bg-02);
+    border: 1px solid var(--border-100);
+}
+.recipient p {
+    font-size: var(--font-size-sm);
+}
+
+.recipientInfo {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: max-content;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 4px;
+    background-color: var(--bg-00);
+    border-radius: 10px;
+    padding: 2px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: none;
+}
+.recipientInfo.show {
+    display: flex;
+}
+
+.recipientInfo > * {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 4px;
+    padding: 6px 8px;
+    font-size: var(--font-size-sm);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    width: 100%;
+    border-radius: 6px;
+}
+.recipientInfo > *:hover {
+    background-color: var(--bg-01);
+}
+
+

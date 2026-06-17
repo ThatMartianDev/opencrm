@@ -25,7 +25,8 @@ const RegisterPage = () => {
     const router = useRouter();
     const invitationToken = searchParams.get("invitation") || null;
 
-    const [step, setStep] = useState<Step>("email");
+    const initialStep = (searchParams.get("step") as Step) || "email";
+    const [step, setStep] = useState<Step>(initialStep);
     const [email, setEmail] = useState("");
     const [code, setCode] = useState("");
     const [password, setPassword_] = useState("");

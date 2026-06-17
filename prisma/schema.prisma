@@ -33,6 +33,7 @@ model Organization {
   files          File[]
   invitations    Invitation[]
   calendarEvents CalendarEvent[]
+  emails         Email[]
 
   @@map("organizations")
 }
@@ -69,7 +70,7 @@ model Account {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])
+  @@unique([userId, provider, providerAccountId])
   @@map("accounts")
 }
 
@@ -160,6 +161,7 @@ model Company {
   files          File[]          @relation("CompanyFiles")
   calendarEvents CalendarEvent[] @relation("CompanyCalendarEvents")
   linkedNotes    Note[]          @relation("CompanyNotes")
+  emails         Email[]         @relation("CompanyEmails")
 
   @@index([organizationId])
   @@index([organizationId, name])
@@ -191,6 +193,7 @@ model Contact {
   files          File[]          @relation("ContactFiles")
   calendarEvents CalendarEvent[] @relation("ContactCalendarEvents")
   linkedNotes    Note[]          @relation("ContactNotes")
+  emails         Email[]         @relation("ContactEmails")
 
   @@index([organizationId])
   @@index([organizationId, companyId])
@@ -233,6 +236,7 @@ model Deal {
   files          File[]          @relation("DealFiles")
   calendarEvents CalendarEvent[] @relation("DealCalendarEvents")
   linkedNotes    Note[]          @relation("DealNotes")
+  emails         Email[]         @relation("DealEmails")
 
   @@index([organizationId, stage])
   @@index([organizationId, assignedToId])
@@ -576,6 +580,61 @@ model CalendarEvent {
   @@index([organizationId, companyId])
   @@index([userId, startTime])
   @@map("calendar_events")
+}
+
+// ─── Mailbox ───
+
+model Email {
+  id                 String    @id @default(cuid())
+  provider           String    // "google_gmail" | "microsoft_outlook"
+  providerMessageId  String
+  providerThreadId   String
+  userId             String
+  organizationId     String
+
+  subject            String?
+  snippet            String?
+  body               String?   // Full decoded body (HTML preferred, fallback to plain)
+  from               String    // "Name <email@example.com>"
+  to                 String[]
+  cc                 String[]  @default([])
+  bcc                String[]  @default([])
+  replyTo            String?
+
+  isRead             Boolean   @default(false)
+  isStarred          Boolean   @default(false)
+  isSent             Boolean   @default(false)
+  isDraft            Boolean   @default(false)
+  isArchived         Boolean   @default(false)
+  labelIds           String[]  @default([])
+
+  hasAttachments     Boolean   @default(false)
+  sentAt             DateTime
+
+  // CRM entity links
+  dealId             String?
+  contactId          String?
+  companyId          String?
+
+  // Sync metadata
+  syncedAt           DateTime  @default(now())
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deal         Deal?        @relation("DealEmails", fields: [dealId], references: [id], onDelete: SetNull)
+  contact      Contact?     @relation("ContactEmails", fields: [contactId], references: [id], onDelete: SetNull)
+  company      Company?     @relation("CompanyEmails", fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, provider, providerMessageId])
+  @@index([organizationId, sentAt])
+  @@index([organizationId, providerThreadId])
+  @@index([userId, provider, isArchived, sentAt])
+  @@index([organizationId, dealId])
+  @@index([organizationId, contactId])
+  @@index([organizationId, companyId])
+  @@map("emails")
 }
 
 // ─── Notifications ───

@@ -13,6 +13,7 @@ import {
   AlertRegular,
   TaskListSquareLtrRegular,
   NoteRegular,
+  MailRegular,
   PeopleTeamRegular,
   SettingsRegular,
   PersonRegular,
@@ -166,6 +167,13 @@ const SideBar = () => {
           >
             <NoteRegular />
             <p>Notes</p>
+          </Link>
+          <Link
+            href={linksPrefix + "/emails"}
+            className={isActive(linksPrefix + "/emails") ? Styles.active : ""}
+          >
+            <MailRegular />
+            <p>Emails</p>
           </Link>
           <Link
             href={linksPrefix + "/calendar"}

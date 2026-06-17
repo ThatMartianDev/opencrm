@@ -71,10 +71,56 @@ export async function getCalendarStatus(): Promise<{ connected: boolean; scope: 
 
     const account = await prisma.account.findFirst({
         where: { userId: session.userId, provider: "google_calendar" },
-        select: { scope: true },
+        select: { scope: true, refreshToken: true },
     });
 
-    return { connected: !!account, scope: account?.scope ?? null };
+    return { connected: !!account?.refreshToken, scope: account?.scope ?? null };
+}
+
+export async function getGmailStatus(): Promise<{ connected: boolean; email: string | null; scope: string | null }> {
+    const session = await getSessionClaims();
+
+    const account = await prisma.account.findFirst({
+        where: { userId: session.userId, provider: "google_gmail" },
+        select: { providerAccountId: true, scope: true, refreshToken: true },
+    });
+
+    return {
+        connected: !!account?.refreshToken,
+        email: account?.providerAccountId ?? null,
+        scope: account?.scope ?? null,
+    };
+}
+
+export async function disconnectGmail(): Promise<{ success: boolean; error?: string }> {
+    const session = await getSessionClaims();
+
+    const account = await prisma.account.findFirst({
+        where: { userId: session.userId, provider: "google_gmail" },
+    });
+
+    if (!account) {
+        return { success: false, error: "No Gmail account connected" };
+    }
+
+    if (account.refreshToken) {
+        try {
+            await fetch(
+                `https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(account.refreshToken)}`,
+                { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+            );
+        } catch {
+            // Best effort
+        }
+    }
+
+    await prisma.email.deleteMany({
+        where: { userId: session.userId, organizationId: session.organizationId, provider: "google_gmail" },
+    });
+
+    await prisma.account.delete({ where: { id: account.id } });
+
+    return { success: true };
 }
 
 export async function disconnectCalendar(): Promise<{ success: boolean; error?: string }> {

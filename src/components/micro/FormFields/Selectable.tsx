@@ -5,15 +5,16 @@ import { CheckmarkFilled } from "@fluentui/react-icons"
 type CheckboxProps = {
     id?: string;
     isButton?: boolean;
-    isFormInput?: boolean;
+    isFormInput: boolean;
     label?: string;
     name: string;
     value: string | number;
     type?: "radio" | "checkbox";
+    icon?: React.ReactNode;
     onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-const Selectable = ({ id, isButton, isFormInput, label, name, value, type = "checkbox", onChange }: CheckboxProps) => {
+const Selectable = ({ id, isButton, isFormInput = true, label, name, value, type = "checkbox", icon, onChange }: CheckboxProps) => {
     const [isActive, setIsActive] = useState(false);
 
     if (isButton) {
@@ -40,6 +41,7 @@ const Selectable = ({ id, isButton, isFormInput, label, name, value, type = "che
                 <span className={Styles.checkmark}>
                     <CheckmarkFilled />
                 </span>
+                {icon && <span className={Styles.icon}>{icon}</span>}
                 <span className={Styles.label}>{label}</span>
             </label>
         )

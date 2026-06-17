@@ -9,10 +9,11 @@ import { NewCompanyModal } from "@/modules/companies";
 import { NewContactModal } from "@/modules/contacts";
 import InviteMemberModal from "@/modules/workspace/components/InviteMemberModal/InviteMemberModal";
 import CreateEventModal from "@/modules/calendar/components/CreateEventModal/CreateEventModal";
+import ComposeEmailModal from "@/modules/emails/Components/ComposeEmailModal/ComposeEmailModal";
 
 import Styles from "./ModalProvider.module.css";
 
-type ModalId = "new-deal" | "task" | "note" | "log-activity" | "new-company" | "new-contact" | "invite-member" | "calendar-event";
+type ModalId = "new-deal" | "task" | "note" | "log-activity" | "new-company" | "new-contact" | "invite-member" | "calendar-event" | "compose-email";
 
 type ModalState = {
     id: ModalId;
@@ -36,6 +37,7 @@ const MODAL_COMPONENTS: Record<ModalId, React.ComponentType<{ onClose: () => voi
     "new-contact": NewContactModal as React.ComponentType<{ onClose: () => void } & Record<string, unknown>>,
     "invite-member": InviteMemberModal as React.ComponentType<{ onClose: () => void } & Record<string, unknown>>,
     "calendar-event": CreateEventModal as React.ComponentType<{ onClose: () => void } & Record<string, unknown>>,
+    "compose-email": ComposeEmailModal as React.ComponentType<{ onClose: () => void } & Record<string, unknown>>,
 };
 
 export function ModalProvider({ children }: { children: ReactNode }) {

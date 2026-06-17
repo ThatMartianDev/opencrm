@@ -10,6 +10,12 @@ const CALENDAR_SCOPES = [
   "https://www.googleapis.com/auth/calendar.readonly",
 ].join(" ");
 
+const GMAIL_SCOPES = [
+  "https://www.googleapis.com/auth/gmail.modify",
+  "https://www.googleapis.com/auth/gmail.send",
+  "https://www.googleapis.com/auth/gmail.compose",
+].join(" ");
+
 function getGoogleCredentials() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -50,6 +56,23 @@ export function buildGoogleCalendarAuthUrl(state: string): string {
     redirect_uri: redirectUri,
     response_type: "code",
     scope: CALENDAR_SCOPES,
+    access_type: "offline",
+    prompt: "consent",
+    state,
+  });
+
+  return `${GOOGLE_AUTH_URL}?${params.toString()}`;
+}
+
+export function buildGoogleGmailAuthUrl(state: string): string {
+  const { clientId } = getGoogleCredentials();
+  const redirectUri = process.env.GOOGLE_GMAIL_REDIRECT_URI!
+
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: "code",
+    scope: GMAIL_SCOPES,
     access_type: "offline",
     prompt: "consent",
     state,
@@ -113,6 +136,31 @@ export async function exchangeCalendarCodeForTokens(code: string): Promise<Googl
   if (!response.ok) {
     const error = await response.text();
     throw new Error(`Google Calendar token exchange failed: ${error}`);
+  }
+
+  return response.json();
+}
+
+export async function exchangeGmailCodeForTokens(code: string): Promise<GoogleTokenResponse> {
+  const { clientId, clientSecret } = getGoogleCredentials();
+  const redirectUri = process.env.GOOGLE_GMAIL_REDIRECT_URI ||
+    process.env.GOOGLE_REDIRECT_URI!.replace("/auth/google/callback", "/auth/google-gmail/callback");
+
+  const response = await fetch(GOOGLE_TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      code,
+      client_id: clientId,
+      client_secret: clientSecret,
+      redirect_uri: redirectUri,
+      grant_type: "authorization_code",
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Google Gmail token exchange failed: ${error}`);
   }
 
   return response.json();

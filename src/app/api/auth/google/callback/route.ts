@@ -110,8 +110,8 @@ async function findOrCreateUser(
   tokens: { access_token: string; refresh_token?: string; expires_in: number; scope: string }
 ) {
   // Check if we already have an account linked to this Google ID
-  const existingAccount = await prisma.account.findUnique({
-    where: { provider_providerAccountId: { provider: "google", providerAccountId: googleUser.id } },
+  const existingAccount = await prisma.account.findFirst({
+    where: { provider: "google", providerAccountId: googleUser.id },
     include: { user: true },
   });
 

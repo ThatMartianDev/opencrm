@@ -13,7 +13,7 @@ const TasksTab = () => {
     }
 
     return (
-        <TaskList dealId={dealId} onCreateClick={handleCreateTask} showHeader={false} />
+        <TaskList dealId={dealId} showHeader={false} />
     );
 };
 

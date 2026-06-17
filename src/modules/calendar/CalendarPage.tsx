@@ -95,6 +95,11 @@ const CalendarPage = () => {
     const syncResult = await syncCalendar();
 
     if (!syncResult.success) {
+      const normalizedError = (syncResult.error || "").toLowerCase();
+      if (normalizedError.includes("reconnect") || normalizedError.includes("not connected")) {
+        setConnected(false);
+      }
+
       t.error({ title: "Sync failed", description: syncResult.error || "Something went wrong." });
       setSyncing(false);
       return;

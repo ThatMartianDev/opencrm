@@ -1,0 +1,175 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  gap: 0;
+}
+
+.listColumn {
+  display: flex;
+  flex-direction: column;
+  width: 340px;
+  min-width: 280px;
+  flex-shrink: 0;
+  overflow: hidden;
+  padding: 10px;
+  padding-right: 0;
+  z-index: 100;
+}
+
+.header {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 6px;
+  padding: 4px;
+  padding-bottom: 8px;
+  z-index: 100;
+}
+
+.header input {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background-color: var(--bg-00);
+  font-size: var(--font-size-xs);
+  border: 1px solid var(--border-100);
+}
+
+.header>button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 8px;
+  background-color: var(--bg-00);
+  border: 1px solid var(--border-100);
+}
+
+.header>button:hover {
+  background-color: var(--bg-02);
+  border-color: var(--border-100);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding-top: 40px;
+  padding-bottom: 90px;
+  margin: auto;
+  height: 100%;
+  width: 100%;
+  border-right: 1px solid var(--border-100);
+}
+
+.emptyState p {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  margin-top: 8px;
+}
+
+.emptyState i {
+  font-size: var(--font-size-xs);
+  font-style: normal;
+  opacity: 0.7;
+}
+
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  padding-bottom: 4px;
+  flex-shrink: 0;
+}
+
+.pageBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  background: var(--bg-surface, #fff);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary, #666);
+  font-size: 14px;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.pageBtn:hover:not(:disabled) {
+  background: var(--bg-hover, #f0f0f0);
+  border-color: #999;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.pageBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.pageInfo {
+  font-size: 13px;
+  color: var(--text-secondary, #666);
+  min-width: 48px;
+  text-align: center;
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  background: var(--bg-surface, #fff);
+  flex-shrink: 0;
+}
+
+.filterChip {
+  padding: 4px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  background: transparent;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-secondary, #666);
+  transition: all 0.1s;
+}
+
+.filterChip:hover {
+  border-color: var(--text-secondary, #666);
+  color: var(--text-primary, #1a1a1a);
+}
+
+.filterChipActive {
+  background: var(--text-primary, #1a1a1a);
+  border-color: var(--text-primary, #1a1a1a);
+  color: #fff;
+}
+
+.contactSelect {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  background: var(--bg-surface, #fff);
+  font-size: 13px;
+  color: var(--text-primary, #1a1a1a);
+  cursor: pointer;
+  outline: none;
+}
+
+.contactSelect:focus {
+  border-color: var(--accent, #4f6ef7);
+}

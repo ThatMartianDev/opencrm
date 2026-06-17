@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { getLinkedAccounts, disconnectAccount, LinkedAccount, getCalendarStatus, disconnectCalendar } from "./actions";
+import { getLinkedAccounts, disconnectAccount, LinkedAccount, getCalendarStatus, disconnectCalendar, getGmailStatus, disconnectGmail } from "./actions";
 import Styles from "./accounts.module.css";
 
 type Tab = "accounts" | "calendar" | "email";
@@ -66,14 +66,7 @@ export default function AccountsPage() {
 
             {activeTab === "calendar" && <CalendarTab />}
 
-            {activeTab === "email" && (
-                <div className={Styles.comingSoon}>
-                    <p className={Styles.comingSoonTitle}>Email Integration</p>
-                    <p className={Styles.comingSoonHint}>
-                        Connect your Gmail inbox to log emails and send messages from within the CRM. Coming soon.
-                    </p>
-                </div>
-            )}
+            {activeTab === "email" && <EmailTab />}
         </div>
     );
 }
@@ -216,5 +209,84 @@ function GoogleCalendarIcon() {
             <path d="M6 1v4M12 1v4" stroke="#4285F4" strokeWidth="1.5" strokeLinecap="round"/>
             <circle cx="9" cy="11" r="1.5" fill="#34A853"/>
         </svg>
+    );
+}
+
+function GmailIcon() {
+    return (
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 4h14v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4Z" stroke="#EA4335" strokeWidth="1.5" fill="none"/>
+            <path d="M2 4l7 6 7-6" stroke="#EA4335" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+    );
+}
+
+function EmailTab() {
+    const [connected, setConnected] = useState(false);
+    const [email, setEmail] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [disconnecting, setDisconnecting] = useState(false);
+
+    useEffect(() => {
+        getGmailStatus().then((status) => {
+            setConnected(status.connected);
+            setEmail(status.email);
+            setLoading(false);
+        });
+    }, []);
+
+    async function handleDisconnect() {
+        setDisconnecting(true);
+        const result = await disconnectGmail();
+        if (result.success) {
+            setConnected(false);
+            setEmail(null);
+        } else {
+            alert(result.error);
+        }
+        setDisconnecting(false);
+    }
+
+    if (loading) {
+        return <div className={Styles.emptyState}>Loading...</div>;
+    }
+
+    if (connected) {
+        return (
+            <div className={Styles.section}>
+                <div className={Styles.accountCard}>
+                    <div className={Styles.accountIcon}>
+                        <GmailIcon />
+                    </div>
+                    <div className={Styles.accountInfo}>
+                        <p className={Styles.accountProvider}>Gmail</p>
+                        <p className={Styles.accountDate}>{email}</p>
+                    </div>
+                    <button
+                        className={Styles.disconnectBtn}
+                        onClick={handleDisconnect}
+                        disabled={disconnecting}
+                    >
+                        {disconnecting ? "Disconnecting..." : "Disconnect"}
+                    </button>
+                </div>
+                <p className={Styles.calendarHint}>
+                    Your Gmail is connected. Emails sync automatically to contacts, deals, and companies.
+                </p>
+            </div>
+        );
+    }
+
+    return (
+        <div className={Styles.section}>
+            <p className={Styles.calendarDescription}>
+                Connect your Gmail account to send and receive emails directly inside OpenCRM.
+                Emails are automatically linked to your contacts, deals, and companies.
+            </p>
+            <a href="/api/auth/google-gmail" className={Styles.connectBtn}>
+                <GmailIcon />
+                Connect Gmail
+            </a>
+        </div>
     );
 }

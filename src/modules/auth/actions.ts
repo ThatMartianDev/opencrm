@@ -168,7 +168,20 @@ export async function setupProfile(data: { name: string; avatarUrl?: string }) {
 //  Step 3: Workspace setup 
 
 export async function setupWorkspace(data: { name: string; slug?: string }) {
-    const { userId } = await verifyRegistrationToken();
+    // Support both email-signup flow (registration_token) and Google OAuth flow (pending_user_id)
+    let userId: string;
+    let isGoogleFlow = false;
+
+    try {
+        ({ userId } = await verifyRegistrationToken());
+    } catch {
+        const pendingUserId = (await cookies()).get("pending_user_id")?.value;
+        if (!pendingUserId) {
+            return { error: "Registration session expired. Please start over." };
+        }
+        userId = pendingUserId;
+        isGoogleFlow = true;
+    }
 
     if (!data.name || data.name.trim().length < 3) {
         return { error: "Workspace name must be at least 3 characters" };
@@ -199,8 +212,12 @@ export async function setupWorkspace(data: { name: string; slug?: string }) {
         return { org, member };
     });
 
-    // Clear registration token and create real session
-    await clearRegistrationToken();
+    // Clear the appropriate auth cookie
+    if (isGoogleFlow) {
+        (await cookies()).delete("pending_user_id");
+    } else {
+        await clearRegistrationToken();
+    }
 
     await createSession({
         userId,

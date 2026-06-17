@@ -35,6 +35,16 @@ type GoogleCalendarListResponse = {
   nextPageToken?: string;
 };
 
+function isInvalidGrantRefreshError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+
+  const normalizedMessage = error.message.toLowerCase();
+  return (
+    normalizedMessage.includes("invalid_grant") ||
+    normalizedMessage.includes("token has been expired or revoked")
+  );
+}
+
 function extractMeetingLink(event: Pick<GoogleCalendarEvent, "hangoutLink" | "conferenceData">): string | null {
   if (event.hangoutLink?.trim()) {
     return event.hangoutLink.trim();
@@ -84,22 +94,43 @@ async function getValidAccessToken(userId: string): Promise<{ accessToken: strin
   const isExpired = !account.tokenExpiresAt || account.tokenExpiresAt < new Date(Date.now() + 5 * 60 * 1000);
 
   if (isExpired) {
-    const tokens = await refreshAccessToken(account.refreshToken);
-    const newExpiresAt = new Date(Date.now() + tokens.expires_in * 1000);
+    try {
+      const tokens = await refreshAccessToken(account.refreshToken);
+      const newExpiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
-    await prisma.account.update({
-      where: { id: account.id },
-      data: {
-        accessToken: tokens.access_token,
-        tokenExpiresAt: newExpiresAt,
-        ...(tokens.refresh_token ? { refreshToken: tokens.refresh_token } : {}),
-      },
-    });
+      await prisma.account.update({
+        where: { id: account.id },
+        data: {
+          accessToken: tokens.access_token,
+          tokenExpiresAt: newExpiresAt,
+          ...(tokens.refresh_token ? { refreshToken: tokens.refresh_token } : {}),
+        },
+      });
 
-    return { accessToken: tokens.access_token, accountId: account.id };
+      return { accessToken: tokens.access_token, accountId: account.id };
+    } catch (error) {
+      if (isInvalidGrantRefreshError(error)) {
+        // Google rejected the refresh token. Force reconnect by clearing token fields.
+        await prisma.account.update({
+          where: { id: account.id },
+          data: {
+            accessToken: null,
+            refreshToken: null,
+            tokenExpiresAt: null,
+            syncToken: null,
+          },
+        });
+
+        throw new Error("Google Calendar authorization expired. Please reconnect your Google Calendar.");
+      }
+
+      throw error;
+    }
   }
 
-  return { accessToken: account.accessToken!, accountId: account.id };
+  if (!account.accessToken) return null;
+
+  return { accessToken: account.accessToken, accountId: account.id };
 }
 
 /**
@@ -108,8 +139,9 @@ async function getValidAccessToken(userId: string): Promise<{ accessToken: strin
 export async function isCalendarConnected(userId: string): Promise<boolean> {
   const account = await prisma.account.findFirst({
     where: { userId, provider: "google_calendar" },
+    select: { refreshToken: true },
   });
-  return !!account;
+  return !!account?.refreshToken;
 }
 
 /**

@@ -19,6 +19,7 @@ type TabsControlHeaderProps = {
   showMainBtn?: boolean;
 
   searchValue?: string;
+  searchPlaceholder?: string;
   onSearchChange?: (value: string) => void;
 
   filterOptions?: {
@@ -37,6 +38,7 @@ type TabsControlHeaderProps = {
     icon: React.ReactNode;
     tooltip?: string;
     onClick: () => void;
+    disabled?: boolean;
   }[];
   onTabBtnClick?: (id: string) => void;
 };
@@ -47,6 +49,7 @@ const TabsControlHeader = ({
   showFilter,
   showMainBtn,
   searchValue,
+  searchPlaceholder,
   onSearchChange,
   filterOptions,
   onFilterSelect,
@@ -81,7 +84,7 @@ const TabsControlHeader = ({
             {showSearch && (
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder={searchPlaceholder || "Search..."}
                 value={searchValue}
                 onChange={(e) => onSearchChange?.(e.target.value)}
                 className={Styles.search_input}
@@ -104,6 +107,7 @@ const TabsControlHeader = ({
                     onClick={button.onClick}
                     title={button.tooltip}
                     className={Styles.icon_button}
+                    disabled={button.disabled}
                   >
                     {button.icon}
                   </button>
