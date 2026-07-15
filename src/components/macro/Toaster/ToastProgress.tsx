@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Styles from "./Toast.module.css";
 
 type ToastProgressProps = {
@@ -13,9 +13,19 @@ export default function ToastProgress({ duration, onComplete, paused }: ToastPro
     const remainingRef = useRef<number>(duration);
     const barRef = useRef<HTMLDivElement>(null);
     const rafRef = useRef<number | null>(null);
+    const [isPageActive, setIsPageActive] = useState(true);
 
     useEffect(() => {
-        if (paused) {
+        const handleVisibilityChange = () => {
+            setIsPageActive(!document.hidden);
+        };
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    }, []);
+
+    useEffect(() => {
+        if (paused || !isPageActive) {
             if (rafRef.current) cancelAnimationFrame(rafRef.current);
             return;
         }

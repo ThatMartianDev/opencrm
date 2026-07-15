@@ -1,4 +1,4 @@
-export type ToastStatus = "loading" | "success" | "error";
+export type ToastStatus = "loading" | "success" | "error" | "notify";
 
 export type ToastAction = {
     label: string;
@@ -22,6 +22,13 @@ export type ToastSuccessOptions = {
     actions?: ToastAction[];
 };
 
+export type ToastNotifyOptions = {
+    title: string;
+    description?: string;
+    duration?: number;
+    actions?: ToastAction[];
+};
+
 export type ToastErrorOptions = {
     title: string;
     description?: string;
@@ -31,6 +38,7 @@ export type ToastErrorOptions = {
 export type ToastControls = {
     id: string;
     success: (options: ToastSuccessOptions) => void;
+    notify: (options: ToastNotifyOptions) => void;
     error: (options: ToastErrorOptions) => void;
     dismiss: () => void;
 };

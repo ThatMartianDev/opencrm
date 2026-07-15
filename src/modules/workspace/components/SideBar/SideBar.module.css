@@ -6,6 +6,13 @@
     position: relative;
 }
 
+
+#sideBarContent {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
 #header {
     display: flex;
     align-items: center;
@@ -212,6 +219,20 @@
     animation: orgMenuIn 0.15s ease;
 }
 
+.userMenu {
+    position: absolute;
+    left: 8px;
+    bottom: 62px;
+    width: 240px;
+    background: var(--bg-00);
+    border: 1px solid var(--border-100);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    z-index: 1000;
+    padding: 4px;
+    animation: orgMenuIn 0.15s ease;
+}
+
 @keyframes orgMenuIn {
     from {
         opacity: 0;
@@ -270,4 +291,98 @@
     color: #0078d4;
     width: 16px !important;
     height: 16px !important;
+}
+
+
+
+.memberBar {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 4px;
+    padding: 10px;
+    margin-top: auto;
+    border-top: 1px solid var(--border-100);
+}
+
+.memberBar button {
+    transition: all 0.2s ease;
+    background-color: var(--bg-00);
+}
+.memberBar button:hover,
+.memberBar button:focus {
+    background-color: var(--bg-03);
+    border-color: var(--border-200);
+}
+
+.memberInfo {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    padding: 6px;
+    column-gap: 4px;
+    border: 1px solid var(--border-100);
+    border-radius: 8px;
+}
+
+.memberInfo p {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2px;
+}
+
+.memberInfo p span:first-child {
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+/* .memberInfo p span:last-child {
+    font-size: var(--font-size-2xs);
+    opacity: 0.6;
+} */
+
+.memberInfo svg,
+.memberInfo img {
+    margin-left: auto;
+}
+
+.memberBarButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 8px;
+    background-color: var(--bg-00);
+    border: 1px solid var(--border-100);
+    transition: all 0.15s ease;
+    height: 100%;
+    position: relative;
+}
+
+.memberBarButtonActive {
+    background-color: var(--bg-04);
+    border-color: var(--border-200);
+}
+
+.notifBadge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--primary-color);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-inline: 3px;
+    line-height: 1;
+    pointer-events: none;
 }

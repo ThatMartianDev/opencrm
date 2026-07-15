@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db/client";
 import { ActivityType, DealStage } from "@/generated/prisma/enums";
 import { ActivityLogService } from "@/modules/activity-log/service";
+import { NotificationsService } from "@/modules/notifications/service";
 
 export const DealsService = {
   async getAllDeals(organizationId: string) {
@@ -9,7 +10,9 @@ export const DealsService = {
       include: {
         contact: true,
         company: true,
-        assignedTo: { include: { user: { select: { name: true, avatarUrl: true } } } },
+        assignedTo: {
+          include: { user: { select: { name: true, avatarUrl: true } } },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -21,7 +24,9 @@ export const DealsService = {
       include: {
         contact: true,
         company: true,
-        assignedTo: { include: { user: { select: { name: true, avatarUrl: true } } } },
+        assignedTo: {
+          include: { user: { select: { name: true, avatarUrl: true } } },
+        },
       },
     });
   },
@@ -65,6 +70,21 @@ export const DealsService = {
       });
     }
 
+    try {
+      await NotificationsService.notifyDealAssignment({
+        organizationId: data.organizationId,
+        dealId: newDeal.id,
+        dealTitle: newDeal.title,
+        assignedToId: newDeal.assignedToId,
+        actorMemberId: memberId,
+      });
+    } catch (error) {
+      console.error("[deals] failed to enqueue deal notifications", {
+        dealId: newDeal.id,
+        error,
+      });
+    }
+
     return newDeal;
   },
 
@@ -74,7 +94,9 @@ export const DealsService = {
     organizationId: string,
     memberId: string,
   ) {
-    const deal = await prisma.deal.findFirst({ where: { id: dealId, organizationId, deletedAt: null } });
+    const deal = await prisma.deal.findFirst({
+      where: { id: dealId, organizationId, deletedAt: null },
+    });
     if (!deal) throw new Error("Deal not found");
     const oldStage = deal.stage;
 
@@ -105,7 +127,9 @@ export const DealsService = {
     organizationId: string,
     memberId: string,
   ) {
-    const deal = await prisma.deal.findFirst({ where: { id: dealId, organizationId, deletedAt: null } });
+    const deal = await prisma.deal.findFirst({
+      where: { id: dealId, organizationId, deletedAt: null },
+    });
     if (!deal) throw new Error("Deal not found");
     const oldStatus = deal.status;
 
@@ -133,7 +157,9 @@ export const DealsService = {
     organizationId: string,
     memberId: string,
   ) {
-    const deal = await prisma.deal.findFirst({ where: { id: dealId, organizationId, deletedAt: null } });
+    const deal = await prisma.deal.findFirst({
+      where: { id: dealId, organizationId, deletedAt: null },
+    });
     if (!deal) throw new Error("Deal not found");
     const oldValue = deal[field];
 
@@ -161,7 +187,9 @@ export const DealsService = {
     organizationId: string,
     memberId: string,
   ) {
-    const deal = await prisma.deal.findFirst({ where: { id: dealId, organizationId, deletedAt: null } });
+    const deal = await prisma.deal.findFirst({
+      where: { id: dealId, organizationId, deletedAt: null },
+    });
     if (!deal) throw new Error("Deal not found");
 
     const updated = await prisma.deal.update({
@@ -181,6 +209,21 @@ export const DealsService = {
       metadata: { assignedToId },
     });
 
+    try {
+      await NotificationsService.notifyDealAssignment({
+        organizationId,
+        dealId,
+        dealTitle: updated.title,
+        assignedToId,
+        actorMemberId: memberId,
+      });
+    } catch (error) {
+      console.error("[deals] failed to enqueue deal notifications", {
+        dealId,
+        error,
+      });
+    }
+
     return updated;
   },
 
@@ -192,7 +235,9 @@ export const DealsService = {
     organizationId: string,
     memberId: string,
   ) {
-    const deal = await prisma.deal.findFirst({ where: { id: dealId, organizationId, deletedAt: null } });
+    const deal = await prisma.deal.findFirst({
+      where: { id: dealId, organizationId, deletedAt: null },
+    });
     if (!deal) throw new Error("Deal not found");
 
     const updated = await prisma.deal.update({
@@ -231,7 +276,11 @@ export const DealsService = {
 
     if (result.count === 0) {
       const exists = await prisma.deal.findFirst({
-        where: { id: data.dealId, organizationId: data.organizationId, deletedAt: null },
+        where: {
+          id: data.dealId,
+          organizationId: data.organizationId,
+          deletedAt: null,
+        },
         select: { id: true },
       });
       if (exists) throw new Error("You can only delete deals you created.");
@@ -245,5 +294,14 @@ export const DealsService = {
       activityType: ActivityType.STATUS_CHANGE,
       title: "Deal deleted",
     });
+
+    try {
+      await NotificationsService.cancelPendingDealNotifications(data.dealId, data.organizationId);
+    } catch (error) {
+      console.error("[deals] failed to enqueue deal notifications", {
+        dealId: data.dealId,
+        error,
+      });
+    }
   },
 };

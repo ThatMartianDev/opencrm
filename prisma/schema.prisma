@@ -34,6 +34,7 @@ model Organization {
   invitations    Invitation[]
   calendarEvents CalendarEvent[]
   emails         Email[]
+  notifications  Notification[]
 
   @@map("organizations")
 }
@@ -104,6 +105,7 @@ model Member {
   createdContacts Contact[] @relation("ContactCreator")
   createdCompanies Company[] @relation("CompanyCreator")
   createdTasks   Task[]     @relation("TaskCreator")
+  notifications  Notification[]
 
   @@unique([userId, organizationId])
   @@map("members")
@@ -638,18 +640,56 @@ model Email {
 }
 
 // ─── Notifications ───
-
 model Notification {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
-  recipientId    String   // Member ID
-  type           String   // task_assigned, follow_up_due, deal_assigned, etc.
+  recipientId    String
+
+  type           String    // task_assigned, follow_up_due, deal_assigned
   title          String
   body           String?
-  link           String?  // Internal link to navigate to
+  link           String?
+  data           Json?     // structured payload (taskId, dealId, etc.)
+
+  status         NotificationStatus @default(PENDING) // PENDING, SENT, FAILED
   readAt         DateTime?
+  sentAt         DateTime?         // when it actually went out, vs scheduledAt = when it should
+  scheduledAt    DateTime          @default(now()) // give it a default so instant notifs don't need to pass it
+
+  dedupeKey      String?           // optional, for idempotency on retries
+
   createdAt      DateTime @default(now())
 
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  recipient      Member       @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  deliveries     NotificationDelivery[]
+
+  @@unique([organizationId, recipientId, type, dedupeKey])
   @@index([recipientId, readAt, createdAt])
+  @@index([organizationId, scheduledAt, status]) // for the worker's "what's due" query
   @@map("notifications")
+}
+
+// for channel handlers (in-app, email, push) each handle own their own delivery row and lifecycle.
+model NotificationDelivery {
+  id             String   @id @default(cuid())
+  notificationId String
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  channel        String   // in_app, email, push
+  status         String   // PENDING, SENT, FAILED
+  sentAt         DateTime?
+  error          String?
+
+  createdAt      DateTime @default(now())
+
+  @@index([notificationId])
+  @@map("notification_deliveries")
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
 }

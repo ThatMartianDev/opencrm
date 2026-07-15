@@ -342,11 +342,20 @@ export async function login(_prev: unknown, formData: FormData) {
 //  Auth Status 
 
 export async function getAuthStatus() {
+    // Full session (existing member) first, then registration token — a
+    // freshly registered invitee has no session yet (no membership), only the
+    // registration token. acceptInvitation supports both, so both count as
+    // authenticated here.
     try {
         const session = await getSessionClaims();
         return { authenticated: true, userId: session.userId };
     } catch {
-        return { authenticated: false, userId: null };
+        try {
+            const regToken = await verifyRegistrationToken();
+            return { authenticated: true, userId: regToken.userId };
+        } catch {
+            return { authenticated: false, userId: null };
+        }
     }
 }
 

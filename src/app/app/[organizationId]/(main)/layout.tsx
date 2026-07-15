@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { ModalProvider } from "@/components/macro/ModalProvider/ModalProvider";
 import { ToasterProvider, ToasterContainer } from "@/components/macro/Toaster";
 import { ConfirmDialogProvider } from "@/components/macro/ConfirmDialog";
+import { NotificationsProvider } from "@/modules/notifications/NotificationsProvider";
 import SideBar from "@/modules/workspace/components/SideBar/SideBar";
 
 type LayoutProps = {
@@ -12,17 +13,19 @@ type LayoutProps = {
 const MainLayout = ({ children }: LayoutProps) => {
   return (
     <ToasterProvider>
-      <ConfirmDialogProvider>
-        <ModalProvider>
-          <div className={Styles.layout}>
-            <div className={Styles.container}>
-              <SideBar />
-              <main className={Styles.main}>{children}</main>
+      <NotificationsProvider>
+        <ConfirmDialogProvider>
+          <ModalProvider>
+            <div className={Styles.layout}>
+              <div className={Styles.container}>
+                <SideBar />
+                <main className={Styles.main}>{children}</main>
+              </div>
             </div>
-          </div>
-          <ToasterContainer />
-        </ModalProvider>
-      </ConfirmDialogProvider>
+            <ToasterContainer />
+          </ModalProvider>
+        </ConfirmDialogProvider>
+      </NotificationsProvider>
     </ToasterProvider>
   );
 };

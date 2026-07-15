@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/client";
 import { ActivityType, TaskStatus } from "@/generated/prisma/enums";
+import { NotificationsService } from "@/modules/notifications/service";
 import { ActivityLogService } from "@/modules/activity-log/service";
 
 const taskInclude = {
@@ -77,6 +78,23 @@ export const TasksService = {
             });
         }
 
+        try {
+            await NotificationsService.notifyTaskAssignment({
+                organizationId: data.organizationId,
+                taskId: task.id,
+                taskName: task.name,
+                taskDescription: task.description,
+                dueDate: task.dueDate,
+                dealId: task.dealId,
+                assignedToId: task.assignedToId,
+            });
+        } catch (error) {
+            console.error("[tasks] failed to enqueue task notifications", {
+                taskId: task.id,
+                error,
+            });
+        }
+
         return task;
     },
 
@@ -108,6 +126,25 @@ export const TasksService = {
                 title: `Task status changed`,
                 metadata: { field: "status", from: oldStatus, to: status },
             });
+        }
+
+        try {
+            if (status === TaskStatus.COMPLETED) {
+                await NotificationsService.cancelPendingTaskNotifications(taskId, organizationId);
+            } else if (oldStatus === TaskStatus.COMPLETED) {
+                // When reopened, reschedule the due-date reminder
+                await NotificationsService.notifyTaskAssignment({
+                    organizationId,
+                    taskId: updated.id,
+                    taskName: updated.name,
+                    taskDescription: updated.description,
+                    dueDate: updated.dueDate,
+                    dealId: updated.dealId,
+                    assignedToId: updated.assignedToId,
+                });
+            }
+        } catch (error) {
+            console.error("[tasks] failed to sync task notifications", { taskId, error });
         }
 
         return updated;
@@ -142,6 +179,30 @@ export const TasksService = {
                 activityType: ActivityType.STATUS_CHANGE,
                 title: `Task updated: ${updated.name}`,
             });
+        }
+
+        const assigneeChanged =
+            data.assignedToId !== undefined && data.assignedToId !== task.assignedToId;
+        const dueDateChanged =
+            data.dueDate !== undefined &&
+            (data.dueDate?.getTime() ?? null) !== (task.dueDate?.getTime() ?? null);
+
+        if (assigneeChanged || dueDateChanged) {
+            try {
+                // Drop reminders that no longer apply (old assignee / old due date) then re-notify
+                await NotificationsService.cancelPendingTaskNotifications(taskId, organizationId);
+                await NotificationsService.notifyTaskAssignment({
+                    organizationId,
+                    taskId: updated.id,
+                    taskName: updated.name,
+                    taskDescription: updated.description,
+                    dueDate: updated.dueDate,
+                    dealId: updated.dealId,
+                    assignedToId: updated.assignedToId,
+                });
+            } catch (error) {
+                console.error("[tasks] failed to sync task notifications", { taskId, error });
+            }
         }
 
         return updated;
@@ -184,6 +245,18 @@ export const TasksService = {
                 entity: { entityType: "deal", entityId: task.dealId },
                 activityType: ActivityType.STATUS_CHANGE,
                 title: `Task deleted: ${task.name}`,
+            });
+        }
+
+        try {
+            await NotificationsService.cancelPendingTaskNotifications(
+                data.taskId,
+                data.organizationId,
+            );
+        } catch (error) {
+            console.error("[tasks] failed to cancel task notifications", {
+                taskId: data.taskId,
+                error,
             });
         }
     },

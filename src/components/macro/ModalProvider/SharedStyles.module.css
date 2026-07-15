@@ -13,7 +13,7 @@
 .modalHeader {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     padding: 10px;
     border-bottom: 1px solid var(--border-100);
 }
@@ -45,6 +45,10 @@
     justify-content: center;
     padding: 2px;
     border-radius: 8px;
+}
+.modalHeader span svg {
+    width: 16px;
+    height: 16px;
 }
 
 .modalHeader h2 {

@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
-import type { ToastData, ToastControls, ToastSuccessOptions, ToastErrorOptions } from "./types";
+import type { ToastData, ToastControls, ToastSuccessOptions, ToastErrorOptions, ToastNotifyOptions } from "./types";
 
 type ToasterContextValue = {
     toasts: ToastData[];
@@ -47,6 +47,15 @@ export function ToasterProvider({ children }: { children: ReactNode }) {
                     actions: options.actions,
                 });
             },
+            notify: (options: ToastNotifyOptions) => {
+                updateToast(id, {
+                    status: "notify",
+                    title: options.title,
+                    description: options.description,
+                    duration: options.duration ?? 5000,
+                    actions: options.actions,
+                });
+            },
             error: (options: ToastErrorOptions) => {
                 updateToast(id, {
                     status: "error",
@@ -78,6 +87,10 @@ export function useToast() {
             success: (options: ToastSuccessOptions) => {
                 const t = context.loading("");
                 t.success(options);
+            },
+            notify: (options: ToastNotifyOptions) => {
+                const t = context.loading("");
+                t.notify(options);
             },
             error: (options: ToastErrorOptions) => {
                 const t = context.loading("");

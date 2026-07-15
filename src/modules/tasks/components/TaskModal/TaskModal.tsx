@@ -469,13 +469,15 @@ const TaskModal = ({
       {showDatePicker && dateTriggerRect && (
         <DateTimePicker
           category="date"
-          dataType={{ date: "range" }}
+          dataType={{ date: "single" }}
           triggerRect={dateTriggerRect}
-          initialStart={new Date()}
+          initialStart={dueDate ? new Date(`${dueDate}T00:00:00`) : new Date()}
           onChange={(value) => {
-            if (value.end) {
-              setDueDate(value.end.toISOString().split("T")[0]);
-            }
+            const d = value.start;
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, "0");
+            const day = String(d.getDate()).padStart(2, "0");
+            setDueDate(`${year}-${month}-${day}`);
             setShowDatePicker(false);
           }}
           onClose={() => setShowDatePicker(false)}

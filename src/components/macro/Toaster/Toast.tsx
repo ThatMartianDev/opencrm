@@ -1,6 +1,6 @@
 "use client";
 import { useState, useCallback } from "react";
-import { CheckmarkCircleFilled, DismissCircleFilled, DismissRegular } from "@fluentui/react-icons";
+import { AlertOnFilled, CheckmarkCircleFilled, DismissCircleFilled, DismissRegular } from "@fluentui/react-icons";
 import type { ToastData } from "./types";
 import ToastProgress from "./ToastProgress";
 import Styles from "./Toast.module.css";
@@ -28,6 +28,7 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
                     {toast.status === "loading" && <div className={Styles.spinner} />}
                     {toast.status === "success" && <CheckmarkCircleFilled className={Styles.successIcon} />}
                     {toast.status === "error" && <DismissCircleFilled className={Styles.errorIcon} />}
+                    {toast.status === "notify" && <AlertOnFilled className={Styles.notifyIcon} />}
                 </div>
                 <div className={Styles.content}>
                     <span className={Styles.title}>{toast.title}</span>
@@ -60,7 +61,7 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
                 </div>
             )}
 
-            {toast.status === "success" && toast.duration && (
+            {(toast.status === "success" || toast.status === "notify") && toast.duration && (
                 <ToastProgress
                     duration={toast.duration}
                     onComplete={handleDismiss}

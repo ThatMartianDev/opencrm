@@ -63,6 +63,11 @@
     font-size: 18px;
 }
 
+.notifyIcon {
+    color: #facc15;
+    font-size: 18px;
+}
+
 /*  Spinner  */
 
 .spinner {
@@ -207,4 +212,8 @@
 
 .error {
     border-color: #fee2e2;
+}
+
+.notify {
+    border-color: #fef3c7;
 }
