@@ -1,19 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+
+import { ChevronDownFilled } from "@fluentui/react-icons";
+import { AddFilled } from "@fluentui/react-icons";
 
 import {
   AddRegular,
   CalendarRegular,
   MoreVerticalFilled,
   PanelLeftRegular,
-} from "@fluentui/react-icons";
-import { ChevronDownFilled } from "@fluentui/react-icons";
-import { AddFilled } from "@fluentui/react-icons";
-
-import {
   HomeRegular,
   AlertRegular,
   TaskListSquareLtrRegular,
@@ -21,15 +19,11 @@ import {
   MailRegular,
   PeopleTeamRegular,
   SettingsRegular,
-  PersonRegular,
   SignOutRegular,
   CheckmarkFilled,
-} from "@fluentui/react-icons";
-import {
   TargetFilled,
   PeopleFilled,
-  MoneyFilled,
-  BoxFilled,
+  BuildingFilled,
 } from "@fluentui/react-icons";
 
 import { useWorkspaceData } from "../workspace-provider";
@@ -42,8 +36,43 @@ import AvatarFallback from "@/components/micro/AvatarFallback/AvatarFallback";
 
 import Styles from "./SideBar.module.css";
 import ModalStyles from "@/components/macro/ModalProvider/ModalProvider.module.css";
+import { useModal } from "@/components/macro/ModalProvider/ModalProvider";
+
+const NotificationBadge = ({
+  unreadCount,
+  showNotifications,
+  setShowNotifications,
+  setShowUserMenu,
+  setShowOrgMenu,
+}: {
+  unreadCount: number;
+  showNotifications: boolean;
+  setShowNotifications: (v: boolean) => void;
+  setShowUserMenu: (v: boolean) => void;
+  setShowOrgMenu: (v: boolean) => void;
+}) => {
+  return (
+    <button
+      className={`${Styles.memberBarButton} ${showNotifications ? Styles.memberBarButtonActive : ""}`}
+      title="Notifications"
+      onClick={() => {
+        setShowNotifications(!showNotifications);
+        setShowUserMenu(false);
+        setShowOrgMenu(false);
+      }}
+    >
+      <AlertRegular fontSize={16} />
+      {unreadCount > 0 && (
+        <span className={Styles.notifBadge}>
+          {unreadCount > 99 ? "99+" : unreadCount}
+        </span>
+      )}
+    </button>
+  );
+};
 
 const SideBar = () => {
+  const { openModal, closeModal } = useModal();
   const pathname = usePathname();
   const { organizationId, organization, user } = useWorkspaceData();
   const linksPrefix = "/app/" + organizationId;
@@ -53,34 +82,64 @@ const SideBar = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const { unreadCount } = useNotifications();
 
+  const [openSideBar, setOpenSideBar] = useState(true);
+
   const isActive = (href: string) => {
     return pathname === href || pathname.startsWith(href + "/");
   };
 
+  useEffect(() => {
+    const handleONkeydown = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case "Escape":
+          closeModal();
+          break;
+        case "k":
+          if (e.ctrlKey) {
+            e.preventDefault();
+            openModal("quick_actions");
+          }
+          break;
+      }
+    };
+    window.addEventListener("keydown", handleONkeydown);
+    return () => {
+      window.removeEventListener("keydown", handleONkeydown);
+    };
+  }, []);
+
   return (
-    <div id={Styles.sideBar}>
+    <div
+      id={Styles.sideBar}
+      className={openSideBar ? Styles.open : Styles.closed}
+    >
       <div id={Styles.sideBarContent}>
         <div id={Styles.header}>
-          <div
-            id={Styles.organization}
-            onClick={() => {
-              setShowOrgMenu(!showOrgMenu);
-              setShowUserMenu(false);
-            }}
+          {openSideBar && (
+            <div
+              id={Styles.organization}
+              onClick={() => {
+                setShowOrgMenu(!showOrgMenu);
+                setShowUserMenu(false);
+              }}
+            >
+              <AvatarFallback
+                name={organization.name}
+                entityKind="organization"
+                entityId={organizationId}
+                size={24}
+                style={{ borderRadius: 8 }}
+                letterCount={1}
+                imageUrl={organization.logoUrl ?? undefined}
+              />
+              <p>{organization.name}</p>
+              <ChevronDownFilled />
+            </div>
+          )}
+          <button
+            className={Styles.barToggle}
+            onClick={() => setOpenSideBar(!openSideBar)}
           >
-            <AvatarFallback
-              name={organization.name}
-              entityKind="organization"
-              entityId={organizationId}
-              size={24}
-              style={{ borderRadius: 8 }}
-              letterCount={1}
-              imageUrl={organization.logoUrl ?? undefined}
-            />
-            <p>{organization.name}</p>
-            <ChevronDownFilled />
-          </div>
-          <button className={Styles.barToggle}>
             <PanelLeftRegular />
           </button>
         </div>
@@ -136,22 +195,43 @@ const SideBar = () => {
             </div>
           </>
         )}
-        <div id={Styles.quickActions}>
-          <button className={Styles.quickActionsButton}>
-            <div className={Styles.qaLeft}>
-              <span>
-                <AddFilled />
-              </span>
-              <p>Quick Actions</p>
-            </div>
-            <div className={Styles.qaRight}>
-              <span>CTRL</span>
-              <span>K</span>
-            </div>
+        {!openSideBar && (
+          <button
+            className={Styles.qaButtonSmall}
+            title="Quick Actions"
+            onClick={() => {
+              openModal("quick_actions");
+            }}
+          >
+            <AddFilled />
           </button>
-        </div>
+        )}
+        {openSideBar && (
+          <div id={Styles.quickActions}>
+            <button
+              className={Styles.quickActionsButton}
+              title="Quick Actions"
+              onClick={() => {
+                openModal("quick_actions");
+              }}
+            >
+              <div className={Styles.qaLeft}>
+                <span>
+                  <AddFilled />
+                </span>
+                <p>Quick Actions</p>
+              </div>
+              <div className={Styles.qaRight}>
+                <span>CTRL</span>
+                <span>K</span>
+              </div>
+            </button>
+          </div>
+        )}
+
         <nav className={Styles.nav}>
           <Link
+            title="Home"
             href={linksPrefix + "/home"}
             className={isActive(linksPrefix + "/home") ? Styles.active : ""}
           >
@@ -159,6 +239,7 @@ const SideBar = () => {
             <p>Home</p>
           </Link>
           <Link
+            title="Tasks"
             href={linksPrefix + "/tasks"}
             className={isActive(linksPrefix + "/tasks") ? Styles.active : ""}
           >
@@ -166,6 +247,7 @@ const SideBar = () => {
             <p>Tasks</p>
           </Link>
           <Link
+            title="Notes"
             href={linksPrefix + "/notes"}
             className={isActive(linksPrefix + "/notes") ? Styles.active : ""}
           >
@@ -173,6 +255,7 @@ const SideBar = () => {
             <p>Notes</p>
           </Link>
           <Link
+            title="Emails"
             href={linksPrefix + "/emails"}
             className={isActive(linksPrefix + "/emails") ? Styles.active : ""}
           >
@@ -180,6 +263,7 @@ const SideBar = () => {
             <p>Emails</p>
           </Link>
           <Link
+            title="Calendar"
             href={linksPrefix + "/calendar"}
             className={isActive(linksPrefix + "/calendar") ? Styles.active : ""}
           >
@@ -189,6 +273,7 @@ const SideBar = () => {
         </nav>
         <nav className={Styles.nav}>
           <Link
+            title="Deals"
             href={linksPrefix + "/deals"}
             className={isActive(linksPrefix + "/deals") ? Styles.active : ""}
           >
@@ -198,6 +283,7 @@ const SideBar = () => {
             <p>Deals</p>
           </Link>
           <Link
+            title="Contacts"
             href={linksPrefix + "/contacts"}
             className={isActive(linksPrefix + "/contacts") ? Styles.active : ""}
           >
@@ -207,60 +293,86 @@ const SideBar = () => {
             <p>Contacts</p>
           </Link>
           <Link
+            title="Companies"
             href={linksPrefix + "/companies"}
             className={
               isActive(linksPrefix + "/companies") ? Styles.active : ""
             }
           >
             <span style={{ backgroundColor: "#0E76B9" }}>
-              <MoneyFilled />
+              <BuildingFilled />
             </span>
             <p>Companies</p>
           </Link>
         </nav>
-        <div className={Styles.memberBar}>
-          <button className={Styles.memberInfo} title="Show Options" onClick={() => {
-              setShowUserMenu(!showUserMenu);
-              setShowOrgMenu(false);
-            }}>
-            <AvatarFallback
-              size={24}
-              entityKind="member"
-              entityId={user.id}
-              name={user.name}
-              imageUrl={user.avatarUrl || undefined}
+
+        {!openSideBar && (
+          <div className={Styles.memberBarSmall}>
+            <NotificationBadge
+              unreadCount={unreadCount}
+              showNotifications={showNotifications}
+              setShowNotifications={setShowNotifications}
+              setShowUserMenu={setShowUserMenu}
+              setShowOrgMenu={setShowOrgMenu}
             />
-            <p>
-              <span>{user.name}</span>
-            </p>
-            <MoreVerticalFilled fontSize={16}/>
-          </button>
-          <button
-            className={`${Styles.memberBarButton} ${showNotifications ? Styles.memberBarButtonActive : ""}`}
-            title="Notifications"
-            onClick={() => {
-              setShowNotifications((v) => !v);
-              setShowUserMenu(false);
-              setShowOrgMenu(false);
-            }}
-          >
-            <AlertRegular fontSize={16} />
-            {unreadCount > 0 && (
-              <span className={Styles.notifBadge}>
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </span>
-            )}
-          </button>
-          {showNotifications && (
-            <>
-              <div
-                className={Styles.orgMenuBackdrop}
-                onClick={() => setShowNotifications(false)}
+            <button
+              className={Styles.profileButtonSmall}
+              title="Show Options"
+              onClick={() => {
+                setShowUserMenu(!showUserMenu);
+                setShowOrgMenu(false);
+              }}
+            >
+              <AvatarFallback
+                size={24}
+                entityKind="member"
+                entityId={user.id}
+                name={user.name}
+                imageUrl={user.avatarUrl || undefined}
               />
-              <NotificationPanel onClose={() => setShowNotifications(false)} />
-            </>
-          )}
-        </div>
+            </button>
+          </div>
+        )}
+        {openSideBar && (
+          <div className={Styles.memberBar}>
+            <button
+              className={Styles.memberInfo}
+              title="Show Options"
+              onClick={() => {
+                setShowUserMenu(!showUserMenu);
+                setShowOrgMenu(false);
+              }}
+            >
+              <AvatarFallback
+                size={24}
+                entityKind="member"
+                entityId={user.id}
+                name={user.name}
+                imageUrl={user.avatarUrl || undefined}
+              />
+              <p>
+                <span>{user.name}</span>
+              </p>
+              <MoreVerticalFilled fontSize={16} />
+            </button>
+            <NotificationBadge
+              unreadCount={unreadCount}
+              showNotifications={showNotifications}
+              setShowNotifications={setShowNotifications}
+              setShowUserMenu={setShowUserMenu}
+              setShowOrgMenu={setShowOrgMenu}
+            />
+          </div>
+        )}
+        {showNotifications && (
+          <>
+            <div
+              className={Styles.orgMenuBackdrop}
+              onClick={() => setShowNotifications(false)}
+            />
+            <NotificationPanel onClose={() => setShowNotifications(false)} />
+          </>
+        )}
         {showUserMenu && (
           <>
             <div

@@ -19,6 +19,7 @@ const CompaniesPage = () => {
     }
 
     useEffect(() => {
+        window.document.title = "Companies | OpenCRM";
         getCompanies()
             .then(setCompanies)
             .catch((error) => {

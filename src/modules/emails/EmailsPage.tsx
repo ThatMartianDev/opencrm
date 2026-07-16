@@ -135,6 +135,9 @@ const EmailsPage = ({
   );
 
   useEffect(() => {
+    window.document.title = `Emails - ${folder} | OpenCRM`;
+  }, [folder]);
+  useEffect(() => {
     passedContactId && setSelectedContactId(passedContactId);
   }, [passedContactId]);
 

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 import { SessionClaims, SessionPayload } from "./types";
 import { getJwtSecret, toSessionClaims } from "./token";
+import { prisma } from "../db/client";
  
 async function encrypt(payload: SessionPayload, encodedKey: Uint8Array) {
   return new SignJWT(payload)
@@ -68,7 +69,32 @@ export const getSessionClaims = cache(async (): Promise<SessionClaims> => {
   if (!token) throw new Error("Not authenticated");
 
   const { payload } = await jwtVerify(token, secret);
-  return toSessionClaims(payload);
+  const tokenClaims = toSessionClaims(payload);
+
+  const member = await prisma.member.findFirst({
+    where: {
+      id: tokenClaims.memberId,
+      userId: tokenClaims.userId,
+      organizationId: tokenClaims.organizationId,
+    },
+    select: {
+      id: true,
+      userId: true,
+      organizationId: true,
+      role: true,
+    },
+  });
+
+  if (!member) {
+    throw new Error("Not authenticated");
+  }
+
+  return {
+    userId: member.userId,
+    memberId: member.id,
+    organizationId: member.organizationId,
+    role: member.role,
+  };
 });
 
 export async function getCurrentUser(): Promise<SessionClaims> {

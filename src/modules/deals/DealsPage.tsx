@@ -45,6 +45,7 @@ const DealsPage = () => {
   }
 
   useEffect(() => {
+    window.document.title = "Deals";
     getDeals()
       .then((deals) => {
         setDeals(deals);

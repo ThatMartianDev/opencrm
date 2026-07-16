@@ -4,6 +4,16 @@
     background-color: var(--bg-02);
     border-right: 1px solid var(--border-100);
     position: relative;
+    transition: all 0.3s ease;
+}
+
+#sideBar.open {
+    width: 30vw;
+    max-width: 280px;
+}
+
+#sideBar.closed {
+    width: 50px;
 }
 
 
@@ -19,6 +29,11 @@
     justify-content: space-between;
     padding: 8px;
     border-bottom: 1px solid var(--border-100);
+    transition: all 0.3s ease;
+}
+#sideBar.closed #header {
+    padding-bottom: 0;
+    border-color: transparent;
 }
 
 #organization {
@@ -63,6 +78,9 @@
     align-items: center;
     justify-content: center;
 }
+#sideBar.closed .barToggle {
+    padding: 4px;
+}
 
 .barToggle svg {
     width: 24px;
@@ -99,6 +117,7 @@
     gap: 6px;
 }
 
+.qaButtonSmall,
 .qaLeft span {
     display: flex;
     align-items: center;
@@ -110,11 +129,18 @@
     aspect-ratio: 1 / 1;
 }
 
+.qaButtonSmall {
+    margin-inline: auto;
+    margin-top: 10px;
+}
+
+.qaButtonSmall svg,
 .qaLeft span svg {
     width: 80%;
     height: 80%;
 }
-.qaLeft span svg path {
+.qaLeft span svg path,
+.qaButtonSmall svg path {
     fill: #fff;
 }
 
@@ -148,15 +174,24 @@
     padding-block: 10px;
     border-bottom: 1px solid var(--border-100);
     padding-inline: 8px;
+    align-items: flex-start;
+    justify-content: flex-start;
 }
 
 .nav a {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto 1fr;
     align-items: center;
     justify-content: flex-start;
     padding: 8px;
     border-radius: 8px;
     transition: all 0.3s ease;
+    overflow: hidden;
+    width: 100%;
+}
+
+#sideBar.closed .nav a {
+    grid-template-columns: auto 0fr;
 }
 
 .nav a:hover {
@@ -190,12 +225,18 @@
     height: 18px;
     margin-right: 6px;
 }
+#sideBar.closed .nav a svg,
+#sideBar.closed .nav a span {
+    margin-right: 0;
+}
 
 .nav a p {
     font-size: var(--font-size-sm);
     font-weight: 500;
     color: var(--text-color);
     line-height: 1;
+    transition: all 0.3s ease;
+    overflow: hidden;
 }
 
 /* Org Menu */
@@ -303,6 +344,18 @@
     padding: 10px;
     margin-top: auto;
     border-top: 1px solid var(--border-100);
+}
+
+.memberBarSmall {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-top: auto;
+    border-top: 1px solid var(--border-100);
+    padding: 10px;
+    gap: 12px;
+    padding-top: 16px;
 }
 
 .memberBar button {

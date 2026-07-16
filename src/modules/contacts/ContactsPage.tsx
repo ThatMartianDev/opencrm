@@ -19,6 +19,7 @@ const ContactsPage = () => {
     }
 
     useEffect(() => {
+        window.document.title = "Contacts | OpenCRM";
         getContacts()
             .then(setContacts)
             .catch((error) => {

@@ -3,8 +3,14 @@
 import { TaskListSquareLtrFilled } from "@fluentui/react-icons";
 import TaskList from "./components/TaskList";
 import Styles from "./TasksPage.module.css";
+import { useEffect } from "react";
 
 const TasksPage = () => {
+
+    useEffect(() => {
+        window.document.title = "Tasks";
+    }, []);
+    
     return (
         <div className={Styles.tasksPage}>
             <header className="global_header">

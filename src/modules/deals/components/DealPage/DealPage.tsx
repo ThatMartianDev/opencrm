@@ -30,7 +30,7 @@ import Link from "next/link";
 import { useModal } from "@/components/macro/ModalProvider/ModalProvider";
 
 const tabs = [
-  { label: "Overview", id: "overview"},
+  { label: "Overview", id: "overview" },
   {
     label: "Tasks",
     id: "tasks",
@@ -51,7 +51,7 @@ const tabs = [
     id: "files",
     color: "rgb(245, 197, 66)",
     icon: { regular: <FolderRegular />, filled: <FolderFilled /> },
-  }
+  },
 ];
 
 const DealPage = () => {
@@ -106,6 +106,12 @@ const DealPage = () => {
     refreshDeal();
   }, [refreshDeal]);
 
+  useEffect(() => {
+    if (deal?.title) {
+      window.document.title = `Deal: ${deal.title}`;
+    }
+  }, [deal]);
+
   if (deal)
     return (
       <div id={Styles.leadPage}>
@@ -143,8 +149,13 @@ const DealPage = () => {
           showMainBtn={false}
           iconButtons={iconButtons}
         />
-        <div className="flex-col w-full" style={{ height: "100%", overflow: "hidden" }}>
-          {activeTab === "overview" && <OverviewTab deal={deal} onRefresh={refreshDeal} />}
+        <div
+          className="flex-col w-full"
+          style={{ height: "100%", overflow: "hidden" }}
+        >
+          {activeTab === "overview" && (
+            <OverviewTab deal={deal} onRefresh={refreshDeal} />
+          )}
           {activeTab === "tasks" && <TasksTab />}
           {activeTab === "notes" && <CommentsTab />}
           {activeTab === "files" && <FilesTab dealId={deal.id} />}

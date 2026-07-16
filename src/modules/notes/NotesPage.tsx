@@ -5,6 +5,7 @@ import TabsControlHeader from "@/components/macro/TabsControlHeader/TabsControlH
 import NoteList from "./components/NoteList";
 import Styles from "./NotesPage.module.css";
 import { useModal } from "@/components/macro/ModalProvider/ModalProvider";
+import { useEffect } from "react";
 
 const NotesPage = () => {
     const { openModal } = useModal();
@@ -12,6 +13,10 @@ const NotesPage = () => {
     function handleCreateNote() {
         openModal("note");
     }
+
+    useEffect(() => {
+        window.document.title = "Notes";
+    }, []);
 
     return (
         <div className={Styles.notesPage}>

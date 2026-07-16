@@ -88,6 +88,10 @@ const CalendarPage = () => {
     loadEvents();
   }, [loadEvents]);
 
+  useEffect(() => {
+    window.document.title = "Calendar | OpenCRM";
+  }, []);
+
   // Sync and reload
   const handleSync = async () => {
     const t = toast.loading("Syncing with Google Calendar...");
