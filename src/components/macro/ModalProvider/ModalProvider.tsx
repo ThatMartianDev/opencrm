@@ -7,6 +7,7 @@ import { NoteModal } from "@/modules/notes";
 import { LogActivityModal } from "@/modules/activity-log";
 import { NewCompanyModal } from "@/modules/companies";
 import { NewContactModal } from "@/modules/contacts";
+import RecordModuleBuilder from "@/modules/RecordModule/ui/RecordModuleBuilder/RecordModuleBuilder";
 import InviteMemberModal from "@/modules/workspace/components/InviteMemberModal/InviteMemberModal";
 import CreateEventModal from "@/modules/calendar/components/CreateEventModal/CreateEventModal";
 import ComposeEmailModal from "@/modules/emails/Components/ComposeEmailModal/ComposeEmailModal";
@@ -14,7 +15,7 @@ import QuickActions from "@/modules/workspace/components/QuickActions/QuickActio
 
 import Styles from "./ModalProvider.module.css";
 
-type ModalId = "quick_actions" | "new-deal" | "task" | "note" | "log-activity" | "new-company" | "new-contact" | "invite-member" | "calendar-event" | "compose-email";
+type ModalId = "quick_actions" | "new-deal" | "task" | "note" | "log-activity" | "new-company" | "new-contact" | "invite-member" | "calendar-event" | "compose-email" | "new-module";
 
 type ModalState = {
     id: ModalId;
@@ -31,6 +32,7 @@ type ModalContextValue = {
 const ModalContext = createContext<ModalContextValue | null>(null);
 
 const MODAL_COMPONENTS: Record<ModalId, React.ComponentType<{ onClose: () => void } & Record<string, unknown>>> = {
+    "new-module": RecordModuleBuilder as React.ComponentType<{ onClose: () => void } & Record<string, unknown>>,
     "quick_actions": QuickActions as React.ComponentType<{ onClose: () => void } & Record<string, unknown>>,
     "new-deal": NewDeal,
     "task": TaskModal as React.ComponentType<{ onClose: () => void } & Record<string, unknown>>,

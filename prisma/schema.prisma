@@ -35,6 +35,8 @@ model Organization {
   calendarEvents CalendarEvent[]
   emails         Email[]
   notifications  Notification[]
+  recordModules  RecordModule[]
+  recordItems    RecordItem[]
 
   @@map("organizations")
 }
@@ -105,6 +107,8 @@ model Member {
   createdContacts Contact[] @relation("ContactCreator")
   createdCompanies Company[] @relation("CompanyCreator")
   createdTasks   Task[]     @relation("TaskCreator")
+  createdRecordModuleViews   RecordModuleView[] @relation("RecordModuleViewCreator")
+  createdRecords RecordItem[] @relation("RecordItemCreator")
   notifications  Notification[]
 
   @@unique([userId, organizationId])
@@ -136,6 +140,185 @@ model Invitation {
 }
 
 // ─── Core CRM Models ───
+
+// Record Module
+
+model RecordModule {
+  id             String   @id @default(cuid())
+  organizationId String
+
+  key            String
+  name           String
+  pluralName     String?
+
+  icon           String
+  accentColor    String?
+
+  features       ModuleFeature[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  archivedAt     DateTime?
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  fields         RecordField[]
+  records        RecordItem[]
+  views          RecordModuleView[]
+
+  @@unique([organizationId, key])
+  @@index([organizationId])
+}
+
+model RecordModuleView {
+  id          String @id @default(cuid())
+
+  moduleId    String
+  module      RecordModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  name        String
+
+  type        RecordViewType
+
+  position    Int @default(0)
+
+  isDefault   Boolean @default(false)
+
+  config      Json?
+
+  createdById String?
+  createdBy   Member? @relation("RecordModuleViewCreator", fields: [createdById], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([moduleId])
+}
+
+model RecordField {
+  id            String @id @default(cuid())
+
+  moduleId      String
+  module        RecordModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  key           String
+  label         String
+
+  type          RecordFieldType
+
+  required      Boolean @default(false)
+  unique        Boolean @default(false)
+
+  isPrimary     Boolean @default(false)
+  isSystem      Boolean @default(false)
+
+  position      Int @default(0)
+
+  config        Json?
+  defaultValue  Json?
+
+  values        RecordFieldValue[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([moduleId, key])
+  @@index([moduleId])
+  @@index([moduleId, position])
+}
+
+model RecordItem {
+  id             String @id @default(cuid())
+
+  organizationId String
+  moduleId       String
+
+  displayName    String
+
+  module         RecordModule @relation(fields: [moduleId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  values         RecordFieldValue[]
+
+  notes          Note[]
+  tasks          Task[]
+  files          File[]
+
+  createdById    String?
+  createdBy      Member? @relation("RecordItemCreator", fields: [createdById], references: [id])
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  archivedAt     DateTime?
+
+  @@index([organizationId])
+  @@index([moduleId])
+  @@index([organizationId, moduleId])
+}
+
+model RecordFieldValue {
+  id        String @id @default(cuid())
+
+  recordId  String
+  fieldId   String
+
+  value     Json
+
+  record    RecordItem @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  field     RecordField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([recordId, fieldId])
+
+  @@index([recordId])
+  @@index([fieldId])
+}
+
+enum ModuleFeature {
+  NOTES
+  TASKS
+  FILES
+  EMAILS
+  CALENDAR
+}
+
+
+enum RecordViewType {
+  LIST
+  KANBAN
+  CALENDAR
+  GALLERY
+  GANTT
+}
+
+enum RecordFieldType {
+  TEXT
+  LONG_TEXT
+
+  NUMBER
+  CURRENCY
+  PERCENT
+
+  BOOLEAN
+
+  DATE
+  DATETIME
+
+  EMAIL
+  PHONE
+  URL
+
+  SELECT
+  MULTI_SELECT
+
+  RELATIONSHIP
+
+  USER
+
+  FILE
+}
+
+
+// Company model
 
 model Company {
   id             String    @id @default(cuid())
@@ -273,6 +456,9 @@ model Task {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   deletedAt      DateTime?
+  
+  recordId String?
+  record RecordItem? @relation(fields: [recordId], references: [id], onDelete: Cascade)
 
   organization Organization @relation(fields: [organizationId], references: [id])
   assignedTo   Member?      @relation("AssignedTasks", fields: [assignedToId], references: [id])
@@ -281,6 +467,7 @@ model Task {
   contact      Contact?     @relation("ContactTasks", fields: [contactId], references: [id])
   company      Company?     @relation("CompanyTasks", fields: [companyId], references: [id])
 
+  @@index([organizationId, recordId])
   @@index([organizationId, status])
   @@index([organizationId, assignedToId])
   @@index([organizationId, dueDate])
@@ -440,12 +627,16 @@ model Note {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  recordId String?
+  record RecordItem? @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
   organization Organization @relation(fields: [organizationId], references: [id])
   createdBy    Member       @relation("NoteCreator", fields: [createdById], references: [id])
   deal         Deal?        @relation("DealNotes", fields: [dealId], references: [id])
   contact      Contact?     @relation("ContactNotes", fields: [contactId], references: [id])
   company      Company?     @relation("CompanyNotes", fields: [companyId], references: [id])
 
+  @@index([organizationId, recordId])
   @@index([organizationId, dealId])
   @@index([organizationId, contactId])
   @@index([organizationId, companyId])
@@ -522,6 +713,9 @@ model File {
   contactId      String?
   companyId      String?
 
+  recordId String?
+  record RecordItem? @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
   // Audit
   uploadedById   String     // Member ID
   createdAt      DateTime   @default(now())
@@ -533,6 +727,7 @@ model File {
   contact      Contact?     @relation("ContactFiles", fields: [contactId], references: [id])
   company      Company?     @relation("CompanyFiles", fields: [companyId], references: [id])
 
+  @@index([organizationId, recordId])
   @@index([parentId])
   @@index([organizationId, dealId])
   @@index([organizationId, contactId])

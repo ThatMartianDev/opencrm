@@ -1,0 +1,85 @@
+.recordModuleBuilder {
+    background: var(--bg-00);
+    outline: 5px solid var(--bg-01);
+    border: 1px solid var(--border-200);
+    border-radius: 16px;
+    flex-direction: column;
+    width: 1200px;
+    max-height: 90vh;
+    min-height: 50vh;
+    display: flex;
+    box-shadow: 0 8px 32px #0000001f;
+}
+
+.header {
+    border-bottom: 1px solid var(--border-100);
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px;
+    display: flex;
+    width: 100%;
+}
+
+.header h3 {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+.content {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    border-right: 1px solid var(--border-100);
+    padding: 14px;
+}
+
+.stepsList {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+}
+
+.step_btn,
+.substep_btn {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 10px;
+}
+
+.step_btn.has_substeps {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 0;
+    padding-left: 10px;
+}
+
+.step_btn:hover,
+.substep_btn:hover {
+    background-color: var(--bg-02);
+}
+
+.step_btn.has_substeps:hover {
+    background-color: transparent;
+}
+
+.step_btn.active,
+.substep_btn.active {
+    background-color: var(--bg-03);
+}

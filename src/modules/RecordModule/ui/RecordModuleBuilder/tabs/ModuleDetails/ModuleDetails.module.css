@@ -1,0 +1,91 @@
+.moduleDetails {
+    display: none;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+}
+.moduleDetails.active {
+    display: flex;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+
+.icon {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+}
+
+.icon_preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.selection_options {
+    position: relative;
+    display: flex;
+    gap: 4px;
+}
+
+.selection_options>button {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-radius: 8px;
+    background-color: var(--bg-00);
+    transition: all 0.2s ease;
+}
+.selection_options>button:hover {
+    background-color: var(--bg-03);
+}
+
+.icon_selector,
+.color_selector {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background-color: var(--bg-00);
+    border-radius: 8px;
+    box-shadow: 0 2px 14px rgba(0, 0, 0, 0.1);
+    background: var(--bg-00);
+    border: 1px solid var(--border-200);
+}
+
+.icon_button,
+.color_button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.icon_button svg {
+    width: 24px;
+    height: 24px;
+}
+
+
+.two_columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}

@@ -304,6 +304,10 @@ const SideBar = () => {
             </span>
             <p>Companies</p>
           </Link>
+          <button className={Styles.newModuleButton} onClick={() => openModal("new-module")}>
+            <AddFilled />
+            <p>New Module</p>
+          </button>
         </nav>
 
         {!openSideBar && (

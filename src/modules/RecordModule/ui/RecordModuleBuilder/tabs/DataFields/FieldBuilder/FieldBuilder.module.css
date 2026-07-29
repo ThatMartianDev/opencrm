@@ -1,0 +1,325 @@
+.FieldBuilderWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    padding: 24px;
+}
+
+.FieldBuilder {
+    background: var(--bg-00);
+    outline: 5px solid var(--bg-01);
+    border: 1px solid var(--border-200);
+    border-radius: 16px;
+    flex-direction: column;
+    width: 800px;
+    min-height: 50vh;
+    max-height: 90vh;
+    display: flex;
+    box-shadow: 0 8px 32px #0000001f;
+    overflow: hidden;
+}
+
+
+.typeStep {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.typeStep h3 {
+    font-size: var(--font-size-md);
+    font-weight: 500;
+}
+
+.fieldTypes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.fieldTypeButton {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 10px;
+    background-color: var(--bg-00);
+    transition: all 0.2s ease;
+    border: 1px solid var(--border-100);
+}
+.fieldTypeButton:hover {
+    background-color: var(--bg-03);
+}
+
+.fieldTypeButton > span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+}
+
+.fieldTypeButton > svg {
+    width: 20px;
+    height: 20px;
+    margin-left: auto;
+    opacity: 0.3;
+}
+
+.customizeStep {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-bottom: 4px;
+}
+
+.stepHeading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.stepHeading h3 {
+    font-size: var(--font-size-md);
+    font-weight: 500;
+}
+
+.stepHeading span {
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: color-mix(in srgb, #5670ff 10%, transparent);
+    color: #4059e8;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+}
+
+.formField {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.formField label,
+.optionsHeader h4 {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+.formField input,
+.formField select,
+.optionRow > input:not(.colorInput) {
+    width: 100%;
+    min-width: 0;
+    padding: 9px 10px;
+    border: 1px solid var(--border-100);
+    border-radius: 7px;
+    outline: none;
+    background: var(--bg-00);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--font-size-sm);
+}
+
+.formField input:focus,
+.formField select:focus,
+.optionRow > input:not(.colorInput):focus {
+    border-color: #5670ff;
+    box-shadow: 0 0 0 2px color-mix(in srgb, #5670ff 15%, transparent);
+}
+
+.inlineFields {
+    display: flex;
+    gap: 12px;
+}
+
+.optionsSection {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.optionsHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.optionsHeader p {
+    margin-top: 3px;
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+}
+
+.optionsHeader > button,
+.emptyOptions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 7px 9px;
+    border: 1px solid var(--border-100);
+    border-radius: 7px;
+    background: var(--bg-00);
+    color: var(--text-primary);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+}
+
+.optionsHeader > button:hover,
+.emptyOptions:hover {
+    background: var(--bg-03);
+}
+
+.optionsList {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.optionRow {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) 34px;
+    align-items: center;
+    gap: 8px;
+}
+
+.colorInput {
+    width: 36px;
+    height: 36px;
+    padding: 3px;
+    border: 1px solid var(--border-100);
+    border-radius: 7px;
+    background: var(--bg-00);
+    cursor: pointer;
+}
+
+.deleteOption {
+    display: inline-flex;
+    width: 34px;
+    height: 34px;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.deleteOption:hover {
+    background: color-mix(in srgb, #dc2626 10%, transparent);
+    color: #dc2626;
+}
+
+.emptyOptions {
+    width: 100%;
+    border-style: dashed;
+    padding: 14px;
+    color: var(--text-secondary);
+}
+
+.toggleGroup {
+    overflow: hidden;
+    border: 1px solid var(--border-100);
+    border-radius: 8px;
+}
+
+.toggleRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 11px 12px;
+    cursor: pointer;
+}
+
+.toggleRow + .toggleRow {
+    border-top: 1px solid var(--border-100);
+}
+
+.toggleRow > span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.toggleRow strong {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+.toggleRow small {
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+}
+
+.toggleRow input {
+    width: 34px;
+    height: 19px;
+    flex: 0 0 auto;
+    appearance: none;
+    border-radius: 10px;
+    background: var(--border-200);
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.toggleRow input::before {
+    display: block;
+    width: 15px;
+    height: 15px;
+    margin: 2px;
+    border-radius: 50%;
+    background: var(--bg-00);
+    box-shadow: 0 1px 3px #00000033;
+    content: "";
+    transition: transform 0.15s ease;
+}
+
+.toggleRow input:checked {
+    background: #5670ff;
+}
+
+.toggleRow input:checked::before {
+    transform: translateX(15px);
+}
+
+.toggleRow input:focus-visible {
+    outline: 2px solid #5670ff;
+    outline-offset: 2px;
+}
+
+.error {
+    margin: -8px 0 0;
+    color: #dc2626;
+    font-size: var(--font-size-xs);
+}
+
+@media (max-width: 680px) {
+    .FieldBuilderWrapper {
+        padding: 12px;
+    }
+
+    .FieldBuilder {
+        width: 100%;
+        max-height: calc(100vh - 24px);
+    }
+
+    .fieldTypes {
+        grid-template-columns: 1fr;
+    }
+
+    .inlineFields {
+        flex-direction: column;
+    }
+}

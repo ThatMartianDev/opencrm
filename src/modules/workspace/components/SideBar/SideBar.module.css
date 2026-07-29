@@ -178,7 +178,8 @@
     justify-content: flex-start;
 }
 
-.nav a {
+.nav a,
+.newModuleButton {
     display: grid;
     grid-template-columns: auto 1fr;
     align-items: center;
@@ -190,11 +191,13 @@
     width: 100%;
 }
 
-#sideBar.closed .nav a {
+#sideBar.closed .nav a,
+#sideBar.closed .newModuleButton {
     grid-template-columns: auto 0fr;
 }
 
-.nav a:hover {
+.nav a:hover,
+.newModuleButton:hover {
     background-color: var(--bg-03);
 }
 
@@ -211,9 +214,13 @@
     margin-right: 6px;
 }
 
-.nav a span svg {
+.nav a span svg,
+.newModuleButton svg {
     width: 18px;
     height: 18px;
+}
+.newModuleButton svg {
+    margin-inline-end: 10px;
 }
 
 .nav a span svg path {
@@ -230,13 +237,15 @@
     margin-right: 0;
 }
 
-.nav a p {
+.nav a p,
+.newModuleButton p {
     font-size: var(--font-size-sm);
     font-weight: 500;
     color: var(--text-color);
     line-height: 1;
     transition: all 0.3s ease;
     overflow: hidden;
+    text-align: start;
 }
 
 /* Org Menu */
