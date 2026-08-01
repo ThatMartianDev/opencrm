@@ -7,7 +7,7 @@ import CommentsTab from "./tabs/Comments";
 import FilesTab from "./tabs/Files";
 import {
   TaskListSquareLtrRegular,
-  
+  TaskListSquareLtrFilled,
   NoteRegular,
   NoteFilled,
   TargetFilled,
