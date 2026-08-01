@@ -5,13 +5,19 @@ import TabsControlHeader from "@/components/macro/TabsControlHeader/TabsControlH
 import NoteList from "./components/NoteList";
 import Styles from "./NotesPage.module.css";
 import { useModal } from "@/components/macro/ModalProvider/ModalProvider";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import type { getNotes } from "./actions";
 
-const NotesPage = () => {
+type NotesPageProps = {
+    initialPage: Awaited<ReturnType<typeof getNotes>>;
+};
+
+const NotesPage = ({ initialPage }: NotesPageProps) => {
     const { openModal } = useModal();
+    const [refreshVersion, setRefreshVersion] = useState(0);
 
     function handleCreateNote() {
-        openModal("note");
+        openModal("note", {}, () => setRefreshVersion((current) => current + 1));
     }
 
     useEffect(() => {
@@ -34,7 +40,11 @@ const NotesPage = () => {
                 showMainBtn={true}
                 mainButton={{ text: "New Note", onClick: handleCreateNote }}
             />
-            <NoteList showHeader={false} onCreateClick={handleCreateNote} />
+            <NoteList
+                key={refreshVersion}
+                showHeader={false}
+                initialPage={refreshVersion === 0 ? initialPage : undefined}
+            />
         </div>
     );
 };

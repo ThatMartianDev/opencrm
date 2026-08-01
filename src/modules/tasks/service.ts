@@ -1,5 +1,10 @@
-import { prisma } from "@/lib/db/client";
+import { Prisma } from "@/generated/prisma/client";
 import { ActivityType, ModuleFeature, TaskStatus } from "@/generated/prisma/enums";
+import { prisma } from "@/lib/db/client";
+import {
+    createPaginatedResult,
+    type PaginationQuery,
+} from "@/lib/pagination";
 import { NotificationsService } from "@/modules/notifications/service";
 import { ActivityLogService } from "@/modules/activity-log/service";
 
@@ -10,32 +15,53 @@ const taskInclude = {
     deal: { select: { id: true, title: true } },
 } as const;
 
+const getTasksPage = async (
+    where: Prisma.TaskWhereInput,
+    pagination: PaginationQuery,
+) => {
+    const rows = await prisma.task.findMany({
+        where,
+        include: taskInclude,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: (pagination.page - 1) * pagination.pageSize,
+        take: pagination.pageSize + 1,
+    });
+
+    return createPaginatedResult(rows, pagination);
+};
+
 export const TasksService = {
-    async getAllTasks(organizationId: string) {
-        return prisma.task.findMany({
-            where: { organizationId, deletedAt: null },
-            include: taskInclude,
-            orderBy: { createdAt: "desc" },
-        });
+    async getAllTasks(organizationId: string, pagination: PaginationQuery) {
+        return getTasksPage({ organizationId, deletedAt: null }, pagination);
     },
 
-    async getTasksForMember(organizationId: string, memberId: string) {
-        return prisma.task.findMany({
-            where: { organizationId, assignedToId: memberId, deletedAt: null },
-            include: taskInclude,
-            orderBy: { createdAt: "desc" },
-        });
+    async getTasksForMember(
+        organizationId: string,
+        memberId: string,
+        pagination: PaginationQuery,
+    ) {
+        return getTasksPage(
+            { organizationId, assignedToId: memberId, deletedAt: null },
+            pagination,
+        );
     },
 
-    async getTasksForDeal(dealId: string, organizationId: string) {
-        return prisma.task.findMany({
-            where: { dealId, organizationId, deletedAt: null },
-            include: taskInclude,
-            orderBy: { createdAt: "desc" },
-        });
+    async getTasksForDeal(
+        dealId: string,
+        organizationId: string,
+        pagination: PaginationQuery,
+    ) {
+        return getTasksPage(
+            { dealId, organizationId, deletedAt: null },
+            pagination,
+        );
     },
 
-    async getTasksForRecord(recordId: string, organizationId: string) {
+    async getTasksForRecord(
+        recordId: string,
+        organizationId: string,
+        pagination: PaginationQuery,
+    ) {
         const record = await prisma.recordItem.findFirst({
             where: {
                 id: recordId,
@@ -50,11 +76,10 @@ export const TasksService = {
         });
         if (!record) throw new Error("Record not found or tasks are not enabled.");
 
-        return prisma.task.findMany({
-            where: { recordId, organizationId, deletedAt: null },
-            include: taskInclude,
-            orderBy: { createdAt: "desc" },
-        });
+        return getTasksPage(
+            { recordId, organizationId, deletedAt: null },
+            pagination,
+        );
     },
 
     async getTaskById(taskId: string, organizationId: string) {

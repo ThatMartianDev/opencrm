@@ -17,9 +17,8 @@ import {
   updateTask,
   updateTaskStatus,
   deleteTask,
-  getTasksForRecord,
+  getTaskById,
 } from "../../actions";
-import { TasksService } from "../../service";
 import { getDeals } from "@/modules/deals/actions";
 import { useWorkspaceData } from "@/modules/workspace/components/workspace-provider";
 import { useToast } from "@/components/macro/Toaster";
@@ -57,7 +56,7 @@ type RecordOption = {
 type TaskModalProps = {
   onClose: () => void;
   onDataChanged?: () => void;
-  id?: string; // if provided, we're editing
+  id?: string;
   dealId?: string;
   contactId?: string;
   companyId?: string;
@@ -103,10 +102,7 @@ const TaskModal = ({
   // Load task data if editing
   useEffect(() => {
     if (id) {
-      import("../../actions").then(({ getTasks }) => {
-        const tasksPromise = recordId ? getTasksForRecord(recordId) : getTasks();
-        tasksPromise.then((tasks) => {
-          const task = tasks.find((t) => t.id === id);
+      getTaskById(id).then((task) => {
           if (task) {
             setName(task.name);
             setStatus(task.status);
@@ -124,10 +120,9 @@ const TaskModal = ({
             }
           }
           setLoading(false);
-        });
       });
     }
-  }, [id, recordId]);
+  }, [id]);
 
   // Load deals for linking
   useEffect(() => {

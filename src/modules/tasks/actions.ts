@@ -3,34 +3,64 @@
 import { TaskStatus } from "@/generated/prisma/enums";
 import { getSessionClaims } from "@/lib/auth/session";
 import { createQueryContext } from "@/lib/dal/scoped-query";
+import {
+    parsePaginationInput,
+    type PaginationInput,
+} from "@/lib/pagination";
 import { TasksService } from "./service";
 
-export const getTasks = async () => {
+export const getTasks = async (query?: PaginationInput) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);
     ctx.assertCan("tasks.read");
 
     // OWNER, ADMIN, MANAGER see all tasks; MEMBER sees only their own
     if (ctx.can("tasks.delete.any")) {
-        return TasksService.getAllTasks(session.organizationId);
+        return TasksService.getAllTasks(
+            session.organizationId,
+            parsePaginationInput(query),
+        );
     }
-    return TasksService.getTasksForMember(session.organizationId, session.memberId);
+    return TasksService.getTasksForMember(
+        session.organizationId,
+        session.memberId,
+        parsePaginationInput(query),
+    );
 };
 
-export const getTasksForDeal = async (dealId: string) => {
+export const getTasksForDeal = async (dealId: string, query?: PaginationInput) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);
     ctx.assertCan("tasks.read");
 
-    return TasksService.getTasksForDeal(dealId, session.organizationId);
+    return TasksService.getTasksForDeal(
+        dealId,
+        session.organizationId,
+        parsePaginationInput(query),
+    );
 };
 
-export const getTasksForRecord = async (recordId: string) => {
+export const getTasksForRecord = async (
+    recordId: string,
+    query?: PaginationInput,
+) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);
     ctx.assertCan("tasks.read");
 
-    return TasksService.getTasksForRecord(recordId, session.organizationId);
+    return TasksService.getTasksForRecord(
+        recordId,
+        session.organizationId,
+        parsePaginationInput(query),
+    );
+};
+
+export const getTaskById = async (taskId: string) => {
+    const session = await getSessionClaims();
+    const ctx = createQueryContext(session);
+    ctx.assertCan("tasks.read");
+
+    return TasksService.getTaskById(taskId, session.organizationId);
 };
 
 export const createTask = async (data: {

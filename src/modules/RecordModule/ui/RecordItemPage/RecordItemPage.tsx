@@ -29,35 +29,23 @@ import Styles from "./RecordItemPage.module.css";
 type RecordItemPageProps = {
   moduleKey: string;
   recordId: string;
+  initialRecord: RecordModuleRecordData | null;
 };
 
-const RecordItemPage = ({ moduleKey, recordId }: RecordItemPageProps) => {
+const RecordItemPage = ({
+  moduleKey,
+  recordId,
+  initialRecord,
+}: RecordItemPageProps) => {
   const { toast } = useToast();
-  const [record, setRecord] = useState<RecordModuleRecordData | null>(null);
-  const [values, setValues] = useState<RecordValueState>({});
+  const [record, setRecord] = useState<RecordModuleRecordData | null>(initialRecord);
+  const [values, setValues] = useState<RecordValueState>(() =>
+    initialRecord
+      ? createInitialValues(initialRecord.module.fields, initialRecord.values)
+      : {},
+  );
   const [activeTab, setActiveTab] = useState("overview");
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
   const [savingFieldKey, setSavingFieldKey] = useState<string | null>(null);
-
-  useEffect(() => {
-    getRecordModuleRecord(moduleKey, recordId)
-      .then((data) => {
-        if (!data) {
-          setLoadError("This record does not exist or is not available.");
-          return;
-        }
-
-        setRecord(data);
-        setValues(createInitialValues(data.module.fields, data.values));
-        setLoadError("");
-      })
-      .catch((error) => {
-        console.error("Failed to load module record", error);
-        setLoadError("Unable to load this record.");
-      })
-      .finally(() => setIsLoading(false));
-  }, [moduleKey, recordId]);
 
   useEffect(() => {
     if (record) window.document.title = `${record.displayName} | OpenCRM`;
@@ -100,8 +88,13 @@ const RecordItemPage = ({ moduleKey, recordId }: RecordItemPageProps) => {
     }
   };
 
-  if (isLoading) return <div className={Styles.status}>Loading record...</div>;
-  if (!record) return <div className={Styles.status}>{loadError}</div>;
+  if (!record) {
+    return (
+      <div className={Styles.status}>
+        This record does not exist or is not available.
+      </div>
+    );
+  }
 
   const moduleName = record.module.pluralName ?? record.module.name;
   const moduleHref = `/app/${record.organizationId}/${record.module.key}`;

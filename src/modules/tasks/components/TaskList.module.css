@@ -397,3 +397,26 @@
 .bulkDropdown button:hover {
     background: var(--bg-03);
 }
+
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px 0 4px;
+    font-size: var(--font-size-sm);
+}
+
+.pagination button {
+    padding: 6px 10px;
+    border: 1px solid var(--border-100);
+    border-radius: 6px;
+    background: var(--bg-00);
+    color: var(--text-color);
+    cursor: pointer;
+}
+
+.pagination button:disabled {
+    cursor: default;
+    opacity: 0.45;
+}

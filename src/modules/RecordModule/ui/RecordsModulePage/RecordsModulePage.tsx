@@ -21,18 +21,33 @@ import Styles from "./RecordsModulePage.module.css";
 
 type RecordsModulePageProps = {
     moduleKey: string;
+    initialData: RecordModulePageData | null;
 };
 
-const RecordsModulePage = ({ moduleKey }: RecordsModulePageProps) => {
+const getQueryKey = (moduleKey: string, page: number, search: string) =>
+    `${moduleKey}:${page}:${search}`;
+
+const RecordsModulePage = ({ moduleKey, initialData }: RecordsModulePageProps) => {
     const { openModal } = useModal();
-    const [module, setModule] = useState<RecordModulePageData | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [loadError, setLoadError] = useState("");
-    const [activeViewId, setActiveViewId] = useState("");
+    const [module, setModule] = useState<RecordModulePageData | null>(initialData);
+    const [isLoading, setIsLoading] = useState(false);
+    const [loadError, setLoadError] = useState(
+        initialData ? "" : "This module does not exist or is not available.",
+    );
+    const [activeViewId, setActiveViewId] = useState(
+        initialData?.views.find((view) => view.isDefault)?.id ?? initialData?.views[0]?.id ?? "",
+    );
     const [searchValue, setSearchValue] = useState("");
-    const [page, setPage] = useState(1);
+    const [page, setPage] = useState(initialData?.pagination.page ?? 1);
     const deferredSearch = useDeferredValue(searchValue.trim().toLowerCase());
     const loadRequestId = useRef(0);
+    const loadedQueryKey = useRef(
+        getQueryKey(
+            moduleKey,
+            initialData?.pagination.page ?? 1,
+            initialData?.pagination.search ?? "",
+        ),
+    );
 
     const applyModuleData = useCallback((data: RecordModulePageData | null) => {
         if (!data) {
@@ -59,6 +74,13 @@ const RecordsModulePage = ({ moduleKey }: RecordsModulePageProps) => {
                 search: deferredSearch,
             });
             if (requestId !== loadRequestId.current) return;
+            if (data) {
+                loadedQueryKey.current = getQueryKey(
+                    moduleKey,
+                    data.pagination.page,
+                    data.pagination.search,
+                );
+            }
             applyModuleData(data);
         } catch (error) {
             if (requestId !== loadRequestId.current) return;
@@ -70,6 +92,10 @@ const RecordsModulePage = ({ moduleKey }: RecordsModulePageProps) => {
     }, [applyModuleData, deferredSearch, moduleKey, page]);
 
     useEffect(() => {
+        const queryKey = getQueryKey(moduleKey, page, deferredSearch);
+        if (loadedQueryKey.current === queryKey) return;
+
+        loadedQueryKey.current = queryKey;
         const requestId = ++loadRequestId.current;
         getRecordModulePage(moduleKey, {
             page,
@@ -77,7 +103,15 @@ const RecordsModulePage = ({ moduleKey }: RecordsModulePageProps) => {
             search: deferredSearch,
         })
             .then((data) => {
-                if (requestId === loadRequestId.current) applyModuleData(data);
+                if (requestId !== loadRequestId.current) return;
+                if (data) {
+                    loadedQueryKey.current = getQueryKey(
+                        moduleKey,
+                        data.pagination.page,
+                        data.pagination.search,
+                    );
+                }
+                applyModuleData(data);
             })
             .catch((error) => {
                 if (requestId !== loadRequestId.current) return;

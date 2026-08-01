@@ -170,15 +170,86 @@
 
 .nav {
     display: grid;
+    grid-template-rows: auto 0fr;
     grid-template-columns: 100%;
-    padding-block: 10px;
     border-bottom: 1px solid var(--border-100);
+    padding-block: 10px;
     padding-inline: 8px;
-    align-items: flex-start;
-    justify-content: flex-start;
+    transition: all 0.3s ease;
+    place-content: flex-start;
 }
 
-.nav a,
+.nav.expanded {
+    grid-template-rows: auto 1fr;
+    gap: 4px;
+}
+
+.nav_header {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+#sideBar.closed .nav {
+    grid-template-rows: auto 1fr;
+}
+
+#sideBar.closed .nav_header {
+    display: none;
+}
+
+.expand_nav_btn {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    padding: 4px;
+    flex: 1;
+}
+
+.expand_nav_btn p {
+    font-size: var(--font-size-xs);
+}
+
+.expand_nav_btn svg {
+    transition: all 0.3s ease;
+    transform: rotate(-90deg);
+}
+.nav.expanded .expand_nav_btn svg {
+    transform: rotate(0);
+}
+
+.nav_icon_btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 8px;
+    transition: all 0.15s ease;
+}
+.nav_icon_btn:hover {
+    background-color: var(--bg-03);
+}
+
+.nav_body {
+    display: grid;
+    grid-template-columns: 100%;
+    align-items: flex-start;
+    justify-content: flex-start;
+    overflow: hidden;
+}
+.nav.expanded .nav_body {
+    animation: unsetOverflow 0.3s ease forwards;
+    animation-delay: 0.5s;
+}
+
+@keyframes unsetOverflow {
+    to {
+        overflow: unset;
+    }
+}
+
+.nav_body a,
 .newModuleButton {
     display: grid;
     grid-template-columns: auto 1fr;
@@ -191,21 +262,21 @@
     width: 100%;
 }
 
-#sideBar.closed .nav a,
+#sideBar.closed .nav_body a,
 #sideBar.closed .newModuleButton {
     grid-template-columns: auto 0fr;
 }
 
-.nav a:hover,
+.nav_body a:hover,
 .newModuleButton:hover {
     background-color: var(--bg-03);
 }
 
-.nav a.active {
+.nav_body a.active {
     background-color: var(--bg-04);
 }
 
-.nav a span {
+.nav_body a span {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -214,7 +285,7 @@
     margin-right: 6px;
 }
 
-.nav a span svg,
+.nav_body a span svg,
 .newModuleButton svg {
     width: 18px;
     height: 18px;
@@ -223,21 +294,21 @@
     margin-inline-end: 10px;
 }
 
-.nav a span svg path {
+.nav_body a span svg path {
     fill: #fff;
 }
 
-.nav a>svg {
+.nav_body a>svg {
     width: 18px;
     height: 18px;
     margin-right: 6px;
 }
-#sideBar.closed .nav a svg,
-#sideBar.closed .nav a span {
+#sideBar.closed .nav_body a svg,
+#sideBar.closed .nav_body a span {
     margin-right: 0;
 }
 
-.nav a p,
+.nav_body a p,
 .newModuleButton p {
     font-size: var(--font-size-sm);
     font-weight: 500;
@@ -279,6 +350,11 @@
 .recordMenuButton svg {
     width: 16px;
     height: 16px;
+    opacity: 0.4;
+    transition: all 0.3s ease;
+}
+.recordModuleItem:hover .recordMenuButton svg {
+    opacity: 1;
 }
 
 .recordMenuBackdrop {

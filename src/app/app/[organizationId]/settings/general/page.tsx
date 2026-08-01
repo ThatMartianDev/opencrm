@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useWorkspaceData } from "@/modules/workspace/components/workspace-provider";
-import { getWorkspaceSettings, updateWorkspace, deleteWorkspace } from "@/modules/workspace/actions";
+import { updateWorkspace, deleteWorkspace } from "@/modules/workspace/actions";
 import AvatarFallback from "@/components/micro/AvatarFallback/AvatarFallback";
 import MainButton from "@/components/micro/MainButton/MainButton";
 import Styles from "./general.module.css";
@@ -21,14 +21,6 @@ export default function GeneralPage() {
     const [logoUploading, setLogoUploading] = useState(false);
     const [logoError, setLogoError] = useState("");
     const logoInputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        getWorkspaceSettings().then((data) => {
-            setName(data.name);
-            setSlug(data.slug);
-            setLogoUrl(data.logoUrl);
-        }).catch(() => {});
-    }, []);
 
     async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];

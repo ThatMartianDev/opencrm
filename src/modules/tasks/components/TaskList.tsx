@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CheckmarkFilled,
   AddRegular,
@@ -41,16 +41,28 @@ type TaskListProps = {
   recordId?: string;
   showHeader?: boolean;
   showTabsHeader?: boolean;
+  initialPage?: TaskPageData;
 };
+
+type TaskPageData = Awaited<ReturnType<typeof getTasks>>;
+
+const PAGE_SIZE = 20;
 
 const loadTasks = ({
   dealId,
   recordId,
-}: Pick<TaskListProps, "dealId" | "recordId">) => {
-  if (recordId) return getTasksForRecord(recordId);
-  if (dealId) return getTasksForDeal(dealId);
-  return getTasks();
+  page,
+}: Pick<TaskListProps, "dealId" | "recordId"> & { page: number }) => {
+  const query = { page, pageSize: PAGE_SIZE };
+  if (recordId) return getTasksForRecord(recordId, query);
+  if (dealId) return getTasksForDeal(dealId, query);
+  return getTasks(query);
 };
+
+const getQueryKey = (
+  { dealId, recordId }: Pick<TaskListProps, "dealId" | "recordId">,
+  page: number,
+) => `${recordId ?? dealId ?? "all"}:${page}`;
 
 const STATUS_LABELS: Record<TaskStatus, string> = {
   TODO: "To Do",
@@ -77,47 +89,65 @@ const TaskList = ({
   recordId,
   showHeader = true,
   showTabsHeader = false,
+  initialPage,
 }: TaskListProps) => {
-  const [tasks, setTasks] = useState<TaskWithRelations[]>([]);
+  const [taskPage, setTaskPage] = useState<TaskPageData>(
+    initialPage ?? {
+      items: [],
+      pagination: { page: 1, pageSize: PAGE_SIZE, hasNext: false },
+    },
+  );
+  const [page, setPage] = useState(initialPage?.pagination.page ?? 1);
   const [showInlineForm, setShowInlineForm] = useState(false);
   const [newTaskName, setNewTaskName] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialPage);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const { openModal } = useModal();
   const { toast } = useToast();
   const { organizationId } = useWorkspaceData();
   const memberPicker = useMemberPicker();
+  const loadRequestId = useRef(0);
+  const loadedQueryKey = useRef<string | null>(
+    initialPage ? getQueryKey({ dealId, recordId }, page) : null,
+  );
+  const tasks = taskPage.items;
 
   const fetchTasks = useCallback(async () => {
+    const queryKey = getQueryKey({ dealId, recordId }, page);
+    const requestId = ++loadRequestId.current;
+    loadedQueryKey.current = queryKey;
+    setLoading(true);
+
     try {
-      const data = await loadTasks({ dealId, recordId });
-      setTasks(data);
+      const data = await loadTasks({ dealId, recordId, page });
+      if (requestId !== loadRequestId.current) return;
+
+      if (data.items.length === 0 && page > 1) {
+        loadedQueryKey.current = null;
+        setPage((current) => current - 1);
+        return;
+      }
+
+      setTaskPage(data);
     } catch (error) {
+      if (requestId !== loadRequestId.current) return;
       console.error("Error fetching tasks:", error);
     } finally {
-      setLoading(false);
+      if (requestId === loadRequestId.current) setLoading(false);
     }
-  }, [dealId, recordId]);
+  }, [dealId, page, recordId]);
 
   useEffect(() => {
-    let cancelled = false;
+    const queryKey = getQueryKey({ dealId, recordId }, page);
+    if (loadedQueryKey.current === queryKey) return;
+    void fetchTasks();
+  }, [dealId, fetchTasks, page, recordId]);
 
-    loadTasks({ dealId, recordId })
-      .then((data) => {
-        if (!cancelled) setTasks(data);
-      })
-      .catch((error) => {
-        console.error("Error fetching tasks:", error);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [dealId, recordId]);
+  const changePage = (nextPage: number) => {
+    clearSelection();
+    setPage(nextPage);
+  };
 
   async function handleToggleStatus(task: TaskWithRelations) {
     const nextStatus =
@@ -463,6 +493,26 @@ const TaskList = ({
             </div>
           </div>
         ))}
+
+      {(page > 1 || taskPage.pagination.hasNext) && (
+        <nav className={Styles.pagination} aria-label="Task pages">
+          <button
+            type="button"
+            disabled={page === 1 || loading}
+            onClick={() => changePage(Math.max(1, page - 1))}
+          >
+            Previous
+          </button>
+          <span>Page {page}</span>
+          <button
+            type="button"
+            disabled={!taskPage.pagination.hasNext || loading}
+            onClick={() => changePage(page + 1)}
+          >
+            Next
+          </button>
+        </nav>
+      )}
 
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (

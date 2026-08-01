@@ -1,5 +1,10 @@
+import { Prisma } from "@/generated/prisma/client";
 import { ModuleFeature } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db/client";
+import {
+  createPaginatedResult,
+  type PaginationQuery,
+} from "@/lib/pagination";
 
 const noteInclude = {
   createdBy: {
@@ -12,40 +17,55 @@ const noteInclude = {
   company: { select: { id: true, name: true } },
 } as const;
 
+const getNotesPage = async (
+  where: Prisma.NoteWhereInput,
+  pagination: PaginationQuery,
+) => {
+  const rows = await prisma.note.findMany({
+    where,
+    include: noteInclude,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    skip: (pagination.page - 1) * pagination.pageSize,
+    take: pagination.pageSize + 1,
+  });
+
+  return createPaginatedResult(rows, pagination);
+};
+
 export const NotesService = {
-  async getAllNotes(organizationId: string) {
-    return prisma.note.findMany({
-      where: { organizationId },
-      include: noteInclude,
-      orderBy: { createdAt: "desc" },
-    });
+  async getAllNotes(organizationId: string, pagination: PaginationQuery) {
+    return getNotesPage({ organizationId }, pagination);
   },
 
-  async getNotesForDeal(dealId: string, organizationId: string) {
-    return prisma.note.findMany({
-      where: { dealId, organizationId },
-      include: noteInclude,
-      orderBy: { createdAt: "desc" },
-    });
+  async getNotesForDeal(
+    dealId: string,
+    organizationId: string,
+    pagination: PaginationQuery,
+  ) {
+    return getNotesPage({ dealId, organizationId }, pagination);
   },
 
-  async getNotesForContact(contactId: string, organizationId: string) {
-    return prisma.note.findMany({
-      where: { contactId, organizationId },
-      include: noteInclude,
-      orderBy: { createdAt: "desc" },
-    });
+  async getNotesForContact(
+    contactId: string,
+    organizationId: string,
+    pagination: PaginationQuery,
+  ) {
+    return getNotesPage({ contactId, organizationId }, pagination);
   },
 
-  async getNotesForCompany(companyId: string, organizationId: string) {
-    return prisma.note.findMany({
-      where: { companyId, organizationId },
-      include: noteInclude,
-      orderBy: { createdAt: "desc" },
-    });
+  async getNotesForCompany(
+    companyId: string,
+    organizationId: string,
+    pagination: PaginationQuery,
+  ) {
+    return getNotesPage({ companyId, organizationId }, pagination);
   },
 
-  async getNotesForRecord(recordId: string, organizationId: string) {
+  async getNotesForRecord(
+    recordId: string,
+    organizationId: string,
+    pagination: PaginationQuery,
+  ) {
     const record = await prisma.recordItem.findFirst({
       where: {
         id: recordId,
@@ -60,10 +80,13 @@ export const NotesService = {
     });
     if (!record) throw new Error("Record not found or notes are not enabled.");
 
-    return prisma.note.findMany({
-      where: { recordId, organizationId },
+    return getNotesPage({ recordId, organizationId }, pagination);
+  },
+
+  async getNoteById(noteId: string, organizationId: string) {
+    return prisma.note.findFirst({
+      where: { id: noteId, organizationId },
       include: noteInclude,
-      orderBy: { createdAt: "desc" },
     });
   },
 

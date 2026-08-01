@@ -1,33 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  getLinkedAccounts,
   disconnectAccount,
   LinkedAccount,
-  getCalendarStatus,
   disconnectCalendar,
-  getGmailStatus,
   disconnectGmail,
 } from "./actions";
+import { useAccountsInitialData } from "./accounts-data-provider";
 import Styles from "./accounts.module.css";
 
 type Tab = "accounts" | "calendar" | "email";
 
 export default function AccountsPage() {
   const searchParams = useSearchParams();
+  const initialData = useAccountsInitialData();
   const initialTab = (searchParams.get("tab") as Tab) || "accounts";
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
-  const [accounts, setAccounts] = useState<LinkedAccount[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    getLinkedAccounts().then((data) => {
-      setAccounts(data);
-      setLoading(false);
-    });
-  }, []);
+  const [accounts, setAccounts] = useState<LinkedAccount[]>(initialData.accounts);
 
   async function handleDisconnect(accountId: string) {
     const result = await disconnectAccount(accountId);
@@ -69,31 +60,28 @@ export default function AccountsPage() {
       {activeTab === "accounts" && (
         <AccountsTab
           accounts={accounts}
-          loading={loading}
           onDisconnect={handleDisconnect}
         />
       )}
 
-      {activeTab === "calendar" && <CalendarTab />}
+      {activeTab === "calendar" && (
+        <CalendarTab initialStatus={initialData.calendarStatus} />
+      )}
 
-      {activeTab === "email" && <EmailTab />}
+      {activeTab === "email" && (
+        <EmailTab initialStatus={initialData.gmailStatus} />
+      )}
     </div>
   );
 }
 
 function AccountsTab({
   accounts,
-  loading,
   onDisconnect,
 }: {
   accounts: LinkedAccount[];
-  loading: boolean;
   onDisconnect: (id: string) => void;
 }) {
-  if (loading) {
-    return <div className={Styles.emptyState}>Loading...</div>;
-  }
-
   return (
     <div className={Styles.section}>
       <h4>Connected Accounts</h4>
@@ -160,19 +148,14 @@ function GoogleIcon() {
   );
 }
 
-function CalendarTab() {
-  const [connected, setConnected] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [scope, setScope] = useState<string | null>(null);
+function CalendarTab({
+  initialStatus,
+}: {
+  initialStatus: { connected: boolean; scope: string | null };
+}) {
+  const [connected, setConnected] = useState(initialStatus.connected);
+  const [scope, setScope] = useState<string | null>(initialStatus.scope);
   const [disconnecting, setDisconnecting] = useState(false);
-
-  useEffect(() => {
-    getCalendarStatus().then((status) => {
-      setConnected(status.connected);
-      setScope(status.scope);
-      setLoading(false);
-    });
-  }, []);
 
   async function handleDisconnect() {
     setDisconnecting(true);
@@ -184,10 +167,6 @@ function CalendarTab() {
       alert(result.error);
     }
     setDisconnecting(false);
-  }
-
-  if (loading) {
-    return <div className={Styles.emptyState}>Loading...</div>;
   }
 
   if (connected) {
@@ -292,19 +271,14 @@ function GmailIcon() {
   );
 }
 
-function EmailTab() {
-  const [connected, setConnected] = useState(false);
-  const [email, setEmail] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+function EmailTab({
+  initialStatus,
+}: {
+  initialStatus: { connected: boolean; email: string | null };
+}) {
+  const [connected, setConnected] = useState(initialStatus.connected);
+  const [email, setEmail] = useState<string | null>(initialStatus.email);
   const [disconnecting, setDisconnecting] = useState(false);
-
-  useEffect(() => {
-    getGmailStatus().then((status) => {
-      setConnected(status.connected);
-      setEmail(status.email);
-      setLoading(false);
-    });
-  }, []);
 
   async function handleDisconnect() {
     setDisconnecting(true);
@@ -316,10 +290,6 @@ function EmailTab() {
       alert(result.error);
     }
     setDisconnecting(false);
-  }
-
-  if (loading) {
-    return <div className={Styles.emptyState}>Loading...</div>;
   }
 
   if (connected) {

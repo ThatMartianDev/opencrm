@@ -4,8 +4,13 @@ import { TaskListSquareLtrFilled } from "@fluentui/react-icons";
 import TaskList from "./components/TaskList";
 import Styles from "./TasksPage.module.css";
 import { useEffect } from "react";
+import type { getTasks } from "./actions";
 
-const TasksPage = () => {
+type TasksPageProps = {
+    initialPage: Awaited<ReturnType<typeof getTasks>>;
+};
+
+const TasksPage = ({ initialPage }: TasksPageProps) => {
 
     useEffect(() => {
         window.document.title = "Tasks";
@@ -21,7 +26,11 @@ const TasksPage = () => {
                     <h2>Tasks</h2>
                 </div>
             </header>
-            <TaskList showHeader={false} showTabsHeader />
+            <TaskList
+                showHeader={false}
+                showTabsHeader
+                initialPage={initialPage}
+            />
         </div>
     );
 };

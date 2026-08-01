@@ -2,46 +2,86 @@
 
 import { getSessionClaims } from "@/lib/auth/session";
 import { createQueryContext } from "@/lib/dal/scoped-query";
+import {
+    parsePaginationInput,
+    type PaginationInput,
+} from "@/lib/pagination";
 import { NotesService } from "./service";
 
-export const getNotes = async () => {
+export const getNotes = async (query?: PaginationInput) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);
     ctx.assertCan("notes.read");
 
-    return NotesService.getAllNotes(session.organizationId);
+    return NotesService.getAllNotes(
+        session.organizationId,
+        parsePaginationInput(query),
+    );
 };
 
-export const getNotesForDeal = async (dealId: string) => {
+export const getNotesForDeal = async (dealId: string, query?: PaginationInput) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);
     ctx.assertCan("notes.read");
 
-    return NotesService.getNotesForDeal(dealId, session.organizationId);
+    return NotesService.getNotesForDeal(
+        dealId,
+        session.organizationId,
+        parsePaginationInput(query),
+    );
 };
 
-export const getNotesForContact = async (contactId: string) => {
+export const getNotesForContact = async (
+    contactId: string,
+    query?: PaginationInput,
+) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);
     ctx.assertCan("notes.read");
 
-    return NotesService.getNotesForContact(contactId, session.organizationId);
+    return NotesService.getNotesForContact(
+        contactId,
+        session.organizationId,
+        parsePaginationInput(query),
+    );
 };
 
-export const getNotesForCompany = async (companyId: string) => {
+export const getNotesForCompany = async (
+    companyId: string,
+    query?: PaginationInput,
+) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);
     ctx.assertCan("notes.read");
 
-    return NotesService.getNotesForCompany(companyId, session.organizationId);
+    return NotesService.getNotesForCompany(
+        companyId,
+        session.organizationId,
+        parsePaginationInput(query),
+    );
 };
 
-export const getNotesForRecord = async (recordId: string) => {
+export const getNotesForRecord = async (
+    recordId: string,
+    query?: PaginationInput,
+) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);
     ctx.assertCan("notes.read");
 
-    return NotesService.getNotesForRecord(recordId, session.organizationId);
+    return NotesService.getNotesForRecord(
+        recordId,
+        session.organizationId,
+        parsePaginationInput(query),
+    );
+};
+
+export const getNoteById = async (noteId: string) => {
+    const session = await getSessionClaims();
+    const ctx = createQueryContext(session);
+    ctx.assertCan("notes.read");
+
+    return NotesService.getNoteById(noteId, session.organizationId);
 };
 
 export const createNote = async (data: {

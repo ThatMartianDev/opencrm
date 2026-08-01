@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useWorkspaceData } from "@/modules/workspace/components/workspace-provider";
 import { useModal } from "@/components/macro/ModalProvider/ModalProvider";
 import {
-    getWorkspaceMembers,
-    getWorkspaceInvitations,
     updateMemberRole,
     removeMember,
     revokeInvitation,
@@ -14,6 +12,7 @@ import {
 import { MemberRole } from "@/generated/prisma/enums";
 import AvatarFallback from "@/components/micro/AvatarFallback/AvatarFallback";
 import MainButton from "@/components/micro/MainButton/MainButton";
+import { useMembersInitialData } from "./members-data-provider";
 import Styles from "./members.module.css";
 
 type MemberRow = {
@@ -36,21 +35,14 @@ const ROLE_OPTIONS: MemberRole[] = [MemberRole.ADMIN, MemberRole.MANAGER, Member
 export default function MembersPage() {
     const { member: currentMember } = useWorkspaceData();
     const { openModal } = useModal();
+    const initialData = useMembersInitialData();
 
-    const [members, setMembers] = useState<MemberRow[]>([]);
-    const [invitations, setInvitations] = useState<InvitationRow[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [members, setMembers] = useState<MemberRow[]>(initialData.members);
+    const [invitations, setInvitations] = useState<InvitationRow[]>(
+        initialData.invitations,
+    );
 
     const canManage = currentMember.role === "OWNER" || currentMember.role === "ADMIN";
-
-    useEffect(() => {
-        Promise.all([getWorkspaceMembers(), getWorkspaceInvitations()])
-            .then(([m, i]) => {
-                setMembers(m as MemberRow[]);
-                setInvitations(i as InvitationRow[]);
-            })
-            .finally(() => setLoading(false));
-    }, []);
 
     async function handleRoleChange(memberId: string, role: MemberRole) {
         try {
@@ -92,10 +84,6 @@ export default function MembersPage() {
         } catch (err: unknown) {
             alert(err instanceof Error ? err.message : "Failed to resend invitation");
         }
-    }
-
-    if (loading) {
-        return <p>Loading members...</p>;
     }
 
     return (

@@ -6,7 +6,7 @@ import {
     NoteRegular,
     LinkRegular,
 } from "@fluentui/react-icons";
-import { createNote, updateNote, getNotes } from "../../actions";
+import { createNote, updateNote, getNoteById } from "../../actions";
 import { getDeals } from "@/modules/deals/actions";
 import { getContacts } from "@/modules/contacts/actions";
 import { getCompanies } from "@/modules/companies/actions";
@@ -45,8 +45,7 @@ const NoteModal = ({ onClose, onDataChanged, id, dealId, contactId, companyId, r
     // Load note data if editing
     useEffect(() => {
         if (id) {
-            getNotes().then((notes) => {
-                const note = notes.find((n) => n.id === id);
+            getNoteById(id).then((note) => {
                 if (note) {
                     setTitle(note.title || "");
                     setContent(note.content);
