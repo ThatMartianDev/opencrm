@@ -20,6 +20,14 @@ export type WorkspaceBootstrap = {
 		plan: string;
 		logoUrl: string | null;
 	};
+	recordModules: {
+		id: string;
+		key: string;
+		name: string;
+		pluralName: string | null;
+		icon: string;
+		accentColor: string | null;
+	}[];
 };
 
 

@@ -1,9 +1,11 @@
-import type { SelectOption, ShortnedRecordField } from "../types";
+import type { RecordFieldDraft } from "../../../types";
+import type { SelectOption } from "../types";
 import { RecordFieldType } from "@/generated/prisma/enums";
 import Styles from "./FieldBuilder.module.css";
 import SharedModalStyles from "@/components/macro/ModalProvider/SharedStyles.module.css";
 import { useState } from "react";
 import MainButton from "@/components/micro/MainButton/MainButton";
+import OptionToggle from "@/components/micro/OptionToggle/OptionToggle";
 import { useToast } from "@/components/macro/Toaster";
 
 import {
@@ -16,18 +18,42 @@ import {
 import { FieldTypes } from "../config";
 const DEFAULT_OPTION_COLOR = "#5670ff";
 
+const createFieldKey = (label: string, fields: RecordFieldDraft[]) => {
+  const baseKey =
+    label
+      .trim()
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "") || "field";
+  const existingKeys = new Set(fields.map((field) => field.key));
+
+  if (!existingKeys.has(baseKey)) return baseKey;
+
+  let suffix = 2;
+  while (existingKeys.has(`${baseKey}_${suffix}`)) suffix += 1;
+  return `${baseKey}_${suffix}`;
+};
+
 const FieldBuilder = ({
   onClose,
   fieldToEdit,
+  dataFields,
   setDataFields,
   hasRecordTitle,
+  onSave,
+  allowRecordTitleChange = true,
 }: {
   onClose: () => void;
-  fieldToEdit: ShortnedRecordField | null;
-  setDataFields: React.Dispatch<
-    React.SetStateAction<ShortnedRecordField[] | null>
+  fieldToEdit: RecordFieldDraft | null;
+  dataFields: RecordFieldDraft[];
+  setDataFields?: React.Dispatch<
+    React.SetStateAction<RecordFieldDraft[]>
   >;
   hasRecordTitle: boolean;
+  onSave?: (field: RecordFieldDraft) => Promise<boolean>;
+  allowRecordTitleChange?: boolean;
 }) => {
   const { toast } = useToast();
   const [type, setType] = useState<RecordFieldType | null>(
@@ -64,6 +90,7 @@ const FieldBuilder = ({
     })) || [],
   );
   const [error, setError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const isSelectType =
     type === RecordFieldType.SELECT || type === RecordFieldType.MULTI_SELECT;
@@ -93,7 +120,7 @@ const FieldBuilder = ({
     ]);
   };
 
-  const handleAddField = () => {
+  const handleAddField = async () => {
     if (step === "type") {
       setStep("customize");
       return;
@@ -153,85 +180,96 @@ const FieldBuilder = ({
     let recordTitleWasTransferred = false;
     let primaryEmailWasTransferred = false;
 
-    setDataFields((currentFields) => {
-      const fields = currentFields || [];
-      const hasRecordTitle = fields.some(
-        (existingField) =>
-          existingField.isPrimary && existingField !== fieldToEdit,
-      );
-      const shouldBeRecordTitle =
-        type === RecordFieldType.TEXT &&
-        (isRecordTitle || (!fieldToEdit?.isPrimary && !hasRecordTitle));
+    const fields = dataFields;
+    const anotherRecordTitleExists = fields.some(
+      (existingField) =>
+        existingField.isPrimary && existingField !== fieldToEdit,
+    );
+    const shouldBeRecordTitle =
+      allowRecordTitleChange &&
+      type === RecordFieldType.TEXT &&
+      (isRecordTitle || (!fieldToEdit?.isPrimary && !anotherRecordTitleExists));
 
-      recordTitleWasAssigned =
-        shouldBeRecordTitle && !fieldToEdit?.isPrimary && !hasRecordTitle;
-      recordTitleWasTransferred = shouldBeRecordTitle && hasRecordTitle;
-      primaryEmailWasTransferred =
-        type === RecordFieldType.EMAIL &&
-        isPrimaryEmail &&
-        fields.some(
-          (existingField) =>
-            existingField !== fieldToEdit &&
-            existingField.type === RecordFieldType.EMAIL &&
-            existingField.config?.isPrimaryEmail,
+    recordTitleWasAssigned =
+      shouldBeRecordTitle && !fieldToEdit?.isPrimary && !anotherRecordTitleExists;
+    recordTitleWasTransferred = shouldBeRecordTitle && anotherRecordTitleExists;
+    primaryEmailWasTransferred =
+      type === RecordFieldType.EMAIL &&
+      isPrimaryEmail &&
+      fields.some(
+        (existingField) =>
+          existingField !== fieldToEdit &&
+          existingField.type === RecordFieldType.EMAIL &&
+          existingField.config?.isPrimaryEmail,
+      );
+
+    const config = isSelectType
+      ? {
+          options: options.map((option) => ({
+            ...option,
+            label: option.label.trim(),
+          })),
+        }
+      : hasNumericRange
+        ? {
+            ...(type === RecordFieldType.CURRENCY && { currency }),
+            ...(parsedMinimum !== undefined && { minimum: parsedMinimum }),
+            ...(parsedMaximum !== undefined && { maximum: parsedMaximum }),
+          }
+        : type === RecordFieldType.EMAIL
+          ? { isPrimaryEmail }
+          : {};
+    const savedField: RecordFieldDraft = {
+      key: fieldToEdit?.key ?? createFieldKey(label, fields),
+      label: label.trim(),
+      type,
+      required: shouldBeRecordTitle ? true : required,
+      unique,
+      defaultValue: fieldToEdit?.defaultValue ?? null,
+      isPrimary: shouldBeRecordTitle,
+      position: fieldToEdit?.position ?? fields.length + 1,
+      config,
+    };
+
+    const fieldsWithPrimaryEmailCleared = isPrimaryEmail
+      ? fields.map((existingField) =>
+          existingField.type === RecordFieldType.EMAIL &&
+          existingField !== fieldToEdit
+            ? {
+                ...existingField,
+                config: {
+                  ...existingField.config,
+                  isPrimaryEmail: false,
+                },
+              }
+            : existingField,
+        )
+      : fields;
+
+    const fieldsWithRecordTitleCleared = shouldBeRecordTitle
+      ? fieldsWithPrimaryEmailCleared.map((existingField) =>
+          existingField !== fieldToEdit && existingField.isPrimary
+            ? { ...existingField, isPrimary: false }
+            : existingField,
+        )
+      : fieldsWithPrimaryEmailCleared;
+
+    const updatedFields = !fieldToEdit
+      ? [...fieldsWithRecordTitleCleared, savedField]
+      : fieldsWithRecordTitleCleared.map((existingField) =>
+          existingField === fieldToEdit ? savedField : existingField,
         );
 
-      const config = isSelectType
-        ? {
-            options: options.map((option) => ({
-              ...option,
-              label: option.label.trim(),
-            })),
-          }
-        : hasNumericRange
-          ? {
-              ...(type === RecordFieldType.CURRENCY && { currency }),
-              ...(parsedMinimum !== undefined && { minimum: parsedMinimum }),
-              ...(parsedMaximum !== undefined && { maximum: parsedMaximum }),
-            }
-          : type === RecordFieldType.EMAIL
-            ? { isPrimaryEmail }
-            : {};
-      const savedField: ShortnedRecordField = {
-        label: label.trim(),
-        type,
-        required,
-        unique,
-        defaultValue: fieldToEdit?.defaultValue ?? null,
-        isPrimary: shouldBeRecordTitle,
-        position: fieldToEdit?.position ?? fields.length + 1,
-        config,
-      };
-
-      const fieldsWithPrimaryEmailCleared = isPrimaryEmail
-        ? fields.map((existingField) =>
-            existingField.type === RecordFieldType.EMAIL &&
-            existingField !== fieldToEdit
-              ? {
-                  ...existingField,
-                  config: {
-                    ...existingField.config,
-                    isPrimaryEmail: false,
-                  },
-                }
-              : existingField,
-          )
-        : fields;
-
-      const fieldsWithRecordTitleCleared = shouldBeRecordTitle
-        ? fieldsWithPrimaryEmailCleared.map((existingField) =>
-            existingField !== fieldToEdit && existingField.isPrimary
-              ? { ...existingField, isPrimary: false }
-              : existingField,
-          )
-        : fieldsWithPrimaryEmailCleared;
-
-      if (!fieldToEdit) return [...fieldsWithRecordTitleCleared, savedField];
-
-      return fieldsWithRecordTitleCleared.map((existingField) =>
-        existingField === fieldToEdit ? savedField : existingField,
-      );
-    });
+    if (onSave) {
+      setIsSaving(true);
+      try {
+        if (!(await onSave(savedField))) return;
+      } finally {
+        setIsSaving(false);
+      }
+    } else {
+      setDataFields?.(updatedFields);
+    }
 
     if (recordTitleWasTransferred) {
       toast.notify({
@@ -436,18 +474,15 @@ const FieldBuilder = ({
                         communication.
                       </small>
                     </span>
-                    <input
-                      type="checkbox"
+                    <OptionToggle
                       checked={isPrimaryEmail}
-                      onChange={(event) =>
-                        setIsPrimaryEmail(event.target.checked)
-                      }
+                      onChange={setIsPrimaryEmail}
                     />
                   </label>
                 </div>
               )}
 
-              {type === RecordFieldType.TEXT && (
+              {type === RecordFieldType.TEXT && allowRecordTitleChange && (
                 <div className={Styles.toggleGroup}>
                   <label className={Styles.toggleRow}>
                     <span>
@@ -456,11 +491,10 @@ const FieldBuilder = ({
                         Supplies the display name shown for each record.
                       </small>
                     </span>
-                    <input
-                      type="checkbox"
+                    <OptionToggle
                       checked={isRecordTitle}
-                      onChange={(event) => {
-                        if (fieldToEdit?.isPrimary && !event.target.checked) {
+                      onChange={(checked) => {
+                        if (fieldToEdit?.isPrimary && !checked) {
                           toast.error({
                             title: "Record title required",
                             description:
@@ -468,7 +502,7 @@ const FieldBuilder = ({
                           });
                           return;
                         }
-                        setIsRecordTitle(event.target.checked);
+                        setIsRecordTitle(checked);
                       }}
                     />
                   </label>
@@ -481,10 +515,9 @@ const FieldBuilder = ({
                     <strong>Required</strong>
                     <small>A value must be provided for every record.</small>
                   </span>
-                  <input
-                    type="checkbox"
+                  <OptionToggle
                     checked={isRecordTitle ? true : required}
-                    onChange={(event) => setRequired(event.target.checked)}
+                    onChange={setRequired}
                   />
                 </label>
                 <label className={Styles.toggleRow}>
@@ -494,11 +527,7 @@ const FieldBuilder = ({
                       Prevent two records from using the same value.
                     </small>
                   </span>
-                  <input
-                    type="checkbox"
-                    checked={unique}
-                    onChange={(event) => setUnique(event.target.checked)}
-                  />
+                  <OptionToggle checked={unique} onChange={setUnique} />
                 </label>
               </div>
 
@@ -513,7 +542,12 @@ const FieldBuilder = ({
             onClick={step === "type" ? onClose : () => setStep("type")}
           />
           {step === "customize" && (
-            <MainButton type="primary" text={"Save"} onClick={handleAddField} />
+            <MainButton
+              type="primary"
+              text={isSaving ? "Saving..." : "Save"}
+              disabled={isSaving}
+              onClick={handleAddField}
+            />
           )}
         </div>
       </div>

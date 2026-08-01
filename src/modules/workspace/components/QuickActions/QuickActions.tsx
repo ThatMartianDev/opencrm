@@ -1,9 +1,11 @@
 import S from "@/components/macro/ModalProvider/SharedStyles.module.css";
 import Styles from "./QuickActions.module.css";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { useModal } from "@/components/macro/ModalProvider/ModalProvider";
+import { useWorkspaceData } from "../workspace-provider";
+import ModuleIcon from "@/modules/RecordModule/ui/components/ModuleIcon";
 
 import {
   DismissRegular,
@@ -12,18 +14,27 @@ import {
   TaskListSquareLtrRegular,
   NoteRegular,
   MailRegular,
-  PeopleFilled,
-  TargetFilled,
-  BuildingFilled,
 } from "@fluentui/react-icons";
-import { fa } from "zod/v4/locales";
+
+type QuickActionItem = {
+  id: string;
+  title: string;
+  action: () => void;
+  icon: ReactNode;
+};
+
+type QuickActionCategory = {
+  category: string;
+  items: QuickActionItem[];
+};
 
 const QuickActions = ({ onClose }: { onClose: () => void }) => {
   const { openModal } = useModal();
-  const [results, setResults] = useState<any>([]);
+  const { recordModules } = useWorkspaceData();
+  const [results, setResults] = useState<QuickActionCategory[]>([]);
   const [foundDefaultResults, setFoundDefaultResults] = useState(false);
 
-  const defaultResults = [
+  const defaultResults: QuickActionCategory[] = [
     {
       category: "my-space",
       items: [
@@ -56,6 +67,7 @@ const QuickActions = ({ onClose }: { onClose: () => void }) => {
     {
       category: "records",
       items: [
+        /* Legacy fixed record actions are replaced by configurable record modules.
         {
           id: "1",
           title: "Create New Deal",
@@ -95,6 +107,21 @@ const QuickActions = ({ onClose }: { onClose: () => void }) => {
             </span>
           ),
         },
+        */
+        ...recordModules.map((module) => ({
+          id: module.id,
+          title: `New ${module.name}`,
+          action: () =>
+            openModal("create-record", { moduleKey: module.key }),
+          icon: (
+            <span
+              className={Styles.icon_wrapper}
+              style={{ backgroundColor: module.accentColor ?? "#5670ff" }}
+            >
+              <ModuleIcon name={module.icon} />
+            </span>
+          ),
+        })),
       ],
     },
   ];
@@ -163,9 +190,9 @@ const QuickActions = ({ onClose }: { onClose: () => void }) => {
 
           {results.length > 0 &&
             foundDefaultResults &&
-            results.map((result: any) => (
-              <div className={Styles.actions}>
-                {result.items.map((item: any) => (
+            results.map((result) => (
+              <div key={result.category} className={Styles.actions}>
+                {result.items.map((item) => (
                   <button
                     key={item.id}
                     onClick={item.action}

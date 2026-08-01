@@ -28,6 +28,18 @@ export const WorkspaceService = {
             slug: true,
             plan: true,
             logoUrl: true,
+            recordModules: {
+              where: { archivedAt: null },
+              select: {
+                id: true,
+                key: true,
+                name: true,
+                pluralName: true,
+                icon: true,
+                accentColor: true,
+              },
+              orderBy: { createdAt: "asc" },
+            },
           },
         },
       },
@@ -57,6 +69,7 @@ export const WorkspaceService = {
         plan: member.organization.plan,
         logoUrl: member.organization.logoUrl,
       },
+      recordModules: member.organization.recordModules,
     };
   },
 

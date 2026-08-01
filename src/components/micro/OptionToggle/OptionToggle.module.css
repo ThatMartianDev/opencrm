@@ -1,0 +1,40 @@
+.toggle {
+    width: 34px;
+    height: 19px;
+    flex: 0 0 auto;
+    appearance: none;
+    border-radius: 10px;
+    background: var(--border-200);
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.toggle::before {
+    display: block;
+    width: 15px;
+    height: 15px;
+    margin: 2px;
+    border-radius: 50%;
+    background: var(--bg-00);
+    box-shadow: 0 1px 3px #00000033;
+    content: "";
+    transition: transform 0.15s ease;
+}
+
+.toggle:checked {
+    background: #5670ff;
+}
+
+.toggle:checked::before {
+    transform: translateX(15px);
+}
+
+.toggle:focus-visible {
+    outline: 2px solid #5670ff;
+    outline-offset: 2px;
+}
+
+.toggle:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}

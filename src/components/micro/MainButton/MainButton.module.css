@@ -6,6 +6,15 @@
     border-radius: 10px;
 }
 
+.button.default {
+    padding: 8px 12px;
+}
+
+.button.full-width {
+    width: 100%;
+}
+
+
 .button p {
     font-size: var(--font-size-sm);
     font-weight: 500;

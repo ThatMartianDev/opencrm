@@ -19,13 +19,15 @@ type RecordOption = { id: string; label: string; type: "deal" | "contact" | "com
 
 type NoteModalProps = {
     onClose: () => void;
+    onDataChanged?: () => void;
     id?: string; // if provided, we're editing
     dealId?: string;
     contactId?: string;
     companyId?: string;
+    recordId?: string;
 };
 
-const NoteModal = ({ onClose, id, dealId, contactId, companyId }: NoteModalProps) => {
+const NoteModal = ({ onClose, onDataChanged, id, dealId, contactId, companyId, recordId }: NoteModalProps) => {
     const { toast } = useToast();
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
@@ -108,6 +110,7 @@ const NoteModal = ({ onClose, id, dealId, contactId, companyId }: NoteModalProps
                     dealId: linked.dealId,
                     contactId: linked.contactId,
                     companyId: linked.companyId,
+                    recordId,
                 });
                 t.success({
                     title: "Note created",
@@ -118,6 +121,7 @@ const NoteModal = ({ onClose, id, dealId, contactId, companyId }: NoteModalProps
                     ],
                 });
             }
+            onDataChanged?.();
             onClose();
         } catch (err) {
             t.error({
@@ -168,7 +172,12 @@ const NoteModal = ({ onClose, id, dealId, contactId, companyId }: NoteModalProps
                 />
 
                 <div className={Styles.metaRow}>
-                    {linkedRecord && linkedLabel ? (
+                    {recordId ? (
+                        <span className={Styles.linkedChip}>
+                            <LinkRegular fontSize={12} />
+                            Current record
+                        </span>
+                    ) : linkedRecord && linkedLabel ? (
                         <button
                             className={`${Styles.linkedChip} ${linkedType ? Styles[linkedType] : ""}`}
                             onClick={() => setLinkedRecord("")}

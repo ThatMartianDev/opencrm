@@ -1,8 +1,30 @@
 import "server-only";
 
+import { ModuleFeature } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db/client";
 import { getSupabaseAdmin, STORAGE_BUCKET } from "@/lib/supabase/client";
 import type { CreateFolderInput, CreateExternalFileInput, EntityScope } from "./types";
+
+const assertRecordFilesEnabled = async (
+  organizationId: string,
+  scope: EntityScope,
+) => {
+  if (!scope.recordId) return;
+
+  const record = await prisma.recordItem.findFirst({
+    where: {
+      id: scope.recordId,
+      organizationId,
+      archivedAt: null,
+      module: {
+        archivedAt: null,
+        features: { has: ModuleFeature.FILES },
+      },
+    },
+    select: { id: true },
+  });
+  if (!record) throw new Error("Record not found or files are not enabled.");
+};
 
 export const FilesService = {
   /**
@@ -13,6 +35,7 @@ export const FilesService = {
     scope: EntityScope,
     query: string,
   ) {
+    await assertRecordFilesEnabled(organizationId, scope);
     return prisma.file.findMany({
       where: {
         organizationId,
@@ -31,6 +54,7 @@ export const FilesService = {
     scope: EntityScope,
     parentId: string | null,
   ) {
+    await assertRecordFilesEnabled(organizationId, scope);
     return prisma.file.findMany({
       where: {
         organizationId,
@@ -59,6 +83,8 @@ export const FilesService = {
     memberId: string,
     input: CreateFolderInput,
   ) {
+    await assertRecordFilesEnabled(organizationId, input);
+
     // Validate parentId belongs to same org
     if (input.parentId) {
       const parent = await prisma.file.findFirst({
@@ -77,6 +103,7 @@ export const FilesService = {
         dealId: input.dealId ?? null,
         contactId: input.contactId ?? null,
         companyId: input.companyId ?? null,
+        recordId: input.recordId ?? null,
         uploadedById: memberId,
       },
     });
@@ -92,6 +119,8 @@ export const FilesService = {
     scope: EntityScope,
     parentId: string | null,
   ) {
+    await assertRecordFilesEnabled(organizationId, scope);
+
     // Build the storage path
     const entityType = scope.dealId
       ? "deals"
@@ -99,8 +128,10 @@ export const FilesService = {
         ? "contacts"
         : scope.companyId
           ? "companies"
-          : "general";
-    const entityId = scope.dealId ?? scope.contactId ?? scope.companyId ?? "shared";
+          : scope.recordId
+            ? "records"
+            : "general";
+    const entityId = scope.dealId ?? scope.contactId ?? scope.companyId ?? scope.recordId ?? "shared";
     const timestamp = Date.now();
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const storagePath = `${organizationId}/${entityType}/${entityId}/${timestamp}_${sanitizedName}`;
@@ -131,6 +162,7 @@ export const FilesService = {
         dealId: scope.dealId ?? null,
         contactId: scope.contactId ?? null,
         companyId: scope.companyId ?? null,
+        recordId: scope.recordId ?? null,
         uploadedById: memberId,
       },
     });
@@ -144,6 +176,8 @@ export const FilesService = {
     memberId: string,
     input: CreateExternalFileInput,
   ) {
+    await assertRecordFilesEnabled(organizationId, input);
+
     return prisma.file.create({
       data: {
         organizationId,
@@ -158,6 +192,7 @@ export const FilesService = {
         dealId: input.dealId ?? null,
         contactId: input.contactId ?? null,
         companyId: input.companyId ?? null,
+        recordId: input.recordId ?? null,
         uploadedById: memberId,
       },
     });

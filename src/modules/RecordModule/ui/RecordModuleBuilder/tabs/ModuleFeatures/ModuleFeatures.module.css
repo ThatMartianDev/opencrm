@@ -1,0 +1,80 @@
+.moduleFeatures {
+  display: none;
+  flex-direction: column;
+  gap: 32px;
+  padding: 20px;
+}
+
+.moduleFeatures.active {
+  display: flex;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.header h3 {
+  font-size: var(--font-size-md);
+  font-weight: 500;
+}
+
+.header p,
+.featureDetails p {
+  color: var(--text-300);
+  font-size: var(--font-size-xs);
+}
+
+.featureList {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-100);
+  border-radius: 8px;
+  background: var(--bg-00);
+  overflow: hidden;
+}
+
+.featureOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 68px;
+  padding: 14px 16px;
+}
+
+.featureOption + .featureOption {
+  border-top: 1px solid var(--border-100);
+}
+
+.featureDetails {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.featureDetails > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.featureDetails h4 {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--bg-02);
+  color: #5670ff;
+  font-size: 20px;
+}

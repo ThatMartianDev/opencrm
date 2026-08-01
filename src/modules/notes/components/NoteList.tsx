@@ -14,6 +14,7 @@ import {
   getNotesForDeal,
   getNotesForContact,
   getNotesForCompany,
+  getNotesForRecord,
   deleteNote,
 } from "../actions";
 import AvatarFallback from "@/components/micro/AvatarFallback/AvatarFallback";
@@ -27,8 +28,22 @@ type NoteListProps = {
   dealId?: string;
   contactId?: string;
   companyId?: string;
+  recordId?: string;
   showHeader?: boolean;
   onCreateClick?: () => void;
+};
+
+const loadNotes = ({
+  dealId,
+  contactId,
+  companyId,
+  recordId,
+}: Pick<NoteListProps, "dealId" | "contactId" | "companyId" | "recordId">) => {
+  if (recordId) return getNotesForRecord(recordId);
+  if (dealId) return getNotesForDeal(dealId);
+  if (contactId) return getNotesForContact(contactId);
+  if (companyId) return getNotesForCompany(companyId);
+  return getNotes();
 };
 
 function formatDate(date: string | Date): string {
@@ -130,6 +145,7 @@ const NoteList = ({
   dealId,
   contactId,
   companyId,
+  recordId,
   showHeader = true,
   onCreateClick,
 }: NoteListProps) => {
@@ -140,33 +156,39 @@ const NoteList = ({
 
   const fetchNotes = useCallback(async () => {
     try {
-      let data: NoteData[];
-      if (dealId) {
-        data = await getNotesForDeal(dealId);
-      } else if (contactId) {
-        data = await getNotesForContact(contactId);
-      } else if (companyId) {
-        data = await getNotesForCompany(companyId);
-      } else {
-        data = await getNotes();
-      }
+      const data = await loadNotes({ dealId, contactId, companyId, recordId });
       setNotes(data);
     } catch (error) {
       console.error("Error fetching notes:", error);
     } finally {
       setLoading(false);
     }
-  }, [dealId, contactId, companyId]);
+  }, [dealId, contactId, companyId, recordId]);
 
   useEffect(() => {
-    fetchNotes();
-  }, [fetchNotes]);
+    let cancelled = false;
+
+    loadNotes({ dealId, contactId, companyId, recordId })
+      .then((data) => {
+        if (!cancelled) setNotes(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching notes:", error);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dealId, contactId, companyId, recordId]);
 
   function handleCreate() {
     if (onCreateClick) {
       onCreateClick();
     } else {
-      openModal("note", { dealId, contactId, companyId });
+      openModal("note", { dealId, contactId, companyId, recordId }, fetchNotes);
     }
   }
 
@@ -215,7 +237,7 @@ const NoteList = ({
 
       <div className={Styles.grid}>
         {notes.map((note) => (
-          <NoteCard key={note.id} note={note} onDelete={handleDelete} onClick={() => openModal("note", { id: note.id })} />
+          <NoteCard key={note.id} note={note} onDelete={handleDelete} onClick={() => openModal("note", { id: note.id, recordId }, fetchNotes)} />
         ))}
       </div>
     </div>

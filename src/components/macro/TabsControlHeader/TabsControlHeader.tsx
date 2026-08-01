@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Styles from "./TabsControlHeader.module.css";
 import MainButton from "@/components/micro/MainButton/MainButton";
+import { SearchRegular } from "@fluentui/react-icons";
 
 type TabsControlHeaderProps = {
   tabs: {
@@ -82,13 +83,16 @@ const TabsControlHeader = ({
         {(showSearch || showFilter) && (
           <div className={Styles.controls}>
             {showSearch && (
-              <input
+              <div className={Styles.search}>
+                <input
                 type="text"
                 placeholder={searchPlaceholder || "Search..."}
                 value={searchValue}
                 onChange={(e) => onSearchChange?.(e.target.value)}
                 className={Styles.search_input}
               />
+              <SearchRegular fontSize={16} />
+              </div>
             )}
             {showFilter && filterOptions && (
               <button onClick={() => setShowFiltersWindow(!showFiltersWindow)}>

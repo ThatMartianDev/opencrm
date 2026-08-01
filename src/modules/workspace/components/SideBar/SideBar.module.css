@@ -248,6 +248,80 @@
     text-align: start;
 }
 
+.recordModuleItem {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.recordMenuButton {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    width: 28px;
+    height: 28px;
+    place-items: center;
+}
+
+
+.recordModuleItem:hover {
+    background-color: var(--bg-03);
+}
+
+.recordModuleItem[aria-expanded="true"],
+.recordModuleItem.active {
+    background: var(--bg-04);
+}
+
+.recordMenuButton svg {
+    width: 16px;
+    height: 16px;
+}
+
+.recordMenuBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    cursor: default;
+}
+
+.recordMenu {
+    position: absolute;
+    top: calc(100% - 2px);
+    right: 0;
+    z-index: 1000;
+    display: grid;
+    width: 180px;
+    padding: 4px;
+    background: var(--bg-00);
+    border: 1px solid var(--border-100);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.recordMenu button {
+    display: grid;
+    grid-template-columns: 18px 1fr;
+    gap: 8px;
+    align-items: center;
+    padding: 8px;
+    border-radius: 6px;
+    text-align: left;
+    font-size: var(--font-size-sm);
+}
+
+.recordMenu button:hover {
+    background: var(--bg-03);
+}
+
+.recordMenu svg {
+    width: 18px;
+    height: 18px;
+}
+
 /* Org Menu */
 .orgMenuBackdrop {
     position: fixed;

@@ -6,7 +6,7 @@
     flex-direction: column;
     width: 1200px;
     max-height: 90vh;
-    min-height: 50vh;
+    min-height: 80vh;
     display: flex;
     box-shadow: 0 8px 32px #0000001f;
 }
@@ -42,6 +42,7 @@
     gap: 10px;
     border-right: 1px solid var(--border-100);
     padding: 14px;
+    min-width: 200px;
 }
 
 .stepsList {
@@ -51,7 +52,11 @@
     width: 100%;
 }
 
-.step_btn,
+.step_btn {
+    list-style: none;
+}
+
+.step_btn button,
 .substep_btn {
     display: flex;
     align-items: center;
@@ -70,7 +75,7 @@
     padding-left: 10px;
 }
 
-.step_btn:hover,
+.step_btn button:hover,
 .substep_btn:hover {
     background-color: var(--bg-02);
 }
@@ -79,7 +84,22 @@
     background-color: transparent;
 }
 
-.step_btn.active,
+.step_btn.active button,
 .substep_btn.active {
     background-color: var(--bg-03);
+}
+
+
+.main_actions {
+    display: grid;
+    gap: 8px;
+    grid-auto-flow: row;
+    width: 100%;
+}
+
+.status {
+    display: grid;
+    flex: 1;
+    place-items: center;
+    color: var(--text-color-secondary);
 }

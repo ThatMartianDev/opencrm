@@ -1,5 +1,3 @@
-import { RecordField } from "@/generated/prisma/client";
-
 export interface SelectOption {
   label: string;
   value: string;
@@ -13,20 +11,3 @@ export interface RecordFieldConfig {
   maximum?: number;
   isPrimaryEmail?: boolean;
 }
-
-export type ShortnedRecordField = Omit<
-  Pick<
-    RecordField,
-    | "label"
-    | "type"
-    | "required"
-    | "unique"
-    | "defaultValue"
-    | "isPrimary"
-    | "position"
-    | "config"
-  >,
-  "config"
-> & {
-  config: RecordFieldConfig | null;
-};

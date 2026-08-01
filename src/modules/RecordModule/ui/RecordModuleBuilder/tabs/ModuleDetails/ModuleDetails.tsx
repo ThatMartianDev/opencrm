@@ -1,13 +1,42 @@
 import type { ModuleDetails as ModuleDetailsType } from "../../types";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, type Dispatch, type SetStateAction } from "react";
 import Styles from "./ModuleDetails.module.css";
 
 import {
-  TargetFilled,
-  PeopleFilled,
+  BoxFilled,
+  BuildingFilled,
+  CalendarFilled,
+  ChartMultipleFilled,
+  DocumentFilled,
+  FolderFilled,
+  LocationFilled,
   MoneyFilled,
+  PeopleFilled,
   PersonFilled,
+  ShieldFilled,
+  StarFilled,
+  TagFilled,
+  TargetFilled,
 } from "@fluentui/react-icons";
+
+const MODULE_ICONS = [
+  { name: "TargetFilled", component: TargetFilled },
+  { name: "PeopleFilled", component: PeopleFilled },
+  { name: "MoneyFilled", component: MoneyFilled },
+  { name: "PersonFilled", component: PersonFilled },
+  { name: "BuildingFilled", component: BuildingFilled },
+  { name: "DocumentFilled", component: DocumentFilled },
+  { name: "CalendarFilled", component: CalendarFilled },
+  { name: "TagFilled", component: TagFilled },
+  { name: "BoxFilled", component: BoxFilled },
+  { name: "FolderFilled", component: FolderFilled },
+  { name: "ChartMultipleFilled", component: ChartMultipleFilled },
+  { name: "LocationFilled", component: LocationFilled },
+  { name: "ShieldFilled", component: ShieldFilled },
+  { name: "StarFilled", component: StarFilled },
+] as const;
+
+type ModuleIconOption = (typeof MODULE_ICONS)[number];
 
 const IconSelector = ({
   backgroundColor,
@@ -16,17 +45,10 @@ const IconSelector = ({
   setShowIconSelector,
 }: {
   backgroundColor: string;
-  selectedIcon: any;
-  setSelectedIcon: (icon: any) => void;
+  selectedIcon: { name: ModuleDetailsType["icon"] };
+  setSelectedIcon: (icon: ModuleIconOption) => void;
   setShowIconSelector: (show: boolean) => void;
 }) => {
-  const icons = [
-    { name: "TargetFilled", component: TargetFilled },
-    { name: "PeopleFilled", component: PeopleFilled },
-    { name: "MoneyFilled", component: MoneyFilled },
-    { name: "PersonFilled", component: PersonFilled },
-  ];
-
   const selectorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,11 +64,11 @@ const IconSelector = ({
     return () => {
       document.removeEventListener("click", handleClickOutside);
     };
-  }, []);
+  }, [setShowIconSelector]);
 
   return (
     <div className={Styles.icon_selector} ref={selectorRef}>
-      {icons.map((icon) => (
+      {MODULE_ICONS.map((icon) => (
         <button
           key={icon.name}
           style={{ backgroundColor: backgroundColor }}
@@ -95,7 +117,7 @@ const ColorSelector = ({
     return () => {
       document.removeEventListener("click", handleClickOutside);
     };
-  }, []);
+  }, [setShowColorSelector]);
 
   return (
     <div className={Styles.color_selector} ref={selectorRef}>
@@ -117,19 +139,17 @@ const ModuleDetails = ({
   setDetails,
 }: {
   isActive: boolean;
-  moduleDetails: ModuleDetailsType | null;
-  setDetails: (details: ModuleDetailsType) => void;
+  moduleDetails: ModuleDetailsType;
+  setDetails: Dispatch<SetStateAction<ModuleDetailsType>>;
 }) => {
-  const [selectedIcon, setSelectedIcon] = useState({
-    name: "TargetFilled",
-    component: TargetFilled,
-  });
-  const [backgroundColor, setBackgroundColor] = useState("#0dc98a");
-  const [name, setName] = useState(moduleDetails?.name || "");
-  const [pluralName, setPluralName] = useState(moduleDetails?.pluralName || "");
-  const [description, setDescription] = useState(
-    moduleDetails?.description || "",
-  );
+  const icons = Object.fromEntries(
+    MODULE_ICONS.map((icon) => [icon.name, icon.component]),
+  ) as Record<ModuleIconOption["name"], ModuleIconOption["component"]>;
+  const SelectedIcon = icons[moduleDetails.icon as keyof typeof icons] ?? TargetFilled;
+
+  const updateDetails = (details: Partial<ModuleDetailsType>) => {
+    setDetails((currentDetails) => ({ ...currentDetails, ...details }));
+  };
 
   const [showIconSelector, setShowIconSelector] = useState(false);
   const [showColorSelector, setShowColorSelector] = useState(false);
@@ -143,11 +163,9 @@ const ModuleDetails = ({
         <div className={Styles.icon}>
           <div
             className={Styles.icon_preview}
-            style={{ backgroundColor: backgroundColor || "#FFF" }}
+            style={{ backgroundColor: moduleDetails.accentColor }}
           >
-            {selectedIcon.component && (
-              <selectedIcon.component fontSize={30} color="#fff" />
-            )}
+            <SelectedIcon fontSize={30} color="#fff" />
           </div>
           <div className={Styles.selection_options}>
             <button
@@ -161,9 +179,9 @@ const ModuleDetails = ({
             {showIconSelector && (
               <IconSelector
                 setShowIconSelector={setShowIconSelector}
-                backgroundColor={backgroundColor}
-                selectedIcon={selectedIcon}
-                setSelectedIcon={setSelectedIcon}
+                backgroundColor={moduleDetails.accentColor}
+                selectedIcon={{ name: moduleDetails.icon }}
+                setSelectedIcon={(icon) => updateDetails({ icon: icon.name })}
               />
             )}
             <button
@@ -177,8 +195,10 @@ const ModuleDetails = ({
             {showColorSelector && (
               <ColorSelector
                 setShowColorSelector={setShowColorSelector}
-                selectedColor={backgroundColor}
-                setSelectedColor={setBackgroundColor}
+                selectedColor={moduleDetails.accentColor}
+                setSelectedColor={(accentColor) =>
+                  updateDetails({ accentColor })
+                }
               />
             )}
           </div>
@@ -193,8 +213,8 @@ const ModuleDetails = ({
               type="text"
               id="moduleName"
               placeholder="e.g: Deal"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={moduleDetails.name}
+              onChange={(event) => updateDetails({ name: event.target.value })}
               required
             />
           </div>
@@ -207,8 +227,10 @@ const ModuleDetails = ({
               type="text"
               id="modulePluralName"
               placeholder="e.g: Deals"
-              value={pluralName}
-              onChange={(e) => setPluralName(e.target.value)}
+              value={moduleDetails.pluralName}
+              onChange={(event) =>
+                updateDetails({ pluralName: event.target.value })
+              }
               required
             />
           </div>

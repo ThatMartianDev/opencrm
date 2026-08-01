@@ -7,6 +7,7 @@ export type Resource =
   | "deals"
   | "contacts"
   | "companies"
+  | "records"
   | "tasks"
   | "notes"
   | "files"
@@ -45,6 +46,11 @@ const ROLE_PERMISSIONS: Record<MemberRole, Permission[]> = {
     "companies.update",
     "companies.delete.any",
     "companies.delete.own",
+    "records.read",
+    "records.create",
+    "records.update",
+    "records.delete.any",
+    "records.delete.own",
     "tasks.read",
     "tasks.create",
     "tasks.update",
@@ -81,6 +87,11 @@ const ROLE_PERMISSIONS: Record<MemberRole, Permission[]> = {
     "companies.update",
     "companies.delete.any",
     "companies.delete.own",
+    "records.read",
+    "records.create",
+    "records.update",
+    "records.delete.any",
+    "records.delete.own",
     "tasks.read",
     "tasks.create",
     "tasks.update",
@@ -113,6 +124,10 @@ const ROLE_PERMISSIONS: Record<MemberRole, Permission[]> = {
     "companies.create",
     "companies.update",
     "companies.delete.own",
+    "records.read",
+    "records.create",
+    "records.update",
+    "records.delete.own",
     "tasks.read",
     "tasks.create",
     "tasks.update",
@@ -137,6 +152,9 @@ const ROLE_PERMISSIONS: Record<MemberRole, Permission[]> = {
     "contacts.delete.own",
     "companies.read",
     "companies.delete.own",
+    "records.read",
+    "records.create",
+    "records.delete.own",
     "tasks.read",
     "tasks.create",
     "tasks.update",

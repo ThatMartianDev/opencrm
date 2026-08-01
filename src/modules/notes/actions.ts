@@ -36,12 +36,21 @@ export const getNotesForCompany = async (companyId: string) => {
     return NotesService.getNotesForCompany(companyId, session.organizationId);
 };
 
+export const getNotesForRecord = async (recordId: string) => {
+    const session = await getSessionClaims();
+    const ctx = createQueryContext(session);
+    ctx.assertCan("notes.read");
+
+    return NotesService.getNotesForRecord(recordId, session.organizationId);
+};
+
 export const createNote = async (data: {
     title?: string;
     content: string;
     dealId?: string;
     contactId?: string;
     companyId?: string;
+    recordId?: string;
 }) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);
@@ -53,6 +62,7 @@ export const createNote = async (data: {
         dealId: data.dealId,
         contactId: data.contactId,
         companyId: data.companyId,
+        recordId: data.recordId,
         organizationId: session.organizationId,
         createdById: session.memberId,
     });

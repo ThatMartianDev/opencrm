@@ -17,6 +17,7 @@ import {
   updateTask,
   updateTaskStatus,
   deleteTask,
+  getTasksForRecord,
 } from "../../actions";
 import { TasksService } from "../../service";
 import { getDeals } from "@/modules/deals/actions";
@@ -60,6 +61,7 @@ type TaskModalProps = {
   dealId?: string;
   contactId?: string;
   companyId?: string;
+  recordId?: string;
 };
 
 const TaskModal = ({
@@ -69,6 +71,7 @@ const TaskModal = ({
   dealId,
   contactId,
   companyId,
+  recordId,
 }: TaskModalProps) => {
   const { organizationId } = useWorkspaceData();
   const { toast } = useToast();
@@ -101,7 +104,8 @@ const TaskModal = ({
   useEffect(() => {
     if (id) {
       import("../../actions").then(({ getTasks }) => {
-        getTasks().then((tasks) => {
+        const tasksPromise = recordId ? getTasksForRecord(recordId) : getTasks();
+        tasksPromise.then((tasks) => {
           const task = tasks.find((t) => t.id === id);
           if (task) {
             setName(task.name);
@@ -123,7 +127,7 @@ const TaskModal = ({
         });
       });
     }
-  }, [id]);
+  }, [id, recordId]);
 
   // Load deals for linking
   useEffect(() => {
@@ -228,6 +232,7 @@ const TaskModal = ({
           dueDate: dueDate || undefined,
           assignedToId: assignedToId || undefined,
           dealId: linkedDeal || undefined,
+          recordId,
         });
         t.success({
           title: "Task created",
@@ -408,7 +413,12 @@ const TaskModal = ({
             {assignedToName || "Assign to"}
           </button>
 
-          {linkedDealLabel ? (
+          {recordId ? (
+            <span className={Styles.linkedChip}>
+              <LinkRegular fontSize={12} />
+              Current record
+            </span>
+          ) : linkedDealLabel ? (
             <span className={Styles.linkedChip}>
               <LinkRegular fontSize={12} />
               {linkedDealLabel}
@@ -428,13 +438,15 @@ const TaskModal = ({
             </select>
           )}
 
-          <button
-            className={`${Styles.metaChip} ${linkedContactId ? Styles.active : ""}`}
-            onClick={(e) => contactPicker.open(e.currentTarget)}
-          >
-            <PersonRegular fontSize={18} />
-            {linkedContactName || "Contact"}
-          </button>
+          {!recordId && (
+            <button
+              className={`${Styles.metaChip} ${linkedContactId ? Styles.active : ""}`}
+              onClick={(e) => contactPicker.open(e.currentTarget)}
+            >
+              <PersonRegular fontSize={18} />
+              {linkedContactName || "Contact"}
+            </button>
+          )}
         </div>
       </div>
 

@@ -25,6 +25,14 @@ export const getTasksForDeal = async (dealId: string) => {
     return TasksService.getTasksForDeal(dealId, session.organizationId);
 };
 
+export const getTasksForRecord = async (recordId: string) => {
+    const session = await getSessionClaims();
+    const ctx = createQueryContext(session);
+    ctx.assertCan("tasks.read");
+
+    return TasksService.getTasksForRecord(recordId, session.organizationId);
+};
+
 export const createTask = async (data: {
     name: string;
     description?: string;
@@ -32,6 +40,7 @@ export const createTask = async (data: {
     dueDate?: string;
     assignedToId?: string;
     dealId?: string;
+    recordId?: string;
 }) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);
@@ -45,6 +54,7 @@ export const createTask = async (data: {
             dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
             assignedToId: data.assignedToId,
             dealId: data.dealId,
+            recordId: data.recordId,
             organizationId: session.organizationId,
         },
         session.memberId,

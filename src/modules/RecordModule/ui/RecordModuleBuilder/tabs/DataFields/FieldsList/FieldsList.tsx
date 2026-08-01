@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import type { ShortnedRecordField } from "../types";
+import type { RecordFieldDraft } from "../../../types";
 import Styles from "./FieldsList.module.css";
 import {
     AddFilled,
@@ -25,7 +25,7 @@ const FieldItem = ({
   onDragEnd,
   onMove,
 }: {
-  field: ShortnedRecordField;
+  field: RecordFieldDraft;
   index: number;
   isDragging: boolean;
   isDragTarget: boolean;
@@ -106,31 +106,29 @@ const FieldsList = ({
   dataFields,
   setDataFields,
 }: {
-  dataFields: ShortnedRecordField[] | null;
+  dataFields: RecordFieldDraft[];
   setDataFields: React.Dispatch<
-    React.SetStateAction<ShortnedRecordField[] | null>
+    React.SetStateAction<RecordFieldDraft[]>
   >;
 }) => {
   const { toast } = useToast();
   const [openFieldBuilder, setOpenFieldBuilder] = useState(false);
-  const [fields, setFields] = useState<ShortnedRecordField[] | null>(
-    dataFields || null,
-  );
-  const [fieldToEdit, setFieldToEdit] = useState<ShortnedRecordField | null>(null);
+  const [fieldToEdit, setFieldToEdit] = useState<RecordFieldDraft | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragTargetIndex, setDragTargetIndex] = useState<number | null>(null);
 
   const updateFields: React.Dispatch<
-    React.SetStateAction<ShortnedRecordField[] | null>
+    React.SetStateAction<RecordFieldDraft[]>
   > = (action) => {
-    const updatedFields =
-      typeof action === "function" ? action(fields) : action;
-    const nextFields = updatedFields?.map((field, index) => ({
-      ...field,
-      position: index + 1,
-    })) ?? null;
-    setFields(nextFields);
-    setDataFields(nextFields);
+    setDataFields((currentFields) => {
+      const updatedFields =
+        typeof action === "function" ? action(currentFields) : action;
+
+      return updatedFields.map((field, index) => ({
+        ...field,
+        position: index + 1,
+      }));
+    });
   };
 
   const closeFieldBuilder = () => {
@@ -139,12 +137,12 @@ const FieldsList = ({
   };
 
   const moveField = (fromIndex: number, toIndex: number) => {
-    if (fromIndex === toIndex || toIndex < 0 || toIndex >= (fields?.length || 0)) {
+    if (fromIndex === toIndex || toIndex < 0 || toIndex >= dataFields.length) {
       return;
     }
 
     updateFields((current) => {
-      const reorderedFields = [...(current || [])];
+      const reorderedFields = [...current];
       const [movedField] = reorderedFields.splice(fromIndex, 1);
 
       if (!movedField) return current;
@@ -162,7 +160,7 @@ const FieldsList = ({
     setDragTargetIndex(null);
   };
 
-  const deleteField = (field: ShortnedRecordField) => {
+  const deleteField = (field: RecordFieldDraft) => {
     if (field.isPrimary) {
       toast.error({
         title: "Record title required",
@@ -173,7 +171,7 @@ const FieldsList = ({
     }
 
     updateFields((current) =>
-      (current || []).filter((existingField) => existingField !== field),
+      current.filter((existingField) => existingField !== field),
     );
     toast.success({
       title: "Field deleted",
@@ -184,7 +182,7 @@ const FieldsList = ({
   return (
     <div id={Styles.FieldsList}>
       <div className={Styles.fields_list}>
-        {fields?.map((field, index) => (
+        {dataFields.map((field, index) => (
           <FieldItem
             key={`${field.label}-${field.type}-${index}`}
             field={field}
@@ -234,8 +232,9 @@ const FieldsList = ({
       {openFieldBuilder && (
         <FieldBuilder
           fieldToEdit={fieldToEdit}
+          dataFields={dataFields}
           setDataFields={updateFields}
-          hasRecordTitle={fields?.some((field) => field.isPrimary) ?? false}
+          hasRecordTitle={dataFields.some((field) => field.isPrimary)}
           onClose={closeFieldBuilder}
         />
       )}

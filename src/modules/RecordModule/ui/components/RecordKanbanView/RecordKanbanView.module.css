@@ -1,0 +1,49 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--border-100);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--bg-00);
+  color: var(--text-color);
+}
+
+.card:hover {
+  border-color: var(--border-200);
+  box-shadow: 0 3px 12px #0000000d;
+}
+
+.card h4 {
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardField {
+  display: grid;
+  grid-template-columns: minmax(70px, 0.7fr) minmax(0, 1.3fr);
+  gap: 8px;
+  font-size: var(--font-size-xs);
+}
+
+.cardField span {
+  color: var(--text-300);
+}
+
+.cardField p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty {
+  display: grid;
+  height: 100%;
+  min-height: 240px;
+  place-items: center;
+  color: var(--text-300);
+  font-size: var(--font-size-sm);
+}

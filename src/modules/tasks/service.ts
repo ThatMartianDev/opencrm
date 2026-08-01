@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db/client";
-import { ActivityType, TaskStatus } from "@/generated/prisma/enums";
+import { ActivityType, ModuleFeature, TaskStatus } from "@/generated/prisma/enums";
 import { NotificationsService } from "@/modules/notifications/service";
 import { ActivityLogService } from "@/modules/activity-log/service";
 
@@ -35,6 +35,28 @@ export const TasksService = {
         });
     },
 
+    async getTasksForRecord(recordId: string, organizationId: string) {
+        const record = await prisma.recordItem.findFirst({
+            where: {
+                id: recordId,
+                organizationId,
+                archivedAt: null,
+                module: {
+                    archivedAt: null,
+                    features: { has: ModuleFeature.TASKS },
+                },
+            },
+            select: { id: true },
+        });
+        if (!record) throw new Error("Record not found or tasks are not enabled.");
+
+        return prisma.task.findMany({
+            where: { recordId, organizationId, deletedAt: null },
+            include: taskInclude,
+            orderBy: { createdAt: "desc" },
+        });
+    },
+
     async getTaskById(taskId: string, organizationId: string) {
         return prisma.task.findFirst({
             where: { id: taskId, organizationId, deletedAt: null },
@@ -50,10 +72,27 @@ export const TasksService = {
             dueDate?: Date;
             assignedToId?: string;
             dealId?: string;
+            recordId?: string;
             organizationId: string;
         },
         memberId?: string,
     ) {
+        if (data.recordId) {
+            const record = await prisma.recordItem.findFirst({
+                where: {
+                    id: data.recordId,
+                    organizationId: data.organizationId,
+                    archivedAt: null,
+                    module: {
+                        archivedAt: null,
+                        features: { has: ModuleFeature.TASKS },
+                    },
+                },
+                select: { id: true },
+            });
+            if (!record) throw new Error("Record not found or tasks are not enabled.");
+        }
+
         const task = await prisma.task.create({
             data: {
                 name: data.name,
@@ -62,6 +101,7 @@ export const TasksService = {
                 dueDate: data.dueDate,
                 assignedToId: data.assignedToId,
                 dealId: data.dealId,
+                recordId: data.recordId,
                 organizationId: data.organizationId,
                 createdById: memberId,
             },

@@ -277,6 +277,7 @@ export default function FileManager({ scope }: Props) {
     if (scope.dealId) formData.append("dealId", scope.dealId);
     if (scope.contactId) formData.append("contactId", scope.contactId);
     if (scope.companyId) formData.append("companyId", scope.companyId);
+    if (scope.recordId) formData.append("recordId", scope.recordId);
 
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "/api/files/upload");

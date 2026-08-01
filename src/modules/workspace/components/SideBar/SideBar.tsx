@@ -21,9 +21,6 @@ import {
   SettingsRegular,
   SignOutRegular,
   CheckmarkFilled,
-  TargetFilled,
-  PeopleFilled,
-  BuildingFilled,
 } from "@fluentui/react-icons";
 
 import { useWorkspaceData } from "../workspace-provider";
@@ -37,6 +34,7 @@ import AvatarFallback from "@/components/micro/AvatarFallback/AvatarFallback";
 import Styles from "./SideBar.module.css";
 import ModalStyles from "@/components/macro/ModalProvider/ModalProvider.module.css";
 import { useModal } from "@/components/macro/ModalProvider/ModalProvider";
+import ModuleIcon from "@/modules/RecordModule/ui/components/ModuleIcon";
 
 const NotificationBadge = ({
   unreadCount,
@@ -74,12 +72,13 @@ const NotificationBadge = ({
 const SideBar = () => {
   const { openModal, closeModal } = useModal();
   const pathname = usePathname();
-  const { organizationId, organization, user } = useWorkspaceData();
+  const { organizationId, organization, user, recordModules } = useWorkspaceData();
   const linksPrefix = "/app/" + organizationId;
   const [showOrgMenu, setShowOrgMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [openRecordMenuId, setOpenRecordMenuId] = useState<string | null>(null);
   const { unreadCount } = useNotifications();
 
   const [openSideBar, setOpenSideBar] = useState(true);
@@ -106,7 +105,7 @@ const SideBar = () => {
     return () => {
       window.removeEventListener("keydown", handleONkeydown);
     };
-  }, []);
+  }, [closeModal, openModal]);
 
   return (
     <div
@@ -272,6 +271,7 @@ const SideBar = () => {
           </Link>
         </nav>
         <nav className={Styles.nav}>
+          {/* Legacy fixed record modules are replaced by configurable record modules.
           <Link
             title="Deals"
             href={linksPrefix + "/deals"}
@@ -304,6 +304,73 @@ const SideBar = () => {
             </span>
             <p>Companies</p>
           </Link>
+          */}
+          {recordModules.map((module) => {
+            const moduleName = module.pluralName ?? module.name;
+            const moduleHref = `${linksPrefix}/${module.key}`;
+
+            return (
+              <div className={`${Styles.recordModuleItem} ${isActive(moduleHref) ? Styles.active : ""}`} key={module.id}>
+                <Link
+                  title={moduleName}
+                  href={moduleHref}
+
+                >
+                  <span style={{ backgroundColor: module.accentColor ?? "#5670ff" }}>
+                    <ModuleIcon name={module.icon} />
+                  </span>
+                  <p>{moduleName}</p>
+                </Link>
+                {openSideBar && (
+                  <button
+                    type="button"
+                    className={Styles.recordMenuButton}
+                    title={`${moduleName} options`}
+                    aria-label={`${moduleName} options`}
+                    aria-expanded={openRecordMenuId === module.id}
+                    onClick={() =>
+                      setOpenRecordMenuId((current) =>
+                        current === module.id ? null : module.id,
+                      )
+                    }
+                  >
+                    <MoreVerticalFilled />
+                  </button>
+                )}
+                {openRecordMenuId === module.id && (
+                  <>
+                    <button
+                      className={Styles.recordMenuBackdrop}
+                      aria-label="Close module options"
+                      onClick={() => setOpenRecordMenuId(null)}
+                    />
+                    <div className={Styles.recordMenu}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenRecordMenuId(null);
+                          openModal("new-module", { moduleId: module.id });
+                        }}
+                      >
+                        <SettingsRegular />
+                        <span>Manage</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenRecordMenuId(null);
+                          openModal("create-record", { moduleKey: module.key });
+                        }}
+                      >
+                        <AddRegular />
+                        <span>New {module.name}</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
           <button className={Styles.newModuleButton} onClick={() => openModal("new-module")}>
             <AddFilled />
             <p>New Module</p>

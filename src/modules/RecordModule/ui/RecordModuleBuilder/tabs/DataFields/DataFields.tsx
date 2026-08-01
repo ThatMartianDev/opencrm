@@ -1,14 +1,15 @@
-import { useState } from "react";
-import type { ShortnedRecordField } from "./types";
+import type { Dispatch, SetStateAction } from "react";
+import type { RecordFieldDraft } from "../../types";
 import Styles from "./DataFields.module.css";
 import FieldsList from "./FieldsList/FieldsList";
 
-const DataFields = ({ isActive, moduleDetails, setDetails }: { isActive: boolean; moduleDetails: any; setDetails: (details: any) => void }) => {
-  const [dataField, setDataField] = useState<ShortnedRecordField | null>(null);
-  const [dataFields, setDataFields] = useState<ShortnedRecordField[] | null>(
-    null,
-  );
+type DataFieldsProps = {
+  isActive: boolean;
+  dataFields: RecordFieldDraft[];
+  setDataFields: Dispatch<SetStateAction<RecordFieldDraft[]>>;
+};
 
+const DataFields = ({ isActive, dataFields, setDataFields }: DataFieldsProps) => {
   return (
     <div className={`${Styles.dataFields} ${isActive ? Styles.active : ""}`}>
       <div className={Styles.header}>

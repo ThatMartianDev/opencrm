@@ -3,6 +3,7 @@ import { getSessionClaims } from "@/lib/auth/session";
 import { createQueryContext } from "@/lib/dal/scoped-query";
 import { FilesService } from "@/modules/files/service";
 import { prisma } from "@/lib/db/client";
+import { ModuleFeature } from "@/generated/prisma/enums";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,6 +17,7 @@ export async function POST(request: NextRequest) {
     const dealId = formData.get("dealId") as string | null;
     const contactId = formData.get("contactId") as string | null;
     const companyId = formData.get("companyId") as string | null;
+    const recordId = formData.get("recordId") as string | null;
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -50,11 +52,32 @@ export async function POST(request: NextRequest) {
       const company = await prisma.company.findFirst({ where: { id: companyId, organizationId: session.organizationId } });
       if (!company) return NextResponse.json({ error: "Invalid company" }, { status: 403 });
     }
+    if (recordId) {
+      const record = await prisma.recordItem.findFirst({
+        where: {
+          id: recordId,
+          organizationId: session.organizationId,
+          archivedAt: null,
+          module: {
+            archivedAt: null,
+            features: { has: ModuleFeature.FILES },
+          },
+        },
+        select: { id: true },
+      });
+      if (!record) {
+        return NextResponse.json(
+          { error: "Invalid record or files are not enabled" },
+          { status: 403 },
+        );
+      }
+    }
 
     const scope = {
       dealId: dealId || undefined,
       contactId: contactId || undefined,
       companyId: companyId || undefined,
+      recordId: recordId || undefined,
     };
 
     const record = await FilesService.uploadFile(

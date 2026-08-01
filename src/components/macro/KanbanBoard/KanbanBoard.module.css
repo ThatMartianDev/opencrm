@@ -15,8 +15,7 @@
 .column {
     display: flex;
     flex-direction: column;
-    min-width: 280px;
-    flex: 1;
+    min-width: 300px;
     border-radius: 8px;
     background: var(--bg-02);
     border: 1px solid var(--border-100);

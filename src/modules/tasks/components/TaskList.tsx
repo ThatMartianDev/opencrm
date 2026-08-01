@@ -8,6 +8,7 @@ import {
   CheckmarkCircleFilled,
   DismissRegular,
   DeleteRegular,
+  DocumentRegular,
   PersonRegular,
   ArrowSyncRegular,
   CheckmarkRegular,
@@ -16,6 +17,7 @@ import { TaskStatus } from "@/generated/prisma/enums";
 import {
   getTasks,
   getTasksForDeal,
+  getTasksForRecord,
   createTask,
   updateTaskStatus,
   deleteTask,
@@ -36,8 +38,18 @@ import Styles from "./TaskList.module.css";
 
 type TaskListProps = {
   dealId?: string;
+  recordId?: string;
   showHeader?: boolean;
   showTabsHeader?: boolean;
+};
+
+const loadTasks = ({
+  dealId,
+  recordId,
+}: Pick<TaskListProps, "dealId" | "recordId">) => {
+  if (recordId) return getTasksForRecord(recordId);
+  if (dealId) return getTasksForDeal(dealId);
+  return getTasks();
 };
 
 const STATUS_LABELS: Record<TaskStatus, string> = {
@@ -62,6 +74,7 @@ function isOverdue(date: string | Date | null | undefined): boolean {
 
 const TaskList = ({
   dealId,
+  recordId,
   showHeader = true,
   showTabsHeader = false,
 }: TaskListProps) => {
@@ -78,18 +91,33 @@ const TaskList = ({
 
   const fetchTasks = useCallback(async () => {
     try {
-      const data = dealId ? await getTasksForDeal(dealId) : await getTasks();
+      const data = await loadTasks({ dealId, recordId });
       setTasks(data);
     } catch (error) {
       console.error("Error fetching tasks:", error);
     } finally {
       setLoading(false);
     }
-  }, [dealId]);
+  }, [dealId, recordId]);
 
   useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
+    let cancelled = false;
+
+    loadTasks({ dealId, recordId })
+      .then((data) => {
+        if (!cancelled) setTasks(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching tasks:", error);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dealId, recordId]);
 
   async function handleToggleStatus(task: TaskWithRelations) {
     const nextStatus =
@@ -143,6 +171,7 @@ const TaskList = ({
       await createTask({
         name: taskName,
         dealId: dealId || undefined,
+        recordId,
       });
       setNewTaskName("");
       setShowInlineForm(false);
@@ -171,7 +200,7 @@ const TaskList = ({
   }
 
   function handleOpenCreateModal() {
-    openModal("task", { dealId }, fetchTasks);
+    openModal("task", { dealId, recordId }, fetchTasks);
   }
 
   function toggleSelect(taskId: string, e: React.MouseEvent) {
@@ -359,7 +388,7 @@ const TaskList = ({
           <div
             key={task.id}
             className={`${Styles.taskItem} ${task.status === TaskStatus.COMPLETED ? Styles.completed : ""} ${selectedIds.has(task.id) ? Styles.selected : ""}`}
-            onClick={() => openModal("task", { id: task.id }, fetchTasks)}
+            onClick={() => openModal("task", { id: task.id, recordId }, fetchTasks)}
             style={{ cursor: "pointer" }}
           >
             <div onClick={(e) => toggleSelect(task.id, e)} className={Styles.taskSelect}>
@@ -403,7 +432,12 @@ const TaskList = ({
               {formatDueDate(task.dueDate)}
             </div>
             <div className={Styles.linkedRecord}>
-              {task.deal ? (
+              {recordId ? (
+                <span className={Styles.linkedBadge}>
+                  <DocumentRegular fontSize={12} />
+                  Current record
+                </span>
+              ) : task.deal ? (
                 <span className={Styles.linkedBadge}>
                   <TargetRegular fontSize={12} />
                   {task.deal.title}

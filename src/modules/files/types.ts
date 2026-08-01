@@ -15,6 +15,7 @@ export type FileRecord = {
   dealId: string | null;
   contactId: string | null;
   companyId: string | null;
+  recordId: string | null;
   uploadedById: string;
   createdAt: Date;
   updatedAt: Date;
@@ -28,6 +29,7 @@ export type EntityScope = {
   dealId?: string;
   contactId?: string;
   companyId?: string;
+  recordId?: string;
 };
 
 export type CreateFolderInput = {

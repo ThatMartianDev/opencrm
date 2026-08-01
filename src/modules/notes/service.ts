@@ -1,3 +1,4 @@
+import { ModuleFeature } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db/client";
 
 const noteInclude = {
@@ -44,15 +45,54 @@ export const NotesService = {
     });
   },
 
+  async getNotesForRecord(recordId: string, organizationId: string) {
+    const record = await prisma.recordItem.findFirst({
+      where: {
+        id: recordId,
+        organizationId,
+        archivedAt: null,
+        module: {
+          archivedAt: null,
+          features: { has: ModuleFeature.NOTES },
+        },
+      },
+      select: { id: true },
+    });
+    if (!record) throw new Error("Record not found or notes are not enabled.");
+
+    return prisma.note.findMany({
+      where: { recordId, organizationId },
+      include: noteInclude,
+      orderBy: { createdAt: "desc" },
+    });
+  },
+
   async createNote(data: {
     title?: string;
     content: string;
     dealId?: string;
     contactId?: string;
     companyId?: string;
+    recordId?: string;
     organizationId: string;
     createdById: string;
   }) {
+    if (data.recordId) {
+      const record = await prisma.recordItem.findFirst({
+        where: {
+          id: data.recordId,
+          organizationId: data.organizationId,
+          archivedAt: null,
+          module: {
+            archivedAt: null,
+            features: { has: ModuleFeature.NOTES },
+          },
+        },
+        select: { id: true },
+      });
+      if (!record) throw new Error("Record not found or notes are not enabled.");
+    }
+
     return prisma.note.create({
       data: {
         title: data.title || "",
@@ -60,6 +100,7 @@ export const NotesService = {
         dealId: data.dealId,
         contactId: data.contactId,
         companyId: data.companyId,
+        recordId: data.recordId,
         organizationId: data.organizationId,
         createdById: data.createdById,
       },

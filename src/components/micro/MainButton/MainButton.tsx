@@ -3,6 +3,7 @@ import Styles from "./MainButton.module.css";
 type ButtonProps = {
     type: "primary" | "secondary" | "tertiary";
     text: string;
+    size?: "small" | "default" | "medium" | "large" | "full-width";
     icon?: {
         type: "svg" | "image";
         src?: string | React.ReactNode;
@@ -13,10 +14,10 @@ type ButtonProps = {
     onClick?: () => void;
 }
 
-const MainButton = ({ type, text, icon, disabled = false, onClick }: ButtonProps) => {
+const MainButton = ({ type, text, icon, size = "default", disabled = false, onClick }: ButtonProps) => {
 
     return (
-        <button onClick={onClick} className={`${Styles.button} ${Styles[type]} ${icon ? Styles.withIcon : ""}`} style={{"--icon-fill-color": icon?.onFillColor, "--icon-default-fill-color": icon?.defaultFillColor} as React.CSSProperties  } disabled={disabled}>
+        <button onClick={onClick} className={`${Styles.button} ${Styles[type]} ${icon ? Styles.withIcon : ""} ${size ? Styles[size] : ""}`} style={{"--icon-fill-color": icon?.onFillColor, "--icon-default-fill-color": icon?.defaultFillColor} as React.CSSProperties  } disabled={disabled}>
             {icon && icon.type === "svg" && (
                 <span className="icon">
                     {icon.src}

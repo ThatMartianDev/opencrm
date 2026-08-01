@@ -257,17 +257,19 @@ model RecordItem {
 }
 
 model RecordFieldValue {
-  id        String @id @default(cuid())
+  id              String @id @default(cuid())
 
-  recordId  String
-  fieldId   String
+  recordId        String
+  fieldId         String
 
-  value     Json
+  value           Json
+  normalizedValue String?
 
-  record    RecordItem @relation(fields: [recordId], references: [id], onDelete: Cascade)
-  field     RecordField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  record          RecordItem @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  field           RecordField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
 
   @@unique([recordId, fieldId])
+  @@unique([fieldId, normalizedValue])
 
   @@index([recordId])
   @@index([fieldId])
