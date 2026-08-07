@@ -43,12 +43,18 @@ const supportedRecordFieldTypeSchema = z.enum([
 	RecordFieldType.DATETIME,
 	RecordFieldType.SELECT,
 	RecordFieldType.MULTI_SELECT,
+	RecordFieldType.RELATIONSHIP,
 ]);
 
 const implementedModuleFeatureSchema = z.enum([
 	ModuleFeature.NOTES,
 	ModuleFeature.TASKS,
 	ModuleFeature.FILES,
+]);
+
+const linkableModuleFeatureSchema = z.enum([
+	ModuleFeature.NOTES,
+	ModuleFeature.TASKS,
 ]);
 
 const fieldConfigSchema = z
@@ -80,8 +86,36 @@ const fieldSchema = z
 		isPrimary: z.boolean(),
 		position: z.number().int().nonnegative(),
 		config: fieldConfigSchema,
+		relationshipTargetModuleId: z.string().cuid().nullable().optional().default(null),
 	})
 	.superRefine((field, context) => {
+		if (
+			field.type === RecordFieldType.RELATIONSHIP &&
+			!field.relationshipTargetModuleId
+		) {
+			context.addIssue({
+				code: "custom",
+				path: ["relationshipTargetModuleId"],
+				message: "Relationship fields require a target module.",
+			});
+		}
+		if (
+			field.type !== RecordFieldType.RELATIONSHIP &&
+			field.relationshipTargetModuleId
+		) {
+			context.addIssue({
+				code: "custom",
+				path: ["relationshipTargetModuleId"],
+				message: "Only relationship fields can target another module.",
+			});
+		}
+		if (field.type === RecordFieldType.RELATIONSHIP && field.unique) {
+			context.addIssue({
+				code: "custom",
+				path: ["unique"],
+				message: "Relationship fields cannot be marked unique.",
+			});
+		}
 		if (
 			field.isPrimary &&
 			(field.type !== RecordFieldType.TEXT || !field.required)
@@ -363,6 +397,10 @@ type ParsedRecordValues =
 				fieldId: string;
 				value: Prisma.InputJsonValue;
 			}[];
+			relationships: {
+				fieldId: string;
+				targetRecordId: string;
+			}[];
 			displayName: string;
 	  }
 	| { success: false; error: string };
@@ -377,6 +415,10 @@ const parseRecordValues = (
 	const values: {
 		fieldId: string;
 		value: Prisma.InputJsonValue;
+	}[] = [];
+	const relationships: {
+		fieldId: string;
+		targetRecordId: string;
 	}[] = [];
 	let displayName = "Untitled record";
 
@@ -398,6 +440,18 @@ const parseRecordValues = (
 
 		let value: Prisma.InputJsonValue;
 		switch (field.type) {
+			case RecordFieldType.RELATIONSHIP:
+				if (typeof rawValue !== "string" || !rawValue.trim()) {
+					return {
+						success: false,
+						error: `Choose a valid ${field.label} record.`,
+					};
+				}
+				relationships.push({
+					fieldId: field.id,
+					targetRecordId: rawValue,
+				});
+				continue;
 			case RecordFieldType.NUMBER:
 			case RecordFieldType.CURRENCY:
 			case RecordFieldType.PERCENT:
@@ -488,7 +542,7 @@ const parseRecordValues = (
 		values.push({ fieldId: field.id, value });
 	}
 
-	return { success: true, values, displayName };
+	return { success: true, values, relationships, displayName };
 };
 
 export async function getRecordModulePage(
@@ -502,6 +556,30 @@ export async function getRecordModulePage(
 		moduleKey,
 		session.organizationId,
 		parsedQuery,
+	);
+}
+
+export async function getLinkableRecords(requiredFeature: ModuleFeature) {
+	const session = await getSessionClaims();
+	createQueryContext(session).assertCan("records.read");
+	const feature = linkableModuleFeatureSchema.parse(requiredFeature);
+	return RecordModuleService.getLinkableRecords(
+		session.organizationId,
+		feature,
+	);
+}
+
+export async function getLinkableRecord(
+	recordId: string,
+	requiredFeature: ModuleFeature,
+) {
+	const session = await getSessionClaims();
+	createQueryContext(session).assertCan("records.read");
+	const feature = linkableModuleFeatureSchema.parse(requiredFeature);
+	return RecordModuleService.getLinkableRecord(
+		recordId,
+		session.organizationId,
+		feature,
 	);
 }
 
@@ -540,6 +618,7 @@ export async function createModuleRecord(
 			createdById: session.memberId,
 			displayName: parsed.displayName,
 			values: parsed.values,
+			relationships: parsed.relationships,
 		});
 		return { success: true, recordId: record.id };
 	} catch (error) {
@@ -580,6 +659,7 @@ export async function updateModuleRecord(
 			recordId,
 			displayName: parsed.displayName,
 			values: parsed.values,
+			relationships: parsed.relationships,
 		});
 		return record
 			? { success: true, recordId: record.id }
@@ -773,7 +853,12 @@ export async function updateRecordModule(
 		if (error instanceof Error && error.message.startsWith("Forbidden:")) {
 			return { success: false, error: "Only workspace owners can manage modules." };
 		}
-		if (error instanceof Error && error.message === "Fields with record values cannot be removed.") {
+		if (
+			error instanceof Error &&
+			(error.message === "Fields with record data cannot be removed." ||
+				error.message ===
+					"Relationship fields with record data cannot change type or target module.")
+		) {
 			return { success: false, error: error.message };
 		}
 		if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
@@ -782,4 +867,19 @@ export async function updateRecordModule(
 		console.error("Failed to update record module", error);
 		return { success: false, error: "Unable to update the module." };
 	}
+}
+
+export async function getRelationshipTargetModules() {
+	const session = await getSessionClaims();
+	createQueryContext(session).assertCan("workspace.manage");
+	return RecordModuleService.getRelationshipTargetModules(session.organizationId);
+}
+
+export async function getRelationshipFieldOptions(fieldId: string) {
+	const session = await getSessionClaims();
+	createQueryContext(session).assertCan("records.read");
+	return RecordModuleService.getRelationshipFieldOptions(
+		fieldId,
+		session.organizationId,
+	);
 }

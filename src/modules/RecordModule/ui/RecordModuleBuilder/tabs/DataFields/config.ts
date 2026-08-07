@@ -10,6 +10,7 @@ import {
   SelectAllOnRegular,
   RadioButtonFilled,
   MoneyRegular,
+  LinkRegular,
   ChevronRightFilled,
   AddRegular,
   DeleteRegular,
@@ -60,5 +61,10 @@ export const FieldTypes = [
     name: "Currency",
     type: RecordFieldType.CURRENCY,
     icon: MoneyRegular,
+  },
+  {
+    name: "Relationship",
+    type: RecordFieldType.RELATIONSHIP,
+    icon: LinkRegular,
   },
 ];

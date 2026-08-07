@@ -17,6 +17,7 @@ import {
   createInitialValues,
   getFieldOptions,
   getRecordFieldValue,
+  getRecordRelationship,
 } from "../record-values";
 import Styles from "./RecordKanbanView.module.css";
 
@@ -114,10 +115,13 @@ const RecordKanbanView = ({
               <div className={Styles.cardField} key={field.id}>
                 <span>{field.label}</span>
                 <p>
-                  {formatRecordValue(
-                    field,
-                    getRecordFieldValue(record, field.id),
-                  )}
+                  {field.type === RecordFieldType.RELATIONSHIP
+                    ? getRecordRelationship(record, field.id)?.targetRecord
+                        .displayName ?? "—"
+                    : formatRecordValue(
+                        field,
+                        getRecordFieldValue(record, field.id),
+                      )}
                 </p>
               </div>
             ))}
@@ -136,7 +140,11 @@ const RecordKanbanView = ({
     const toColumn = columnOptions.find((column) => column.id === toColumnId);
     if (!record || !fromColumn || !toColumn) return false;
 
-    const values = createInitialValues(module.fields, record.values);
+    const values = createInitialValues(
+      module.fields,
+      record.values,
+      record.outgoingRelationships,
+    );
     const currentGroupValue = values[groupField.key];
 
     if (groupField.type === RecordFieldType.MULTI_SELECT) {

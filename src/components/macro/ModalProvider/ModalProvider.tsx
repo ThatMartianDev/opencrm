@@ -13,10 +13,11 @@ import CreateEventModal from "@/modules/calendar/components/CreateEventModal/Cre
 import ComposeEmailModal from "@/modules/emails/Components/ComposeEmailModal/ComposeEmailModal";
 import QuickActions from "@/modules/workspace/components/QuickActions/QuickActions";
 import CreateRecordModalLoader from "@/modules/RecordModule/ui/CreateRecordModal/CreateRecordModalLoader";
+import { RecordBrowserModal } from "@/components/macro/RecordBrowser";
 
 import Styles from "./ModalProvider.module.css";
 
-type ModalId = "quick_actions" | "new-deal" | "task" | "note" | "log-activity" | "new-company" | "new-contact" | "invite-member" | "calendar-event" | "compose-email" | "new-module" | "create-record";
+type ModalId = "quick_actions" | "new-deal" | "task" | "note" | "log-activity" | "new-company" | "new-contact" | "invite-member" | "calendar-event" | "compose-email" | "new-module" | "create-record" | "record-browser";
 
 type ModalState = {
     id: ModalId;
@@ -45,6 +46,7 @@ const MODAL_COMPONENTS: Record<ModalId, React.ComponentType<{ onClose: () => voi
     "invite-member": InviteMemberModal as React.ComponentType<{ onClose: () => void } & Record<string, unknown>>,
     "calendar-event": CreateEventModal as React.ComponentType<{ onClose: () => void } & Record<string, unknown>>,
     "compose-email": ComposeEmailModal as React.ComponentType<{ onClose: () => void } & Record<string, unknown>>,
+    "record-browser": RecordBrowserModal as React.ComponentType<{ onClose: () => void } & Record<string, unknown>>,
 };
 
 export function ModalProvider({ children }: { children: ReactNode }) {

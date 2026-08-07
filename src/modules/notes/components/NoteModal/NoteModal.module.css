@@ -1,7 +1,7 @@
-.noteModal {
+.noteModal.noteModal {
     background: var(--bg-00);
-    border-radius: 12px;
-    width: 640px;
+    border-radius: 8px;
+    width: 720px;
     max-width: 90vw;
     max-height: 85vh;
     display: flex;
@@ -85,56 +85,54 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 10px;
-    border-radius: 6px;
+    min-width: 0;
+    padding: 3px 8px 3px 4px;
+    border-radius: 5px;
     font-size: var(--font-size-xs);
     font-weight: 500;
-    background: rgba(0, 130, 54, 0.08);
-    color: rgba(0, 130, 54, 1);
+    background: var(--bg-01);
+    color: var(--text-color);
     white-space: nowrap;
     border: none;
     cursor: pointer;
-}
-
-.linkedChip.contact {
-    background: rgba(109, 58, 146, 0.08);
-    color: rgba(109, 58, 146, 1);
-}
-
-.linkedChip.company {
-    background: rgba(14, 118, 185, 0.08);
-    color: rgba(14, 118, 185, 1);
-}
-
-.recordSelect {
     border: 1px solid var(--border-100);
-    border-radius: 6px;
-    padding: 4px 8px;
-    font-size: var(--font-size-xs);
+}
+
+.linkedChip:hover {
+    background: var(--bg-02);
+}
+
+.linkedControl {
+    display: inline-flex;
+    align-items: stretch;
+    min-width: 0;
+}
+
+.moduleIcon {
+    width: 24px;
+    height: 24px;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 5px;
+}
+
+.unlinkButton {
+    width: 28px;
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--border-100);
+    border-left: 0;
+    border-radius: 0 5px 5px 0;
     background: var(--bg-00);
     color: var(--text-color);
-    outline: none;
     cursor: pointer;
-    max-width: 180px;
 }
 
-.contentArea {
-    border: none;
-    outline: none;
-    font-size: var(--font-size-sm);
-    color: var(--text-color);
-    background: transparent;
-    resize: none;
-    min-height: 200px;
-    flex: 1;
-    line-height: 1.6;
-    font-family: inherit;
-    width: 100%;
-}
-
-.contentArea::placeholder {
-    color: var(--text-color);
-    opacity: 0.35;
+.unlinkButton:hover {
+    background: rgba(190, 30, 45, 0.08);
+    color: #a3152b;
 }
 
 .noteModalFooter {

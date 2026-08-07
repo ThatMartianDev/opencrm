@@ -3,10 +3,12 @@ import type { SelectOption } from "../types";
 import { RecordFieldType } from "@/generated/prisma/enums";
 import Styles from "./FieldBuilder.module.css";
 import SharedModalStyles from "@/components/macro/ModalProvider/SharedStyles.module.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MainButton from "@/components/micro/MainButton/MainButton";
 import OptionToggle from "@/components/micro/OptionToggle/OptionToggle";
 import { useToast } from "@/components/macro/Toaster";
+import { getRelationshipTargetModules } from "@/modules/RecordModule/actions";
+import AvatarSelect from "@/modules/RecordModule/ui/components/AvatarSelect/AvatarSelect";
 
 import {
   DismissFilled,
@@ -38,6 +40,7 @@ const createFieldKey = (label: string, fields: RecordFieldDraft[]) => {
 
 const FieldBuilder = ({
   onClose,
+  moduleId,
   fieldToEdit,
   dataFields,
   setDataFields,
@@ -46,6 +49,7 @@ const FieldBuilder = ({
   allowRecordTitleChange = true,
 }: {
   onClose: () => void;
+  moduleId?: string;
   fieldToEdit: RecordFieldDraft | null;
   dataFields: RecordFieldDraft[];
   setDataFields?: React.Dispatch<
@@ -82,6 +86,25 @@ const FieldBuilder = ({
   const [isPrimaryEmail, setIsPrimaryEmail] = useState(
     fieldToEdit?.config?.isPrimaryEmail || false,
   );
+  const [relationshipTargetModuleId, setRelationshipTargetModuleId] = useState(
+    fieldToEdit?.relationshipTargetModuleId || "",
+  );
+  const [relationshipTargets, setRelationshipTargets] = useState<
+    Awaited<ReturnType<typeof getRelationshipTargetModules>>
+  >([]);
+  const availableRelationshipTargets = relationshipTargets.filter(
+    (targetModule) => targetModule.id !== moduleId,
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    getRelationshipTargetModules().then((modules) => {
+      if (!cancelled) setRelationshipTargets(modules);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const [options, setOptions] = useState<SelectOption[]>(
     fieldToEdit?.config?.options?.map((option) => ({
@@ -132,6 +155,14 @@ const FieldBuilder = ({
         title: "Field label required",
         description: "Enter a label before saving this field.",
       });
+      return;
+    }
+
+    if (
+      type === RecordFieldType.RELATIONSHIP &&
+      !relationshipTargetModuleId
+    ) {
+      setError("Choose the module this field should link to.");
       return;
     }
 
@@ -224,11 +255,18 @@ const FieldBuilder = ({
       label: label.trim(),
       type,
       required: shouldBeRecordTitle ? true : required,
-      unique,
-      defaultValue: fieldToEdit?.defaultValue ?? null,
+      unique: type === RecordFieldType.RELATIONSHIP ? false : unique,
+      defaultValue:
+        type === RecordFieldType.RELATIONSHIP
+          ? null
+          : fieldToEdit?.defaultValue ?? null,
       isPrimary: shouldBeRecordTitle,
       position: fieldToEdit?.position ?? fields.length + 1,
       config,
+      relationshipTargetModuleId:
+        type === RecordFieldType.RELATIONSHIP
+          ? relationshipTargetModuleId
+          : null,
     };
 
     const fieldsWithPrimaryEmailCleared = isPrimaryEmail
@@ -359,6 +397,26 @@ const FieldBuilder = ({
                   autoFocus
                 />
               </div>
+
+              {type === RecordFieldType.RELATIONSHIP && (
+                <div className={Styles.formField}>
+                  <label>Target module</label>
+                  <AvatarSelect
+                    options={availableRelationshipTargets.map((targetModule) => ({
+                      id: targetModule.id,
+                      name: targetModule.pluralName ?? targetModule.name,
+                    }))}
+                    value={relationshipTargetModuleId}
+                    placeholder="Select a module"
+                    emptyText="No modules available"
+                    entityKind="organization"
+                    onChange={(option) => {
+                      setRelationshipTargetModuleId(option?.id ?? "");
+                      setError("");
+                    }}
+                  />
+                </div>
+              )}
 
               {hasNumericRange && (
                 <div className={Styles.inlineFields}>
@@ -520,15 +578,17 @@ const FieldBuilder = ({
                     onChange={setRequired}
                   />
                 </label>
-                <label className={Styles.toggleRow}>
-                  <span>
-                    <strong>Unique</strong>
-                    <small>
-                      Prevent two records from using the same value.
-                    </small>
-                  </span>
-                  <OptionToggle checked={unique} onChange={setUnique} />
-                </label>
+                {type !== RecordFieldType.RELATIONSHIP && (
+                  <label className={Styles.toggleRow}>
+                    <span>
+                      <strong>Unique</strong>
+                      <small>
+                        Prevent two records from using the same value.
+                      </small>
+                    </span>
+                    <OptionToggle checked={unique} onChange={setUnique} />
+                  </label>
+                )}
               </div>
 
               {error && <p className={Styles.error}>{error}</p>}

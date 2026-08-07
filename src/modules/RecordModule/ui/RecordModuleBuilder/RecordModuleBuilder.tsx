@@ -195,6 +195,7 @@ const RecordModuleBuilder = ({
           />
           <DataFields
             isActive={activeStep === "1.2"}
+            moduleId={moduleId}
             dataFields={dataFields}
             setDataFields={setDataFields}
           />

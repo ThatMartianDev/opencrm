@@ -61,7 +61,7 @@ const CompanyPage = () => {
             id: "create_task",
             tooltip: "Create Task",
             icon: <TaskListSquareAddRegular />,
-            onClick: () => openModal("task", { companyId }),
+            onClick: () => openModal("task"),
         },
         {
             id: "create_note",

@@ -245,6 +245,15 @@
     max-width: 100%;
 }
 
+.linkedModuleIcon {
+    width: 18px;
+    height: 18px;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 4px;
+}
+
 /* Selection states */
 .taskItem.selected {
     background: var(--bg-02);

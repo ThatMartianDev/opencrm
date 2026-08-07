@@ -62,7 +62,7 @@ const ContactPage = () => {
             id: "create_task",
             tooltip: "Create Task",
             icon: <TaskListSquareAddRegular color="#474747"/>,
-            onClick: () => openModal("task", { contactId }),
+            onClick: () => openModal("task"),
         },
         {
             id: "create_note",

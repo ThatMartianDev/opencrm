@@ -81,8 +81,8 @@ export const createTask = async (data: {
             name: data.name,
             description: data.description,
             status: data.status,
-            dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
-            assignedToId: data.assignedToId,
+            dueDate: data.dueDate ? new Date(data.dueDate) : new Date(),
+            assignedToId: data.assignedToId ?? session.memberId,
             dealId: data.dealId,
             recordId: data.recordId,
             organizationId: session.organizationId,
@@ -112,6 +112,7 @@ export const updateTask = async (
         dueDate?: string | null;
         assignedToId?: string | null;
         dealId?: string | null;
+        recordId?: string | null;
     },
 ) => {
     const session = await getSessionClaims();
@@ -126,6 +127,7 @@ export const updateTask = async (
             dueDate: data.dueDate ? new Date(data.dueDate) : data.dueDate as null | undefined,
             assignedToId: data.assignedToId,
             dealId: data.dealId,
+            recordId: data.recordId,
         },
         session.organizationId,
         session.memberId,

@@ -5,11 +5,17 @@ import FieldsList from "./FieldsList/FieldsList";
 
 type DataFieldsProps = {
   isActive: boolean;
+  moduleId?: string;
   dataFields: RecordFieldDraft[];
   setDataFields: Dispatch<SetStateAction<RecordFieldDraft[]>>;
 };
 
-const DataFields = ({ isActive, dataFields, setDataFields }: DataFieldsProps) => {
+const DataFields = ({
+  isActive,
+  moduleId,
+  dataFields,
+  setDataFields,
+}: DataFieldsProps) => {
   return (
     <div className={`${Styles.dataFields} ${isActive ? Styles.active : ""}`}>
       <div className={Styles.header}>
@@ -18,7 +24,11 @@ const DataFields = ({ isActive, dataFields, setDataFields }: DataFieldsProps) =>
       </div>
       <div className={Styles.content}>
         <div className={Styles.field_list}>
-          <FieldsList dataFields={dataFields} setDataFields={setDataFields} />
+          <FieldsList
+            moduleId={moduleId}
+            dataFields={dataFields}
+            setDataFields={setDataFields}
+          />
         </div>
       </div>
     </div>

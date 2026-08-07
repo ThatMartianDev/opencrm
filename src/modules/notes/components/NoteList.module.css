@@ -64,10 +64,12 @@
 }
 
 .noteCardHeader {
+    position: relative;
     display: flex;
+    flex-direction: column;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 8px;
+    gap: 12px;
 }
 
 
@@ -81,9 +83,10 @@
     border: 1px solid var(--border-100);
     border-radius: 8px;
     position: absolute;
-    top: 25%;
-    right: 5%;
+    top: 40px;
+    right: 10px;
     z-index: 10;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
 }
 .noteActions.show {
     display: grid;
@@ -105,7 +108,7 @@
 
 /**/
 .noteTitle {
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-base);
     font-weight: 600;
     color: var(--text-color);
     margin: 0;
@@ -147,13 +150,22 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 2px 8px;
     border-radius: 6px;
     font-size: var(--font-size-xs);
     font-weight: 500;
     background: var(--bg-02);
     color: var(--text-color);
     white-space: nowrap;
+}
+
+.moduleIcon {
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    border-radius: 5px;
 }
 
 .linkedRecord.deal {
@@ -173,15 +185,21 @@
 
 
 .showActionsMenu {
-    padding: 4px 6px;
-    border-radius: 6px;
-    border: none;
-    background: transparent;
     cursor: pointer;
     font-size: var(--font-size-xs);
     color: var(--text-color);
-    opacity: 0.7;
-    transition: all 0.15s ease;
+    opacity: .7;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    padding: 6px;
+    transition: all .15s;
+    position: absolute;
+    top: -8px;
+    right: -10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .showActionsMenu:hover {

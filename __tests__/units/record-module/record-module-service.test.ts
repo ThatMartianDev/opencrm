@@ -18,7 +18,15 @@ const transaction = {
   recordFieldValue: {
     deleteMany: jest.fn(),
   },
+  recordField: {
+    findMany: jest.fn(),
+  },
+  recordRelationship: {
+    createMany: jest.fn(),
+    deleteMany: jest.fn(),
+  },
   recordItem: {
+    create: jest.fn(),
     findFirst: jest.fn(),
     findMany: jest.fn(),
     findUnique: jest.fn(),
@@ -79,7 +87,23 @@ describe("RecordModuleService", () => {
           archivedAt: null,
         },
         include: {
-          fields: { orderBy: { position: "asc" } },
+          fields: {
+            include: {
+              relationshipDefinition: {
+                include: {
+                  targetModule: {
+                    select: {
+                      id: true,
+                      key: true,
+                      name: true,
+                      pluralName: true,
+                    },
+                  },
+                },
+              },
+            },
+            orderBy: { position: "asc" },
+          },
           views: { orderBy: { position: "asc" } },
         },
       });
@@ -115,7 +139,16 @@ describe("RecordModuleService", () => {
       });
       expect(transaction.recordItem.findMany).toHaveBeenCalledWith({
         where: { id: { in: ["record_2", "record_1"] } },
-        include: { values: true },
+        include: {
+          values: true,
+          outgoingRelationships: {
+            include: {
+              targetRecord: {
+                select: { id: true, displayName: true },
+              },
+            },
+          },
+        },
       });
 
       const pageSql = transaction.$queryRaw.mock.calls[1]?.[0] as {
@@ -168,7 +201,7 @@ describe("RecordModuleService", () => {
 
   describe("record writes", () => {
     test("creates records with organization, module, creator, and values intact", async () => {
-      mockPrisma.recordItem.create.mockResolvedValue(record("record_1") as never);
+      transaction.recordItem.create.mockResolvedValue(record("record_1"));
       const values = [{ fieldId: "field_title", value: "Apollo" }];
 
       await RecordModuleService.createRecord({
@@ -179,7 +212,7 @@ describe("RecordModuleService", () => {
         values,
       });
 
-      expect(mockPrisma.recordItem.create).toHaveBeenCalledWith({
+      expect(transaction.recordItem.create).toHaveBeenCalledWith({
         data: {
           organizationId: "org_1",
           moduleId: "module_1",
@@ -188,6 +221,42 @@ describe("RecordModuleService", () => {
           values: { create: values },
         },
         include: { values: true },
+      });
+    });
+
+    test("validates and creates a single relationship edge", async () => {
+      transaction.recordField.findMany.mockResolvedValue([
+        {
+          id: "field_contact",
+          relationshipDefinition: { targetModuleId: "module_contacts" },
+        },
+      ]);
+      transaction.recordItem.findMany.mockResolvedValue([
+        { id: "contact_1", moduleId: "module_contacts" },
+      ]);
+      transaction.recordItem.create.mockResolvedValue(record("record_1"));
+      transaction.recordRelationship.createMany.mockResolvedValue({ count: 1 });
+
+      await RecordModuleService.createRecord({
+        organizationId: "org_1",
+        moduleId: "module_1",
+        createdById: "member_1",
+        displayName: "Apollo",
+        values: [],
+        relationships: [
+          { fieldId: "field_contact", targetRecordId: "contact_1" },
+        ],
+      });
+
+      expect(transaction.recordRelationship.createMany).toHaveBeenCalledWith({
+        data: [
+          {
+            organizationId: "org_1",
+            fieldId: "field_contact",
+            sourceRecordId: "record_1",
+            targetRecordId: "contact_1",
+          },
+        ],
       });
     });
 
@@ -220,6 +289,7 @@ describe("RecordModuleService", () => {
     test("replaces field values atomically after verifying tenant scope", async () => {
       transaction.recordItem.findFirst.mockResolvedValue({ id: "record_1" });
       transaction.recordFieldValue.deleteMany.mockResolvedValue({ count: 2 });
+      transaction.recordRelationship.deleteMany.mockResolvedValue({ count: 0 });
       transaction.recordItem.update.mockResolvedValue(record("record_1"));
       transaction.recordItem.findUnique.mockResolvedValue(record("record_1"));
       const values = [
@@ -237,6 +307,9 @@ describe("RecordModuleService", () => {
 
       expect(transaction.recordFieldValue.deleteMany).toHaveBeenCalledWith({
         where: { recordId: "record_1" },
+      });
+      expect(transaction.recordRelationship.deleteMany).toHaveBeenCalledWith({
+        where: { sourceRecordId: "record_1" },
       });
       expect(transaction.recordItem.update).toHaveBeenCalledWith({
         where: { id: "record_1" },

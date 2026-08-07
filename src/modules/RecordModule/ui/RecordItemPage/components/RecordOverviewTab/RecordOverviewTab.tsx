@@ -4,8 +4,10 @@ import {
   CalendarDateRegular,
   CheckboxCheckedRegular,
   CheckboxUncheckedRegular,
+  OpenRegular,
 } from "@fluentui/react-icons";
 import { useRef, useState, type KeyboardEvent } from "react";
+import Link from "next/link";
 import { OptionPicker, useOptionPicker } from "@/components/macro/OptionPicker";
 import AvatarFallback from "@/components/micro/AvatarFallback/AvatarFallback";
 import { RecordFieldType } from "@/generated/prisma/enums";
@@ -17,6 +19,7 @@ import type {
 import RecordFieldIcon from "../../../components/RecordFieldIcon";
 import { formatRecordValue, getFieldOptions } from "../../../components/record-values";
 import RecordActivityLog from "../RecordActivityLog/RecordActivityLog";
+import RelationshipFieldSelect from "../../../components/RelationshipFieldSelect/RelationshipFieldSelect";
 import Styles from "./RecordOverviewTab.module.css";
 
 type RecordOverviewTabProps = {
@@ -134,6 +137,9 @@ const RecordOverviewTab = ({
         <div className={Styles.infoTable}>
           {record.module.fields.map((field) => {
             const value = values[field.key];
+            const relationship = record.outgoingRelationships.find(
+              (item) => item.fieldId === field.id,
+            );
             const isEditing = editingField?.key === field.key;
             const isSaving = savingFieldKey === field.key;
             const options = getFieldOptions(field);
@@ -145,7 +151,31 @@ const RecordOverviewTab = ({
                   <p>{field.label}:</p>
                 </div>
 
-                {field.type === RecordFieldType.SELECT ? (
+                {field.type === RecordFieldType.RELATIONSHIP ? (
+                  <div className={Styles.relationshipValue}>
+                    <RelationshipFieldSelect
+                      className={Styles.relationshipTrigger}
+                      fieldId={field.id}
+                      value={typeof value === "string" ? value : ""}
+                      selectedName={relationship?.targetRecord.displayName}
+                      required={field.required}
+                      disabled={Boolean(savingFieldKey)}
+                      onChange={(targetRecordId) =>
+                        void commitValue(field, targetRecordId)
+                      }
+                    />
+                    {relationship && (
+                      <Link
+                        className={Styles.openRelationship}
+                        href={`/app/${record.organizationId}/${relationship.targetRecord.module.key}/${relationship.targetRecord.id}`}
+                        aria-label={`Open ${relationship.targetRecord.displayName}`}
+                        title="Open linked record"
+                      >
+                        <OpenRegular fontSize={17} />
+                      </Link>
+                    )}
+                  </div>
+                ) : field.type === RecordFieldType.SELECT ? (
                   <button
                     type="button"
                     className={Styles.valueButton}
@@ -285,6 +315,26 @@ const RecordOverviewTab = ({
             </div>
           </div>
         </div>
+        {record.incomingRelationships.length > 0 && (
+            <section className={Styles.linkedRecords}>
+              <h2>Linked records</h2>
+              <div className={Styles.linkedRecordList}>
+                {record.incomingRelationships.map((relationship) => (
+                  <Link
+                    key={relationship.id}
+                    href={`/app/${record.organizationId}/${relationship.sourceRecord.module.key}/${relationship.sourceRecord.id}`}
+                  >
+                    <span>
+                      {relationship.sourceRecord.module.pluralName ??
+                        relationship.sourceRecord.module.name}
+                      {` · ${relationship.field.label}`}
+                    </span>
+                    <strong>{relationship.sourceRecord.displayName}</strong>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
       </section>
 
       <RecordActivityLog />

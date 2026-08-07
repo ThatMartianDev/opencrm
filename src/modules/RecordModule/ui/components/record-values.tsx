@@ -26,14 +26,31 @@ export const getFieldOptions = (field: RecordModuleField): SelectFieldOption[] =
 export const getRecordFieldValue = (
   record: RecordModuleItem,
   fieldId: string,
-) => record.values.find((value) => value.fieldId === fieldId)?.value;
+) =>
+  record.outgoingRelationships?.find(
+    (relationship) => relationship.fieldId === fieldId,
+  )?.targetRecordId ??
+  record.values.find((value) => value.fieldId === fieldId)?.value;
+
+export const getRecordRelationship = (
+  record: RecordModuleItem,
+  fieldId: string,
+) =>
+  record.outgoingRelationships?.find(
+    (relationship) => relationship.fieldId === fieldId,
+  );
 
 export const createInitialValues = (
   fields: RecordModuleField[],
   values?: { fieldId: string; value: unknown }[],
+  relationships?: { fieldId: string; targetRecordId: string }[],
 ): RecordValueState =>
   Object.fromEntries(
     fields.map((field) => {
+      const relationship = relationships?.find(
+        (item) => item.fieldId === field.id,
+      );
+      if (relationship) return [field.key, relationship.targetRecordId];
       const savedValue = values?.find((value) => value.fieldId === field.id)?.value;
       if (savedValue !== undefined) return [field.key, savedValue];
       if (field.defaultValue !== null) return [field.key, field.defaultValue];

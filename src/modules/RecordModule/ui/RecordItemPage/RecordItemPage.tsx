@@ -41,7 +41,11 @@ const RecordItemPage = ({
   const [record, setRecord] = useState<RecordModuleRecordData | null>(initialRecord);
   const [values, setValues] = useState<RecordValueState>(() =>
     initialRecord
-      ? createInitialValues(initialRecord.module.fields, initialRecord.values)
+      ? createInitialValues(
+          initialRecord.module.fields,
+          initialRecord.values,
+          initialRecord.outgoingRelationships,
+        )
       : {},
   );
   const [activeTab, setActiveTab] = useState("overview");
@@ -69,7 +73,11 @@ const RecordItemPage = ({
       if (refreshedRecord) {
         setRecord(refreshedRecord);
         setValues(
-          createInitialValues(refreshedRecord.module.fields, refreshedRecord.values),
+          createInitialValues(
+            refreshedRecord.module.fields,
+            refreshedRecord.values,
+            refreshedRecord.outgoingRelationships,
+          ),
         );
       } else {
         setValues(nextValues);

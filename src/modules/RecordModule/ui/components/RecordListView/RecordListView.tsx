@@ -33,7 +33,9 @@ import {
   formatRecordValue,
   getFieldOptions,
   getRecordFieldValue,
+  getRecordRelationship,
 } from "../record-values";
+import RelationshipFieldSelect from "../RelationshipFieldSelect/RelationshipFieldSelect";
 import Styles from "./RecordListView.module.css";
 import SharedModalStyles from "@/components/macro/ModalProvider/SharedStyles.module.css";
 
@@ -164,6 +166,8 @@ const RecordListView = ({
     isPrimary: field.isPrimary,
     position: field.position,
     config: field.config as RecordFieldDraft["config"],
+    relationshipTargetModuleId:
+      field.relationshipDefinition?.targetModuleId ?? null,
   }));
 
   const closeColumnPicker = () => {
@@ -246,7 +250,11 @@ const RecordListView = ({
     const cellKey = `${record.id}:${field.id}`;
     setEditingCell(null);
     setSavingCell(cellKey);
-    const values = createInitialValues(module.fields, record.values);
+    const values = createInitialValues(
+      module.fields,
+      record.values,
+      record.outgoingRelationships,
+    );
     values[field.key] = value;
 
     try {
@@ -395,7 +403,18 @@ const RecordListView = ({
                     </>
                   )}
 
-                  {isEditing && field.type === RecordFieldType.MULTI_SELECT ? (
+                  {isEditing && field.type === RecordFieldType.RELATIONSHIP ? (
+                    <RelationshipFieldSelect
+                      className={Styles.inlineInput}
+                      fieldId={field.id}
+                      value={typeof value === "string" ? value : ""}
+                      required={field.required}
+                      disabled={isSaving}
+                      onChange={(targetRecordId) =>
+                        void saveCellValue(record, field, targetRecordId)
+                      }
+                    />
+                  ) : isEditing && field.type === RecordFieldType.MULTI_SELECT ? (
                     <div className={Styles.multiSelectEditor}>
                       <div className={Styles.multiSelectOptions}>
                         {getFieldOptions(field).map((option) => (
@@ -508,6 +527,9 @@ const RecordListView = ({
                           )}
                           {value === true ? "Yes" : "No"}
                         </span>
+                      ) : field.type === RecordFieldType.RELATIONSHIP ? (
+                        getRecordRelationship(record, field.id)?.targetRecord
+                          .displayName ?? "—"
                       ) : (
                         formatRecordValue(field, value)
                       )}
@@ -596,6 +618,7 @@ const RecordListView = ({
       )}
       {showFieldBuilder && (
         <FieldBuilder
+          moduleId={module.id}
           fieldToEdit={null}
           dataFields={fieldDrafts}
           hasRecordTitle

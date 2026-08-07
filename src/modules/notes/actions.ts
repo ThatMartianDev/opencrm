@@ -108,7 +108,17 @@ export const createNote = async (data: {
     });
 };
 
-export const updateNote = async (noteId: string, data: { title?: string; content?: string }) => {
+export const updateNote = async (
+    noteId: string,
+    data: {
+        title?: string;
+        content?: string;
+        dealId?: string | null;
+        contactId?: string | null;
+        companyId?: string | null;
+        recordId?: string | null;
+    },
+) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);
     ctx.assertCan("notes.update");

@@ -96,7 +96,24 @@ const statusField = {
   defaultValue: null,
 };
 
-const pageData = (fields = [titleField, amountField, statusField]) => ({
+const relationshipField = {
+  ...titleField,
+  id: "field_contact",
+  key: "contact",
+  label: "Contact",
+  type: RecordFieldType.RELATIONSHIP,
+  required: true,
+  isPrimary: false,
+  position: 4,
+  relationshipDefinition: {
+    fieldId: "field_contact",
+    targetModuleId: "module_contacts",
+  },
+};
+
+const pageData = (
+  fields: Record<string, unknown>[] = [titleField, amountField, statusField],
+) => ({
   id: "module_1",
   organizationId: "org_1",
   key: "projects",
@@ -182,6 +199,30 @@ describe("RecordModule actions", () => {
         { fieldId: "field_amount", value: 25 },
         { fieldId: "field_status", value: "open" },
       ],
+      relationships: [],
+    });
+  });
+
+  test("parses relationship fields into record links instead of JSON values", async () => {
+    mockService.getModulePageData.mockResolvedValue(
+      pageData([titleField, relationshipField]) as never,
+    );
+    mockService.createRecord.mockResolvedValue({ id: "record_1" } as never);
+
+    await createModuleRecord("projects", {
+      title: "Apollo",
+      contact: "record_contact_1",
+    });
+
+    expect(mockService.createRecord).toHaveBeenCalledWith({
+      organizationId: "org_1",
+      moduleId: "module_1",
+      createdById: "member_1",
+      displayName: "Apollo",
+      values: [{ fieldId: "field_title", value: "Apollo" }],
+      relationships: [
+        { fieldId: "field_contact", targetRecordId: "record_contact_1" },
+      ],
     });
   });
 
@@ -227,6 +268,7 @@ describe("RecordModule actions", () => {
       recordId: "record_1",
       displayName: "Apollo",
       values: [{ fieldId: "field_title", value: "Apollo" }],
+      relationships: [],
     });
   });
 
@@ -379,6 +421,12 @@ describe("RecordModule actions", () => {
       organizationId: "org_1",
       createdById: "member_1",
       ...payload,
+      dataFields: [
+        {
+          ...payload.dataFields[0],
+          relationshipTargetModuleId: null,
+        },
+      ],
     });
   });
 });

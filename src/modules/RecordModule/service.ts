@@ -30,6 +30,11 @@ export type RecordValueInput = {
     value: Prisma.InputJsonValue;
 };
 
+export type RecordRelationshipInput = {
+    fieldId: string;
+    targetRecordId: string;
+};
+
 export type RecordPageQuery = {
     page: number;
     pageSize: number;
@@ -77,7 +82,124 @@ const createModuleKey = async (name: string, organizationId: string) => {
     return `${baseKey}_${suffix}`;
 };
 
+const validateRelationships = async (
+    transaction: Prisma.TransactionClient,
+    input: {
+        organizationId: string;
+        moduleId: string;
+        relationships: RecordRelationshipInput[];
+    },
+) => {
+    if (input.relationships.length === 0) return;
+
+    const fieldIds = input.relationships.map((relationship) => relationship.fieldId);
+    if (new Set(fieldIds).size !== fieldIds.length) {
+        throw new Error("A relationship field can link only one record.");
+    }
+
+    const fields = await transaction.recordField.findMany({
+        where: {
+            id: { in: fieldIds },
+            moduleId: input.moduleId,
+            type: RecordFieldType.RELATIONSHIP,
+            module: {
+                organizationId: input.organizationId,
+                archivedAt: null,
+            },
+        },
+        include: { relationshipDefinition: true },
+    });
+    if (fields.length !== fieldIds.length) {
+        throw new Error("A relationship field is invalid.");
+    }
+
+    const targetIds = input.relationships.map(
+        (relationship) => relationship.targetRecordId,
+    );
+    const targets = await transaction.recordItem.findMany({
+        where: {
+            id: { in: targetIds },
+            organizationId: input.organizationId,
+            archivedAt: null,
+            module: { archivedAt: null },
+        },
+        select: { id: true, moduleId: true },
+    });
+    const targetsById = new Map(targets.map((target) => [target.id, target]));
+    const fieldsById = new Map(fields.map((field) => [field.id, field]));
+
+    for (const relationship of input.relationships) {
+        const field = fieldsById.get(relationship.fieldId);
+        const target = targetsById.get(relationship.targetRecordId);
+        if (
+            !field?.relationshipDefinition ||
+            !target ||
+            target.moduleId !== field.relationshipDefinition.targetModuleId
+        ) {
+            throw new Error("A relationship target is invalid.");
+        }
+    }
+};
+
 const RecordModuleService = {
+    async getLinkableRecords(
+        organizationId: string,
+        requiredFeature: ModuleFeature,
+    ) {
+        return prisma.recordModule.findMany({
+            where: {
+                organizationId,
+                archivedAt: null,
+                features: { has: requiredFeature },
+            },
+            select: {
+                id: true,
+                key: true,
+                name: true,
+                pluralName: true,
+                icon: true,
+                accentColor: true,
+                records: {
+                    where: { archivedAt: null },
+                    select: { id: true, displayName: true, createdAt: true },
+                    orderBy: [{ displayName: "asc" }, { id: "asc" }],
+                },
+            },
+            orderBy: [{ name: "asc" }, { id: "asc" }],
+        });
+    },
+
+    async getLinkableRecord(
+        recordId: string,
+        organizationId: string,
+        requiredFeature: ModuleFeature,
+    ) {
+        return prisma.recordItem.findFirst({
+            where: {
+                id: recordId,
+                organizationId,
+                archivedAt: null,
+                module: {
+                    archivedAt: null,
+                    features: { has: requiredFeature },
+                },
+            },
+            select: {
+                id: true,
+                displayName: true,
+                module: {
+                    select: {
+                        id: true,
+                        key: true,
+                        name: true,
+                        icon: true,
+                        accentColor: true,
+                    },
+                },
+            },
+        });
+    },
+
     async getModuleBuilderData(
         moduleId: string,
         organizationId: string,
@@ -85,7 +207,10 @@ const RecordModuleService = {
         const recordModule = await prisma.recordModule.findFirst({
             where: { id: moduleId, organizationId, archivedAt: null },
             include: {
-                fields: { orderBy: { position: "asc" } },
+                fields: {
+                    include: { relationshipDefinition: true },
+                    orderBy: { position: "asc" },
+                },
                 views: { orderBy: { position: "asc" } },
             },
         });
@@ -108,10 +233,44 @@ const RecordModuleService = {
                 isPrimary: field.isPrimary,
                 position: field.position,
                 config: field.config as RecordFieldDraft["config"],
+                relationshipTargetModuleId:
+                    field.relationshipDefinition?.targetModuleId ?? null,
             })),
             moduleViews: recordModule.views as unknown as ModuleViewDraft[],
             moduleFeatures: recordModule.features,
         };
+    },
+
+    async getRelationshipTargetModules(organizationId: string) {
+        return prisma.recordModule.findMany({
+            where: { organizationId, archivedAt: null },
+            select: { id: true, key: true, name: true, pluralName: true },
+            orderBy: { name: "asc" },
+        });
+    },
+
+    async getRelationshipFieldOptions(fieldId: string, organizationId: string) {
+        const definition = await prisma.recordRelationshipDefinition.findFirst({
+            where: {
+                fieldId,
+                field: {
+                    module: { organizationId, archivedAt: null },
+                },
+                targetModule: { organizationId, archivedAt: null },
+            },
+            select: { targetModuleId: true },
+        });
+        if (!definition) return [];
+
+        return prisma.recordItem.findMany({
+            where: {
+                moduleId: definition.targetModuleId,
+                organizationId,
+                archivedAt: null,
+            },
+            select: { id: true, displayName: true },
+            orderBy: [{ displayName: "asc" }, { id: "asc" }],
+        });
     },
 
     async getModulePageData(
@@ -126,7 +285,18 @@ const RecordModuleService = {
                 archivedAt: null,
             },
             include: {
-                fields: { orderBy: { position: "asc" } },
+                fields: {
+                    include: {
+                        relationshipDefinition: {
+                            include: {
+                                targetModule: {
+                                    select: { id: true, key: true, name: true, pluralName: true },
+                                },
+                            },
+                        },
+                    },
+                    orderBy: { position: "asc" },
+                },
                 views: { orderBy: { position: "asc" } },
             },
         });
@@ -180,7 +350,16 @@ const RecordModuleService = {
                 ? []
                 : await transaction.recordItem.findMany({
                       where: { id: { in: ids } },
-                      include: { values: true },
+                      include: {
+                          values: true,
+                          outgoingRelationships: {
+                              include: {
+                                  targetRecord: {
+                                      select: { id: true, displayName: true },
+                                  },
+                              },
+                          },
+                      },
                   });
             const recordsById = new Map(records.map((record) => [record.id, record]));
 
@@ -219,9 +398,61 @@ const RecordModuleService = {
             },
             include: {
                 values: true,
+                outgoingRelationships: {
+                    include: {
+                        targetRecord: {
+                            select: {
+                                id: true,
+                                displayName: true,
+                                module: { select: { id: true, key: true, name: true } },
+                            },
+                        },
+                    },
+                },
+                incomingRelationships: {
+                    where: {
+                        sourceRecord: {
+                            archivedAt: null,
+                            module: { archivedAt: null },
+                        },
+                    },
+                    include: {
+                        field: { select: { id: true, label: true } },
+                        sourceRecord: {
+                            select: {
+                                id: true,
+                                displayName: true,
+                                module: {
+                                    select: {
+                                        id: true,
+                                        key: true,
+                                        name: true,
+                                        pluralName: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
                 module: {
                     include: {
-                        fields: { orderBy: { position: "asc" } },
+                        fields: {
+                            include: {
+                                relationshipDefinition: {
+                                    include: {
+                                        targetModule: {
+                                            select: {
+                                                id: true,
+                                                key: true,
+                                                name: true,
+                                                pluralName: true,
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                            orderBy: { position: "asc" },
+                        },
                     },
                 },
             },
@@ -234,16 +465,32 @@ const RecordModuleService = {
         createdById: string;
         displayName: string;
         values: RecordValueInput[];
+        relationships?: RecordRelationshipInput[];
     }) {
-        return prisma.recordItem.create({
-            data: {
-                organizationId: input.organizationId,
-                moduleId: input.moduleId,
-                createdById: input.createdById,
-                displayName: input.displayName,
-                values: { create: input.values },
-            },
-            include: { values: true },
+        return prisma.$transaction(async (transaction) => {
+            const relationships = input.relationships ?? [];
+            await validateRelationships(transaction, { ...input, relationships });
+            const record = await transaction.recordItem.create({
+                data: {
+                    organizationId: input.organizationId,
+                    moduleId: input.moduleId,
+                    createdById: input.createdById,
+                    displayName: input.displayName,
+                    values: { create: input.values },
+                },
+                include: { values: true },
+            });
+            if (relationships.length > 0) {
+                await transaction.recordRelationship.createMany({
+                    data: relationships.map((relationship) => ({
+                        organizationId: input.organizationId,
+                        fieldId: relationship.fieldId,
+                        sourceRecordId: record.id,
+                        targetRecordId: relationship.targetRecordId,
+                    })),
+                });
+            }
+            return record;
         });
     },
 
@@ -253,6 +500,7 @@ const RecordModuleService = {
         recordId: string;
         displayName: string;
         values: RecordValueInput[];
+        relationships?: RecordRelationshipInput[];
     }) {
         return prisma.$transaction(async (transaction) => {
             const record = await transaction.recordItem.findFirst({
@@ -267,8 +515,14 @@ const RecordModuleService = {
 
             if (!record) return null;
 
+            const relationships = input.relationships ?? [];
+            await validateRelationships(transaction, { ...input, relationships });
+
             await transaction.recordFieldValue.deleteMany({
                 where: { recordId: input.recordId },
+            });
+            await transaction.recordRelationship.deleteMany({
+                where: { sourceRecordId: input.recordId },
             });
 
             await transaction.recordItem.update({
@@ -278,6 +532,17 @@ const RecordModuleService = {
                     values: { create: input.values },
                 },
             });
+
+            if (relationships.length > 0) {
+                await transaction.recordRelationship.createMany({
+                    data: relationships.map((relationship) => ({
+                        organizationId: input.organizationId,
+                        fieldId: relationship.fieldId,
+                        sourceRecordId: input.recordId,
+                        targetRecordId: relationship.targetRecordId,
+                    })),
+                });
+            }
 
             return transaction.recordItem.findUnique({
                 where: { id: input.recordId },
@@ -341,6 +606,18 @@ const RecordModuleService = {
             });
             if (!view) return null;
 
+            if (input.field.relationshipTargetModuleId) {
+                const targetModule = await transaction.recordModule.findFirst({
+                    where: {
+                        id: input.field.relationshipTargetModuleId,
+                        organizationId: input.organizationId,
+                        archivedAt: null,
+                    },
+                    select: { id: true },
+                });
+                if (!targetModule) return null;
+            }
+
             const lastField = await transaction.recordField.findFirst({
                 where: { moduleId: input.moduleId },
                 orderBy: { position: "desc" },
@@ -390,6 +667,13 @@ const RecordModuleService = {
                     ...(input.field.defaultValue !== null && {
                         defaultValue: input.field.defaultValue as Prisma.InputJsonValue,
                     }),
+                    ...(input.field.relationshipTargetModuleId && {
+                        relationshipDefinition: {
+                            create: {
+                                targetModuleId: input.field.relationshipTargetModuleId,
+                            },
+                        },
+                    }),
                 },
             });
             const config =
@@ -428,6 +712,22 @@ const RecordModuleService = {
             input.organizationId,
         );
 
+        const relationshipTargetIds = input.dataFields.flatMap((field) =>
+            field.relationshipTargetModuleId
+                ? [field.relationshipTargetModuleId]
+                : [],
+        );
+        const relationshipTargets = await prisma.recordModule.count({
+            where: {
+                id: { in: relationshipTargetIds },
+                organizationId: input.organizationId,
+                archivedAt: null,
+            },
+        });
+        if (relationshipTargets !== new Set(relationshipTargetIds).size) {
+            throw new Error("Relationship target module not found.");
+        }
+
         return prisma.recordModule.create({
             data: {
                 organizationId: input.organizationId,
@@ -451,6 +751,13 @@ const RecordModuleService = {
                         }),
                         ...(field.defaultValue !== null && {
                             defaultValue: field.defaultValue as Prisma.InputJsonValue,
+                        }),
+                        ...(field.relationshipTargetModuleId && {
+                            relationshipDefinition: {
+                                create: {
+                                    targetModuleId: field.relationshipTargetModuleId,
+                                },
+                            },
                         }),
                     })),
                 },
@@ -481,7 +788,12 @@ const RecordModuleService = {
                     archivedAt: null,
                 },
                 include: {
-                    fields: { include: { _count: { select: { values: true } } } },
+                    fields: {
+                        include: {
+                            relationshipDefinition: true,
+                            _count: { select: { values: true, relationships: true } },
+                        },
+                    },
                     views: true,
                 },
             });
@@ -491,8 +803,29 @@ const RecordModuleService = {
             const removedFields = existing.fields.filter(
                 (field) => !nextFieldKeys.has(field.key),
             );
-            if (removedFields.some((field) => field._count.values > 0)) {
-                throw new Error("Fields with record values cannot be removed.");
+            if (
+                removedFields.some(
+                    (field) =>
+                        field._count.values > 0 || field._count.relationships > 0,
+                )
+            ) {
+                throw new Error("Fields with record data cannot be removed.");
+            }
+
+            const relationshipTargetIds = input.dataFields.flatMap((field) =>
+                field.relationshipTargetModuleId
+                    ? [field.relationshipTargetModuleId]
+                    : [],
+            );
+            const relationshipTargets = await transaction.recordModule.count({
+                where: {
+                    id: { in: relationshipTargetIds },
+                    organizationId: input.organizationId,
+                    archivedAt: null,
+                },
+            });
+            if (relationshipTargets !== new Set(relationshipTargetIds).size) {
+                throw new Error("Relationship target module not found.");
             }
 
             await transaction.recordModule.update({
@@ -531,13 +864,56 @@ const RecordModuleService = {
                     (existingField) => existingField.key === field.key,
                 );
                 if (currentField) {
+                    const changesRelationshipKind =
+                        currentField.type !== field.type &&
+                        (currentField.type === RecordFieldType.RELATIONSHIP ||
+                            field.type === RecordFieldType.RELATIONSHIP);
+                    const changesRelationshipTarget =
+                        currentField.relationshipDefinition?.targetModuleId !==
+                        (field.relationshipTargetModuleId ?? undefined);
+                    if (
+                        (changesRelationshipKind || changesRelationshipTarget) &&
+                        (currentField._count.values > 0 ||
+                            currentField._count.relationships > 0)
+                    ) {
+                        throw new Error(
+                            "Relationship fields with record data cannot change type or target module.",
+                        );
+                    }
                     await transaction.recordField.update({
                         where: { id: currentField.id },
                         data,
                     });
+                    if (field.relationshipTargetModuleId) {
+                        await transaction.recordRelationshipDefinition.upsert({
+                            where: { fieldId: currentField.id },
+                            create: {
+                                fieldId: currentField.id,
+                                targetModuleId: field.relationshipTargetModuleId,
+                            },
+                            update: {
+                                targetModuleId: field.relationshipTargetModuleId,
+                            },
+                        });
+                    } else if (currentField.relationshipDefinition) {
+                        await transaction.recordRelationshipDefinition.delete({
+                            where: { fieldId: currentField.id },
+                        });
+                    }
                 } else {
                     await transaction.recordField.create({
-                        data: { ...data, moduleId: existing.id, key: field.key },
+                        data: {
+                            ...data,
+                            moduleId: existing.id,
+                            key: field.key,
+                            ...(field.relationshipTargetModuleId && {
+                                relationshipDefinition: {
+                                    create: {
+                                        targetModuleId: field.relationshipTargetModuleId,
+                                    },
+                                },
+                            }),
+                        },
                     });
                 }
             }

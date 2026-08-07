@@ -106,6 +106,20 @@ describe("RecordModule record values", () => {
     ).toEqual({ count: 0 });
   });
 
+  test("hydrates relationship fields from outgoing links", () => {
+    const contactField = field({
+      id: "field_contact",
+      key: "contact",
+      type: RecordFieldType.RELATIONSHIP,
+    });
+
+    expect(
+      createInitialValues([contactField], [], [
+        { fieldId: "field_contact", targetRecordId: "record_contact_1" },
+      ]),
+    ).toEqual({ contact: "record_contact_1" });
+  });
+
   test("looks up a value by field ID", () => {
     const record = {
       values: [

@@ -2,13 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  CheckmarkFilled,
   AddRegular,
-  TargetRegular,
   CheckmarkCircleFilled,
   DismissRegular,
   DeleteRegular,
-  DocumentRegular,
   PersonRegular,
   ArrowSyncRegular,
   CheckmarkRegular,
@@ -34,6 +31,7 @@ import {
 import { useModal } from "@/components/macro/ModalProvider/ModalProvider";
 import { useWorkspaceData } from "@/modules/workspace/components/workspace-provider";
 import { useToast } from "@/components/macro/Toaster";
+import ModuleIcon from "@/modules/RecordModule/ui/components/ModuleIcon";
 import Styles from "./TaskList.module.css";
 
 type TaskListProps = {
@@ -200,7 +198,6 @@ const TaskList = ({
     try {
       await createTask({
         name: taskName,
-        dealId: dealId || undefined,
         recordId,
       });
       setNewTaskName("");
@@ -230,7 +227,7 @@ const TaskList = ({
   }
 
   function handleOpenCreateModal() {
-    openModal("task", { dealId, recordId }, fetchTasks);
+    openModal("task", { recordId }, fetchTasks);
   }
 
   function toggleSelect(taskId: string, e: React.MouseEvent) {
@@ -462,15 +459,15 @@ const TaskList = ({
               {formatDueDate(task.dueDate)}
             </div>
             <div className={Styles.linkedRecord}>
-              {recordId ? (
+              {task.record ? (
                 <span className={Styles.linkedBadge}>
-                  <DocumentRegular fontSize={12} />
-                  Current record
-                </span>
-              ) : task.deal ? (
-                <span className={Styles.linkedBadge}>
-                  <TargetRegular fontSize={12} />
-                  {task.deal.title}
+                  <span
+                    className={Styles.linkedModuleIcon}
+                    style={{ backgroundColor: task.record.module.accentColor || "#5670ff" }}
+                  >
+                    <ModuleIcon name={task.record.module.icon} size={10} />
+                  </span>
+                  {task.record.displayName}
                 </span>
               ) : (
                 <span style={{ opacity: 0.4 }}>—</span>

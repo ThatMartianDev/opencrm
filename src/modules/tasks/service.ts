@@ -13,7 +13,41 @@ const taskInclude = {
         include: { user: { select: { name: true, avatarUrl: true } } },
     },
     deal: { select: { id: true, title: true } },
+    record: {
+        select: {
+            id: true,
+            displayName: true,
+            module: {
+                select: {
+                    id: true,
+                    key: true,
+                    name: true,
+                    icon: true,
+                    accentColor: true,
+                },
+            },
+        },
+    },
 } as const;
+
+const assertRecordTasksEnabled = async (
+    recordId: string,
+    organizationId: string,
+) => {
+    const record = await prisma.recordItem.findFirst({
+        where: {
+            id: recordId,
+            organizationId,
+            archivedAt: null,
+            module: {
+                archivedAt: null,
+                features: { has: ModuleFeature.TASKS },
+            },
+        },
+        select: { id: true },
+    });
+    if (!record) throw new Error("Record not found or tasks are not enabled.");
+};
 
 const getTasksPage = async (
     where: Prisma.TaskWhereInput,
@@ -103,19 +137,7 @@ export const TasksService = {
         memberId?: string,
     ) {
         if (data.recordId) {
-            const record = await prisma.recordItem.findFirst({
-                where: {
-                    id: data.recordId,
-                    organizationId: data.organizationId,
-                    archivedAt: null,
-                    module: {
-                        archivedAt: null,
-                        features: { has: ModuleFeature.TASKS },
-                    },
-                },
-                select: { id: true },
-            });
-            if (!record) throw new Error("Record not found or tasks are not enabled.");
+            await assertRecordTasksEnabled(data.recordId, data.organizationId);
         }
 
         const task = await prisma.task.create({
@@ -223,12 +245,16 @@ export const TasksService = {
             dueDate?: Date | null;
             assignedToId?: string | null;
             dealId?: string | null;
+            recordId?: string | null;
         },
         organizationId: string,
         memberId: string,
     ) {
         const task = await prisma.task.findFirst({ where: { id: taskId, organizationId, deletedAt: null } });
         if (!task) throw new Error("Task not found");
+        if (data.recordId) {
+            await assertRecordTasksEnabled(data.recordId, organizationId);
+        }
 
         const updated = await prisma.task.update({
             where: { id: taskId },

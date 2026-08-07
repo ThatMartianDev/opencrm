@@ -103,9 +103,11 @@ const FieldItem = ({
 };
 
 const FieldsList = ({
+  moduleId,
   dataFields,
   setDataFields,
 }: {
+  moduleId?: string;
   dataFields: RecordFieldDraft[];
   setDataFields: React.Dispatch<
     React.SetStateAction<RecordFieldDraft[]>
@@ -231,6 +233,7 @@ const FieldsList = ({
       </div>
       {openFieldBuilder && (
         <FieldBuilder
+          moduleId={moduleId}
           fieldToEdit={fieldToEdit}
           dataFields={dataFields}
           setDataFields={updateFields}

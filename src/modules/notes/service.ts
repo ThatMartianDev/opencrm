@@ -15,7 +15,35 @@ const noteInclude = {
   deal: { select: { id: true, title: true } },
   contact: { select: { id: true, name: true } },
   company: { select: { id: true, name: true } },
+  record: {
+    select: {
+      id: true,
+      displayName: true,
+      module: {
+        select: { id: true, key: true, name: true, icon: true, accentColor: true },
+      },
+    },
+  },
 } as const;
+
+const assertRecordNotesEnabled = async (
+  recordId: string,
+  organizationId: string,
+) => {
+  const record = await prisma.recordItem.findFirst({
+    where: {
+      id: recordId,
+      organizationId,
+      archivedAt: null,
+      module: {
+        archivedAt: null,
+        features: { has: ModuleFeature.NOTES },
+      },
+    },
+    select: { id: true },
+  });
+  if (!record) throw new Error("Record not found or notes are not enabled.");
+};
 
 const getNotesPage = async (
   where: Prisma.NoteWhereInput,
@@ -101,19 +129,7 @@ export const NotesService = {
     createdById: string;
   }) {
     if (data.recordId) {
-      const record = await prisma.recordItem.findFirst({
-        where: {
-          id: data.recordId,
-          organizationId: data.organizationId,
-          archivedAt: null,
-          module: {
-            archivedAt: null,
-            features: { has: ModuleFeature.NOTES },
-          },
-        },
-        select: { id: true },
-      });
-      if (!record) throw new Error("Record not found or notes are not enabled.");
+      await assertRecordNotesEnabled(data.recordId, data.organizationId);
     }
 
     return prisma.note.create({
@@ -132,11 +148,30 @@ export const NotesService = {
 
   async updateNote(
     noteId: string,
-    data: { title?: string; content?: string; organizationId: string },
+    data: {
+      title?: string;
+      content?: string;
+      dealId?: string | null;
+      contactId?: string | null;
+      companyId?: string | null;
+      recordId?: string | null;
+      organizationId: string;
+    },
   ) {
+    if (data.recordId) {
+      await assertRecordNotesEnabled(data.recordId, data.organizationId);
+    }
+
     return prisma.note.update({
       where: { id: noteId, organizationId: data.organizationId },
-      data,
+      data: {
+        title: data.title,
+        content: data.content,
+        dealId: data.dealId,
+        contactId: data.contactId,
+        companyId: data.companyId,
+        recordId: data.recordId,
+      },
     });
   },
 

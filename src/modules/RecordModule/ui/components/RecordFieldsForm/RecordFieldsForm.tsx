@@ -5,6 +5,7 @@ import type {
 } from "../../../types";
 import { getFieldOptions } from "../record-values";
 import Styles from "./RecordFieldsForm.module.css";
+import RelationshipFieldSelect from "../RelationshipFieldSelect/RelationshipFieldSelect";
 
 type RecordFieldsFormProps = {
   fields: RecordModuleField[];
@@ -26,7 +27,17 @@ const RecordFieldsForm = ({ fields, values, onChange }: RecordFieldsFormProps) =
               {field.required && <span>*</span>}
             </label>
 
-            {field.type === RecordFieldType.LONG_TEXT ? (
+            {field.type === RecordFieldType.RELATIONSHIP ? (
+              <RelationshipFieldSelect
+                id={`record-field-${field.key}`}
+                fieldId={field.id}
+                value={typeof value === "string" ? value : ""}
+                required={field.required}
+                onChange={(targetRecordId) =>
+                  onChange(field.key, targetRecordId)
+                }
+              />
+            ) : field.type === RecordFieldType.LONG_TEXT ? (
               <textarea
                 id={`record-field-${field.key}`}
                 value={typeof value === "string" ? value : ""}

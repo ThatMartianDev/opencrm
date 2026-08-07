@@ -71,6 +71,46 @@
   cursor: wait;
 }
 
+.relationshipValue {
+  position: relative;
+  min-width: 0;
+}
+
+.relationshipValue > div {
+  height: 100%;
+}
+
+.relationshipTrigger {
+  height: 100%;
+  min-height: 43px;
+  border: 0;
+  border-radius: 0;
+  padding-right: 44px;
+}
+
+.relationshipTrigger:hover:not(:disabled) {
+  outline: 1px solid var(--border-100);
+}
+
+.openRelationship {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  translate: 0 -50%;
+  border-radius: 6px;
+  color: var(--text-secondary);
+}
+
+.openRelationship:hover {
+  background: var(--bg-04);
+  color: var(--text-color);
+}
+
 .valueButton p,
 .readOnlyValue {
   overflow: hidden;
@@ -142,6 +182,55 @@ textarea.inlineInput {
 .editorActions button:last-child {
   background: var(--text-color);
   color: var(--bg-00);
+}
+
+.linkedRecords {
+  margin-top: 24px;
+}
+
+.linkedRecords > h2 {
+  margin-bottom: 12px;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+
+.linkedRecordList {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--border-100);
+  border-radius: 8px;
+}
+
+.linkedRecordList a {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--border-100);
+  padding: 10px 12px;
+  color: var(--text-color);
+}
+
+.linkedRecordList a:last-child {
+  border-bottom: 0;
+}
+
+.linkedRecordList a:hover {
+  background: var(--bg-02);
+}
+
+.linkedRecordList span {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.linkedRecordList strong {
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 900px) {

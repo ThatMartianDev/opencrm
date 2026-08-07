@@ -73,7 +73,7 @@ const DealPage = () => {
       id: "create_task",
       tooltip: "Create Task",
       icon: <TaskListSquareAddRegular />,
-      onClick: () => openModal("task", { dealId }),
+      onClick: () => openModal("task"),
     },
     {
       id: "create_note",

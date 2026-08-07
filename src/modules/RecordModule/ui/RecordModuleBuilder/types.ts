@@ -50,6 +50,7 @@ export type RecordFieldDraft = Omit<
   "config"
 > & {
   config: RecordFieldConfig | null;
+  relationshipTargetModuleId?: string | null;
 };
 
 type ModuleViewDraftBase = Pick<
