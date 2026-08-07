@@ -62,7 +62,19 @@ describe("NotesService.deleteNote", () => {
 
   test("tells a member when the note exists but they are not allowed to delete it", async () => {
     mockNote.deleteMany.mockResolvedValue({ count: 0 });
-    mockNote.findFirst.mockResolvedValue({ id: "note_1" });
+    mockNote.findFirst.mockResolvedValue({
+      id: "note_1",
+      organizationId: "org_1",
+      createdById: "member_2",
+      title: "Test Note",
+      content: "Test content",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      companyId: null,
+      contactId: null,
+      dealId: null,
+      recordId: null,
+    });
 
     await expect(
       NotesService.deleteNote({
