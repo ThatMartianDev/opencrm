@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useTransition, useEffect } from "react";
+import dynamic from "next/dynamic";
 import {
   FolderFilled,
   DocumentFilled,
@@ -35,12 +36,15 @@ import {
   searchFiles,
 } from "../actions";
 import type { EntityScope, FileRecord } from "../types";
-import FileViewer, {
-  type FileViewerFile,
-} from "@/components/macro/FileViewer/FileViewer";
+import type { FileViewerFile } from "@/components/macro/FileViewer/FileViewer";
 import { useToast } from "@/components/macro/Toaster";
 import { useConfirm } from "@/components/macro/ConfirmDialog";
 import Styles from "./FileManager.module.css";
+
+const FileViewer = dynamic(
+  () => import("@/components/macro/FileViewer/FileViewer"),
+  { ssr: false },
+);
 
 type ViewMode = "grid" | "list";
 type SortField = "name" | "date" | "size";

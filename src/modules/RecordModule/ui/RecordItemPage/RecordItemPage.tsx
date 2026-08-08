@@ -107,7 +107,7 @@ const RecordItemPage = ({
     }
   };
 
-  const handleOwnerChange = async (ownerId: string) => {
+  const handleOwnerChange = async (ownerId: string, ownerName: string) => {
     if (!record || ownerId === record.ownerId) return;
     setSavingOwner(true);
 
@@ -124,7 +124,7 @@ const RecordItemPage = ({
 
       const refreshedRecord = await getRecordModuleRecord(moduleKey, record.id);
       if (refreshedRecord) setRecord(refreshedRecord);
-      t.success({ title: "Record reassigned", duration: 3000 });
+      t.success({ title: "Record reassigned", description: `"${record.displayName}" has been reassigned to ${ownerName}`, duration: 3000 });
     } catch (error) {
       t.error({
         title: "Assignment not changed",

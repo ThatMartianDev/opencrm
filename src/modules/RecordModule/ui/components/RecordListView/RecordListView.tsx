@@ -18,6 +18,7 @@ import { RecordFieldType } from "@/generated/prisma/enums";
 import {
   createRecordModuleField,
   saveRecordListViewColumns,
+  transferModuleRecordOwnership,
   updateModuleRecord,
 } from "../../../actions";
 import type {
@@ -131,6 +132,7 @@ const RecordListView = ({
   const [draftValue, setDraftValue] = useState("");
   const [multiSelectDraft, setMultiSelectDraft] = useState<string[]>([]);
   const [savingCell, setSavingCell] = useState("");
+  const [savingOwnerId, setSavingOwnerId] = useState<string | null>(null);
   const cancelEditRef = useRef(false);
   const optionPicker = useOptionPicker();
   const configuredKeys = getColumnKeys(view);
@@ -275,6 +277,37 @@ const RecordListView = ({
       return false;
     } finally {
       setSavingCell("");
+    }
+  };
+
+  const reassignRecord = async (
+    record: RecordModuleItem,
+    ownerId: string,
+  ) => {
+    if (record.ownerId === ownerId || savingOwnerId) return;
+
+    setSavingOwnerId(record.id);
+    const assignmentToast = toast.loading(`Reassigning ${record.displayName}...`);
+    try {
+      const result = await transferModuleRecordOwnership(record.id, ownerId);
+      if (!result.success) {
+        assignmentToast.error({
+          title: "Assignment not changed",
+          description: result.error,
+        });
+        return;
+      }
+
+      await onModuleChanged();
+      assignmentToast.success({ title: `${record.displayName} reassigned` });
+    } catch (error) {
+      assignmentToast.error({
+        title: "Assignment not changed",
+        description:
+          error instanceof Error ? error.message : "Something went wrong.",
+      });
+    } finally {
+      setSavingOwnerId(null);
     }
   };
 
@@ -556,6 +589,12 @@ const RecordListView = ({
                 email: record.owner.user.email,
                 avatarUrl: record.owner.user.avatarUrl,
               }}
+              onChange={
+                module.canTransferOwnership
+                  ? (owner) => void reassignRecord(record, owner.id)
+                  : undefined
+              }
+              disabled={savingOwnerId !== null}
             />
             <div aria-hidden="true" />
           </div>

@@ -174,6 +174,21 @@ describe("RecordModule actions", () => {
     );
   });
 
+  test("exposes list reassignment only with update-any permission", async () => {
+    can.mockImplementation(
+      (permission: string) => permission === "records.update.any",
+    );
+
+    await expect(getRecordModulePage("projects")).resolves.toEqual(
+      expect.objectContaining({ canTransferOwnership: true }),
+    );
+
+    can.mockReturnValue(false);
+    await expect(getRecordModulePage("projects")).resolves.toEqual(
+      expect.objectContaining({ canTransferOwnership: false }),
+    );
+  });
+
   test("loads module builder data within the current organization", async () => {
     mockService.getModuleBuilderData.mockResolvedValue(null);
 

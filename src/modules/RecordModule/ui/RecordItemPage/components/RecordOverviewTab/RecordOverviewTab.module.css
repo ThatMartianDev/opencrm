@@ -75,6 +75,7 @@
   min-height: 43px;
   border: 0;
   border-radius: 0;
+  padding-left: 10px;
 }
 
 button.ownerValue:hover:not(:disabled) {

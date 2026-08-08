@@ -37,7 +37,7 @@ type RecordOverviewTabProps = {
   savingFieldKey: string | null;
   savingOwner: boolean;
   onSave: (field: RecordModuleField, value: unknown) => Promise<boolean>;
-  onOwnerChange: (ownerId: string) => Promise<void>;
+  onOwnerChange: (ownerId: string, ownerName: string) => Promise<void>;
 };
 
 type IncomingRelationship =
@@ -394,7 +394,7 @@ const RecordOverviewTab = ({
               }}
               onChange={
                 record.canTransferOwnership
-                  ? (owner) => void onOwnerChange(owner.id)
+                  ? (owner) => void onOwnerChange(owner.id, owner.name || owner.email)
                   : undefined
               }
               disabled={savingOwner || Boolean(savingFieldKey)}
