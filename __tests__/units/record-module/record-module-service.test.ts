@@ -9,6 +9,10 @@ jest.mock("@/lib/db/client", () => ({
     },
     recordItem: {
       create: jest.fn(),
+      updateMany: jest.fn(),
+    },
+    member: {
+      findFirst: jest.fn(),
     },
   },
 }));
@@ -24,6 +28,9 @@ const transaction = {
   recordRelationship: {
     createMany: jest.fn(),
     deleteMany: jest.fn(),
+  },
+  member: {
+    findFirst: jest.fn(),
   },
   recordItem: {
     create: jest.fn(),
@@ -57,6 +64,7 @@ const record = (id: string) => ({
   moduleId: "module_1",
   displayName: id,
   createdById: "member_1",
+  ownerId: "member_1",
   createdAt: new Date("2026-08-01T00:00:00.000Z"),
   updatedAt: new Date("2026-08-01T00:00:00.000Z"),
   archivedAt: null,
@@ -66,6 +74,7 @@ const record = (id: string) => ({
 describe("RecordModuleService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    transaction.member.findFirst.mockResolvedValue({ id: "member_1" });
     mockPrisma.$transaction.mockImplementation(
       ((callback: (client: typeof transaction) => Promise<unknown>) =>
         callback(transaction)) as never,
@@ -141,6 +150,18 @@ describe("RecordModuleService", () => {
         where: { id: { in: ["record_2", "record_1"] } },
         include: {
           values: true,
+          owner: {
+            select: {
+              id: true,
+              user: {
+                select: {
+                  name: true,
+                  email: true,
+                  avatarUrl: true,
+                },
+              },
+            },
+          },
           outgoingRelationships: {
             include: {
               targetRecord: {
@@ -217,11 +238,53 @@ describe("RecordModuleService", () => {
           organizationId: "org_1",
           moduleId: "module_1",
           createdById: "member_1",
+          ownerId: "member_1",
           displayName: "Apollo",
           values: { create: values },
         },
         include: { values: true },
       });
+    });
+
+    test("creates records for an explicitly selected organization member", async () => {
+      transaction.member.findFirst.mockResolvedValue({ id: "member_2" });
+      transaction.recordItem.create.mockResolvedValue(record("record_1"));
+
+      await RecordModuleService.createRecord({
+        organizationId: "org_1",
+        moduleId: "module_1",
+        createdById: "member_1",
+        ownerId: "member_2",
+        displayName: "Apollo",
+        values: [],
+      });
+
+      expect(transaction.member.findFirst).toHaveBeenCalledWith({
+        where: { id: "member_2", organizationId: "org_1" },
+        select: { id: true },
+      });
+      expect(transaction.recordItem.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ ownerId: "member_2" }),
+        }),
+      );
+    });
+
+    test("rejects a selected owner outside the organization", async () => {
+      transaction.member.findFirst.mockResolvedValue(null);
+
+      await expect(
+        RecordModuleService.createRecord({
+          organizationId: "org_1",
+          moduleId: "module_1",
+          createdById: "member_1",
+          ownerId: "member_other_org",
+          displayName: "Apollo",
+          values: [],
+        }),
+      ).resolves.toBeNull();
+
+      expect(transaction.recordItem.create).not.toHaveBeenCalled();
     });
 
     test("validates and creates a single relationship edge", async () => {
@@ -270,6 +333,8 @@ describe("RecordModuleService", () => {
           recordId: "record_1",
           displayName: "Apollo",
           values: [],
+          memberId: "member_1",
+          canUpdateAny: false,
         }),
       ).resolves.toBeNull();
 
@@ -279,6 +344,7 @@ describe("RecordModuleService", () => {
           moduleId: "module_1",
           organizationId: "org_1",
           archivedAt: null,
+          ownerId: "member_1",
         },
         select: { id: true },
       });
@@ -303,6 +369,8 @@ describe("RecordModuleService", () => {
         recordId: "record_1",
         displayName: "Apollo",
         values,
+        memberId: "member_1",
+        canUpdateAny: true,
       });
 
       expect(transaction.recordFieldValue.deleteMany).toHaveBeenCalledWith({
@@ -325,6 +393,58 @@ describe("RecordModuleService", () => {
       expect(
         transaction.recordFieldValue.deleteMany.mock.invocationCallOrder[0],
       ).toBeLessThan(transaction.recordItem.update.mock.invocationCallOrder[0]);
+    });
+
+    test("archives only records owned by a member without delete-any", async () => {
+      mockPrisma.recordItem.updateMany.mockResolvedValue({ count: 1 });
+
+      await expect(
+        RecordModuleService.archiveRecord({
+          organizationId: "org_1",
+          recordId: "record_1",
+          memberId: "member_1",
+          canDeleteAny: false,
+        }),
+      ).resolves.toBe(true);
+
+      expect(mockPrisma.recordItem.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: "record_1",
+          organizationId: "org_1",
+          archivedAt: null,
+          ownerId: "member_1",
+        },
+        data: { archivedAt: expect.any(Date) },
+      });
+    });
+
+    test("transfers ownership only to a member in the organization", async () => {
+      mockPrisma.member.findFirst.mockResolvedValue({ id: "member_2" } as never);
+      mockPrisma.recordItem.updateMany.mockResolvedValue({ count: 1 });
+
+      await expect(
+        RecordModuleService.transferRecordOwnership({
+          organizationId: "org_1",
+          recordId: "record_1",
+          ownerId: "member_2",
+          memberId: "member_1",
+          canUpdateAny: false,
+        }),
+      ).resolves.toBe(true);
+
+      expect(mockPrisma.member.findFirst).toHaveBeenCalledWith({
+        where: { id: "member_2", organizationId: "org_1" },
+        select: { id: true },
+      });
+      expect(mockPrisma.recordItem.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: "record_1",
+          organizationId: "org_1",
+          archivedAt: null,
+          ownerId: "member_1",
+        },
+        data: { ownerId: "member_2" },
+      });
     });
   });
 });

@@ -2,6 +2,10 @@ import { prisma } from "@/lib/db/client";
 import { ActivityType, DealStage } from "@/generated/prisma/enums";
 import { ActivityLogService } from "@/modules/activity-log/service";
 import { NotificationsService } from "@/modules/notifications/service";
+import {
+  assertCrmLinksBelongToOrganization,
+  assertMemberBelongsToOrganization,
+} from "@/lib/dal/crm-links";
 
 export const DealsService = {
   async getAllDeals(organizationId: string) {
@@ -45,6 +49,11 @@ export const DealsService = {
     },
     memberId?: string,
   ) {
+    await Promise.all([
+      assertCrmLinksBelongToOrganization(data.organizationId, data),
+      assertMemberBelongsToOrganization(data.organizationId, data.assignedToId),
+    ]);
+
     const newDeal = await prisma.deal.create({
       data: {
         title: data.title,
@@ -187,6 +196,8 @@ export const DealsService = {
     organizationId: string,
     memberId: string,
   ) {
+    await assertMemberBelongsToOrganization(organizationId, assignedToId);
+
     const deal = await prisma.deal.findFirst({
       where: { id: dealId, organizationId, deletedAt: null },
     });
@@ -235,6 +246,10 @@ export const DealsService = {
     organizationId: string,
     memberId: string,
   ) {
+    await assertCrmLinksBelongToOrganization(organizationId, {
+      [field]: value,
+    });
+
     const deal = await prisma.deal.findFirst({
       where: { id: dealId, organizationId, deletedAt: null },
     });

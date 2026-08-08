@@ -7,4 +7,6 @@ export type SessionPayload = {
     role: MemberRole;
 }
 
-export type SessionClaims = SessionPayload;
+export type SessionClaims = SessionPayload & {
+    permissions?: string[];
+};

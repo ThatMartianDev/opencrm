@@ -15,6 +15,7 @@ export const getNotes = async (query?: PaginationInput) => {
 
     return NotesService.getAllNotes(
         session.organizationId,
+        session.memberId,
         parsePaginationInput(query),
     );
 };
@@ -81,7 +82,11 @@ export const getNoteById = async (noteId: string) => {
     const ctx = createQueryContext(session);
     ctx.assertCan("notes.read");
 
-    return NotesService.getNoteById(noteId, session.organizationId);
+    return NotesService.getNoteById(
+        noteId,
+        session.organizationId,
+        session.memberId,
+    );
 };
 
 export const createNote = async (data: {
@@ -121,9 +126,15 @@ export const updateNote = async (
 ) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);
-    ctx.assertCan("notes.update");
+    const canUpdateAny = ctx.can("notes.update.any");
+    if (!canUpdateAny) ctx.assertCan("notes.update.own");
 
-    return NotesService.updateNote(noteId, { ...data, organizationId: session.organizationId });
+    return NotesService.updateNote(noteId, {
+        ...data,
+        organizationId: session.organizationId,
+        memberId: session.memberId,
+        canUpdateAny,
+    });
 };
 
 export const deleteNote = async (noteId: string) => {

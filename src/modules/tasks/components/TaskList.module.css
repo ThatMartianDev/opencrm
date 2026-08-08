@@ -237,8 +237,6 @@
     border-radius: 6px;
     font-size: var(--font-size-xs);
     font-weight: 500;
-    background: rgba(0, 130, 54, 0.08);
-    color: rgba(0, 130, 54, 1);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

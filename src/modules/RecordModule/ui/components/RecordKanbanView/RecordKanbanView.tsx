@@ -20,6 +20,8 @@ import {
   getRecordRelationship,
 } from "../record-values";
 import Styles from "./RecordKanbanView.module.css";
+import RecordOwnerField from "../RecordOwnerField/RecordOwnerField";
+import AvatarFallback from "@/components/micro/AvatarFallback/AvatarFallback";
 
 type RecordKanbanViewProps = {
   module: RecordModulePageData;
@@ -110,7 +112,10 @@ const RecordKanbanView = ({
             className={Styles.card}
             href={`/app/${module.organizationId}/${module.key}/${record.id}`}
           >
-            <h4>{record.displayName}</h4>
+            <div className={Styles.cardHeader}>
+              <AvatarFallback entityKind="customer" entityId={record.id} name={record.displayName} size={20} style={{borderRadius: "6px"}}/>
+              <h4>{record.displayName}</h4>
+            </div>
             {cardFields.map((field) => (
               <div className={Styles.cardField} key={field.id}>
                 <span>{field.label}</span>
@@ -125,6 +130,18 @@ const RecordKanbanView = ({
                 </p>
               </div>
             ))}
+            <footer className={Styles.cardFooter}>
+              <RecordOwnerField
+                className={Styles.cardOwner}
+                organizationId={module.organizationId}
+                owner={{
+                  id: record.owner.id,
+                  name: record.owner.user.name,
+                  email: record.owner.user.email,
+                  avatarUrl: record.owner.user.avatarUrl,
+                }}
+              />
+            </footer>
           </Link>
         ),
       })),
@@ -162,7 +179,7 @@ const RecordKanbanView = ({
       values[groupField.key] = toColumn.value ?? "";
     }
 
-    const moveToast = toast.loading(`Moving ${record.displayName}...`);
+    const moveToast = toast.loading(`Moving "${record.displayName}"...`);
     const result = await updateModuleRecord(module.key, cardId, values);
     if (!result.success) {
       moveToast.error({
@@ -174,7 +191,7 @@ const RecordKanbanView = ({
 
     moveToast.success({
       title: "Record moved",
-      description: `${record.displayName} moved to ${toColumn.title}.`,
+      description: `"${record.displayName}" moved to ${toColumn.title}.`,
     });
     void onRecordsChanged();
     return true;

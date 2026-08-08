@@ -12,7 +12,7 @@
   padding: 20px 24px;
 }
 
-.details > h2 {
+.details>h2 {
   margin-bottom: 12px;
   font-size: var(--font-size-md);
   font-weight: 600;
@@ -71,12 +71,22 @@
   cursor: wait;
 }
 
+.ownerValue {
+  min-height: 43px;
+  border: 0;
+  border-radius: 0;
+}
+
+button.ownerValue:hover:not(:disabled) {
+  outline: 1px solid var(--border-100);
+}
+
 .relationshipValue {
   position: relative;
   min-width: 0;
 }
 
-.relationshipValue > div {
+.relationshipValue>div {
   height: 100%;
 }
 
@@ -119,7 +129,7 @@
 }
 
 .optionDot,
-.multiOptions label > span {
+.multiOptions label>span {
   width: 9px;
   height: 9px;
   flex: 0 0 9px;
@@ -188,45 +198,136 @@ textarea.inlineInput {
   margin-top: 24px;
 }
 
-.linkedRecords > h2 {
+.linkedRecords>h2 {
   margin-bottom: 12px;
   font-size: var(--font-size-md);
   font-weight: 600;
 }
 
-.linkedRecordList {
+.linkedRecordGroups {
   display: grid;
   overflow: hidden;
   border: 1px solid var(--border-100);
   border-radius: 8px;
 }
 
-.linkedRecordList a {
+.linkedRecordGroup {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  min-width: 0;
+  border-bottom: 1px solid var(--border-100);
+  transition: all 0.3s ease;
+  align-items: flex-start;
+}
+
+.linkedRecordGroup.collapsed {
+  grid-template-rows: auto 0fr;
+}
+
+.linkedRecordGroup:last-child {
+  border-bottom: 0;
+}
+
+.linkedRecordGroupHeader {
   display: flex;
   min-width: 0;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  border-bottom: 1px solid var(--border-100);
-  padding: 10px 12px;
-  color: var(--text-color);
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 10px 8px 12px;
+  overflow: hidden;
 }
 
-.linkedRecordList a:last-child {
-  border-bottom: 0;
+.linkedRecordGroupIdentity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
 }
 
-.linkedRecordList a:hover {
-  background: var(--bg-02);
+.linkedModuleIcon {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
 }
 
-.linkedRecordList span {
+.linkedRecordGroupIdentity h3 {
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linkedRecordCount {
+  display: inline-flex;
+  min-width: 21px;
+  height: 21px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-100);
+  border-radius: 999px;
+  padding: 0 6px;
+  background: var(--bg-00);
   color: var(--text-secondary);
   font-size: var(--font-size-xs);
 }
 
-.linkedRecordList strong {
+.linkedRecordToggle {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--text-secondary);
+}
+
+.linkedRecordToggle:hover {
+  background: var(--bg-04);
+  color: var(--text-color);
+}
+
+.linkedRecordGroupBodyWrapper {
+  display: grid;
   overflow: hidden;
+}
+
+.linkedRecordGroupBody {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-top: 1px solid var(--border-100);
+  padding: 10px 12px;
+}
+
+.linkedRecordPill {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--border-100);
+  border-radius: 10px;
+  padding: 6px 10px 6px 6px;
+  color: var(--text-color);
+}
+
+.linkedRecordPill:hover {
+  border-color: var(--border-200);
+  background: var(--bg-02);
+}
+
+.linkedRecordPill>span {
+  overflow: hidden;
+  max-width: 220px;
   font-size: var(--font-size-sm);
   font-weight: 500;
   text-overflow: ellipsis;

@@ -23,7 +23,8 @@
 
 .field input:not([type="checkbox"]),
 .field select,
-.field textarea {
+.field textarea,
+.dateField {
   width: 100%;
   min-height: 36px;
   border: 1px solid var(--border-200);
@@ -31,7 +32,21 @@
   padding: 8px 10px;
   background: var(--bg-00);
   color: var(--text-color);
-  font: inherit;
+  font-size: var(--font-size-sm);
+}
+
+.dateField {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.dateField span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .field textarea {
@@ -41,7 +56,8 @@
 
 .field input:focus-visible,
 .field select:focus-visible,
-.field textarea:focus-visible {
+.field textarea:focus-visible,
+.dateField:focus-visible {
   border-color: #5670ff;
   outline: 2px solid #5670ff33;
 }

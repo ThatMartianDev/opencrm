@@ -15,7 +15,13 @@ export async function getLinkedAccounts(): Promise<LinkedAccount[]> {
     const session = await getSessionClaims();
 
     const accounts = await prisma.account.findMany({
-        where: { userId: session.userId },
+        where: {
+            userId: session.userId,
+            OR: [
+                { organizationId: null },
+                { organizationId: session.organizationId },
+            ],
+        },
         select: {
             id: true,
             provider: true,
@@ -36,11 +42,18 @@ export async function disconnectAccount(accountId: string): Promise<{ success: b
     const session = await getSessionClaims();
 
     // Verify the account belongs to the current user
-    const account = await prisma.account.findUnique({
-        where: { id: accountId },
+    const account = await prisma.account.findFirst({
+        where: {
+            id: accountId,
+            userId: session.userId,
+            OR: [
+                { organizationId: null },
+                { organizationId: session.organizationId },
+            ],
+        },
     });
 
-    if (!account || account.userId !== session.userId) {
+    if (!account) {
         return { success: false, error: "Account not found" };
     }
 
@@ -50,11 +63,19 @@ export async function disconnectAccount(accountId: string): Promise<{ success: b
         select: { passwordHash: true },
     });
 
-    const accountCount = await prisma.account.count({
-        where: { userId: session.userId },
+    const loginAccountCount = await prisma.account.count({
+        where: {
+            userId: session.userId,
+            organizationId: null,
+            provider: "google",
+        },
     });
 
-    if (!user?.passwordHash && accountCount <= 1) {
+    if (
+        account.provider === "google" &&
+        !user?.passwordHash &&
+        loginAccountCount <= 1
+    ) {
         return {
             success: false,
             error: "Cannot disconnect your only login method. Set a password first.",
@@ -70,7 +91,11 @@ export async function getCalendarStatus(): Promise<{ connected: boolean; scope: 
     const session = await getSessionClaims();
 
     const account = await prisma.account.findFirst({
-        where: { userId: session.userId, provider: "google_calendar" },
+        where: {
+            userId: session.userId,
+            organizationId: session.organizationId,
+            provider: "google_calendar",
+        },
         select: { scope: true, refreshToken: true },
     });
 
@@ -81,7 +106,11 @@ export async function getGmailStatus(): Promise<{ connected: boolean; email: str
     const session = await getSessionClaims();
 
     const account = await prisma.account.findFirst({
-        where: { userId: session.userId, provider: "google_gmail" },
+        where: {
+            userId: session.userId,
+            organizationId: session.organizationId,
+            provider: "google_gmail",
+        },
         select: { providerAccountId: true, scope: true, refreshToken: true },
     });
 
@@ -96,7 +125,11 @@ export async function disconnectGmail(): Promise<{ success: boolean; error?: str
     const session = await getSessionClaims();
 
     const account = await prisma.account.findFirst({
-        where: { userId: session.userId, provider: "google_gmail" },
+        where: {
+            userId: session.userId,
+            organizationId: session.organizationId,
+            provider: "google_gmail",
+        },
     });
 
     if (!account) {
@@ -127,7 +160,11 @@ export async function disconnectCalendar(): Promise<{ success: boolean; error?: 
     const session = await getSessionClaims();
 
     const account = await prisma.account.findFirst({
-        where: { userId: session.userId, provider: "google_calendar" },
+        where: {
+            userId: session.userId,
+            organizationId: session.organizationId,
+            provider: "google_calendar",
+        },
     });
 
     if (!account) {

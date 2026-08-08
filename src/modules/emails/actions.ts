@@ -21,13 +21,17 @@ import z from "zod";
 
 export async function checkMailboxConnection(provider = "google_gmail") {
   const session = await getSessionClaims();
-  const connected = await isMailboxConnected(session.userId, provider);
+  const connected = await isMailboxConnected(
+    session.userId,
+    session.organizationId,
+    provider,
+  );
   return { connected };
 }
 
 export async function fetchConnectedMailboxes() {
   const session = await getSessionClaims();
-  return getConnectedMailboxes(session.userId);
+  return getConnectedMailboxes(session.userId, session.organizationId);
 }
 
 export async function syncMailboxAction(
@@ -107,7 +111,7 @@ export async function sendEmailAction(
 export async function markEmailReadAction(emailId: string, isRead: boolean) {
   const session = await getSessionClaims();
   try {
-    await markEmailRead(session.userId, emailId, isRead);
+    await markEmailRead(session.userId, session.organizationId, emailId, isRead);
     return { success: true };
   } catch {
     return { success: false, error: "Failed to update email" };
@@ -117,7 +121,7 @@ export async function markEmailReadAction(emailId: string, isRead: boolean) {
 export async function archiveEmailAction(emailId: string) {
   const session = await getSessionClaims();
   try {
-    await archiveEmail(session.userId, emailId);
+    await archiveEmail(session.userId, session.organizationId, emailId);
     return { success: true };
   } catch {
     return { success: false, error: "Failed to archive email" };
@@ -127,7 +131,7 @@ export async function archiveEmailAction(emailId: string) {
 export async function trashEmailAction(emailId: string) {
   const session = await getSessionClaims();
   try {
-    await trashEmail(session.userId, emailId);
+    await trashEmail(session.userId, session.organizationId, emailId);
     return { success: true };
   } catch {
     return { success: false, error: "Failed to trash email" };
@@ -140,7 +144,7 @@ export async function linkEmailAction(
 ) {
   const session = await getSessionClaims();
   try {
-    await linkEmail(emailId, session.userId, link);
+    await linkEmail(emailId, session.userId, session.organizationId, link);
     return { success: true };
   } catch {
     return { success: false, error: "Failed to link email" };

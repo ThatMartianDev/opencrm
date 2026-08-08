@@ -8,12 +8,12 @@ import { useEffect, type Dispatch, type SetStateAction } from "react";
 
 const Views = [
   {
-    label: "List View",
+    label: "List",
     type: RecordViewType.LIST,
     icon: <ListBarRegular />,
   },
   {
-    label: "Board View",
+    label: "Board",
     type: RecordViewType.KANBAN,
     icon: <BoardRegular />,
   },
@@ -113,7 +113,7 @@ const ModuleViews = ({
           ...currentViews,
           {
             ...baseView,
-            name: "List View",
+            name: "List",
             type,
             config: { columns: dataFields.map((field) => field.key) },
           },
@@ -125,7 +125,7 @@ const ModuleViews = ({
         ...currentViews,
         {
           ...baseView,
-          name: "Board View",
+          name: "Board",
           type,
           config: {
             groupByField,

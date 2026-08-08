@@ -2,6 +2,7 @@ import "server-only";
 
 import { ModuleFeature } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db/client";
+import { assertCrmLinksBelongToOrganization } from "@/lib/dal/crm-links";
 import { getSupabaseAdmin, STORAGE_BUCKET } from "@/lib/supabase/client";
 import type { CreateFolderInput, CreateExternalFileInput, EntityScope } from "./types";
 
@@ -26,6 +27,38 @@ const assertRecordFilesEnabled = async (
   if (!record) throw new Error("Record not found or files are not enabled.");
 };
 
+const assertFileScope = async (
+  organizationId: string,
+  scope: EntityScope,
+) => {
+  await Promise.all([
+    assertCrmLinksBelongToOrganization(organizationId, scope),
+    assertRecordFilesEnabled(organizationId, scope),
+  ]);
+};
+
+const assertParentFolderMatchesScope = async (
+  organizationId: string,
+  parentId: string | null | undefined,
+  scope: EntityScope,
+) => {
+  if (!parentId) return;
+
+  const parent = await prisma.file.findFirst({
+    where: {
+      id: parentId,
+      organizationId,
+      type: "FOLDER",
+      dealId: scope.dealId ?? null,
+      contactId: scope.contactId ?? null,
+      companyId: scope.companyId ?? null,
+      recordId: scope.recordId ?? null,
+    },
+    select: { id: true },
+  });
+  if (!parent) throw new Error("Invalid parent folder for this file scope");
+};
+
 export const FilesService = {
   /**
    * Search files by name across the entire entity scope (ignores folder nesting).
@@ -35,7 +68,7 @@ export const FilesService = {
     scope: EntityScope,
     query: string,
   ) {
-    await assertRecordFilesEnabled(organizationId, scope);
+    await assertFileScope(organizationId, scope);
     return prisma.file.findMany({
       where: {
         organizationId,
@@ -54,7 +87,8 @@ export const FilesService = {
     scope: EntityScope,
     parentId: string | null,
   ) {
-    await assertRecordFilesEnabled(organizationId, scope);
+    await assertFileScope(organizationId, scope);
+    await assertParentFolderMatchesScope(organizationId, parentId, scope);
     return prisma.file.findMany({
       where: {
         organizationId,
@@ -83,15 +117,8 @@ export const FilesService = {
     memberId: string,
     input: CreateFolderInput,
   ) {
-    await assertRecordFilesEnabled(organizationId, input);
-
-    // Validate parentId belongs to same org
-    if (input.parentId) {
-      const parent = await prisma.file.findFirst({
-        where: { id: input.parentId, organizationId, type: "FOLDER" },
-      });
-      if (!parent) throw new Error("Invalid parent folder");
-    }
+    await assertFileScope(organizationId, input);
+    await assertParentFolderMatchesScope(organizationId, input.parentId, input);
 
     return prisma.file.create({
       data: {
@@ -119,7 +146,8 @@ export const FilesService = {
     scope: EntityScope,
     parentId: string | null,
   ) {
-    await assertRecordFilesEnabled(organizationId, scope);
+    await assertFileScope(organizationId, scope);
+    await assertParentFolderMatchesScope(organizationId, parentId, scope);
 
     // Build the storage path
     const entityType = scope.dealId
@@ -176,7 +204,8 @@ export const FilesService = {
     memberId: string,
     input: CreateExternalFileInput,
   ) {
-    await assertRecordFilesEnabled(organizationId, input);
+    await assertFileScope(organizationId, input);
+    await assertParentFolderMatchesScope(organizationId, input.parentId, input);
 
     return prisma.file.create({
       data: {

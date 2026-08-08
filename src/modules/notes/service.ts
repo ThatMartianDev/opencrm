@@ -1,6 +1,7 @@
 import { Prisma } from "@/generated/prisma/client";
 import { ModuleFeature } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db/client";
+import { assertCrmLinksBelongToOrganization } from "@/lib/dal/crm-links";
 import {
   createPaginatedResult,
   type PaginationQuery,
@@ -60,9 +61,22 @@ const getNotesPage = async (
   return createPaginatedResult(rows, pagination);
 };
 
+const linkedNoteWhere: Prisma.NoteWhereInput = {
+  OR: [
+    { recordId: { not: null } },
+    { dealId: { not: null } },
+    { contactId: { not: null } },
+    { companyId: { not: null } },
+  ],
+};
+
 export const NotesService = {
-  async getAllNotes(organizationId: string, pagination: PaginationQuery) {
-    return getNotesPage({ organizationId }, pagination);
+  async getAllNotes(
+    organizationId: string,
+    memberId: string,
+    pagination: PaginationQuery,
+  ) {
+    return getNotesPage({ organizationId, createdById: memberId }, pagination);
   },
 
   async getNotesForDeal(
@@ -111,9 +125,17 @@ export const NotesService = {
     return getNotesPage({ recordId, organizationId }, pagination);
   },
 
-  async getNoteById(noteId: string, organizationId: string) {
+  async getNoteById(
+    noteId: string,
+    organizationId: string,
+    memberId: string,
+  ) {
     return prisma.note.findFirst({
-      where: { id: noteId, organizationId },
+      where: {
+        id: noteId,
+        organizationId,
+        OR: [{ createdById: memberId }, linkedNoteWhere],
+      },
       include: noteInclude,
     });
   },
@@ -128,6 +150,8 @@ export const NotesService = {
     organizationId: string;
     createdById: string;
   }) {
+    await assertCrmLinksBelongToOrganization(data.organizationId, data);
+
     if (data.recordId) {
       await assertRecordNotesEnabled(data.recordId, data.organizationId);
     }
@@ -156,14 +180,22 @@ export const NotesService = {
       companyId?: string | null;
       recordId?: string | null;
       organizationId: string;
+      memberId: string;
+      canUpdateAny: boolean;
     },
   ) {
+    await assertCrmLinksBelongToOrganization(data.organizationId, data);
+
     if (data.recordId) {
       await assertRecordNotesEnabled(data.recordId, data.organizationId);
     }
 
-    return prisma.note.update({
-      where: { id: noteId, organizationId: data.organizationId },
+    const result = await prisma.note.updateMany({
+      where: {
+        id: noteId,
+        organizationId: data.organizationId,
+        ...(data.canUpdateAny ? {} : { createdById: data.memberId }),
+      },
       data: {
         title: data.title,
         content: data.content,
@@ -173,6 +205,9 @@ export const NotesService = {
         recordId: data.recordId,
       },
     });
+
+    if (result.count === 0) throw new Error("Note not found");
+    return prisma.note.findUnique({ where: { id: noteId } });
   },
 
   async deleteNote(data: {

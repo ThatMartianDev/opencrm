@@ -146,6 +146,21 @@ describe("RecordModule record values", () => {
     );
   });
 
+  test("formats currency values with the configured currency symbol", () => {
+    const currencyField = field({
+      type: RecordFieldType.CURRENCY,
+      config: { currency: "EUR" },
+    });
+
+    expect(formatRecordValue(currencyField, 1250.5)).toBe("€1,250.5");
+    expect(
+      formatRecordValue(
+        field({ type: RecordFieldType.CURRENCY, config: null }),
+        20,
+      ),
+    ).toBe("$20");
+  });
+
   test("formats empty, boolean, array, and object values consistently", () => {
     expect(formatRecordValue(field(), null)).toBe("—");
     expect(

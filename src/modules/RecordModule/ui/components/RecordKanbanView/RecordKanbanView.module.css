@@ -9,6 +9,12 @@
   color: var(--text-color);
 }
 
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .card:hover {
   border-color: var(--border-200);
   box-shadow: 0 3px 12px #0000000d;
@@ -38,6 +44,22 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 200px;
+}
+
+.cardFooter {
+  margin-top: 2px;
+  padding-top: 9px;
+}
+
+.cardOwner {
+  min-height: 0;
+  border: 0;
+  padding: 0;
+}
+
+.cardOwner span:last-child {
+  font-weight: 500;
+  font-size: var(--font-size-xs);
 }
 
 .empty {

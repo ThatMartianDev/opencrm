@@ -4,7 +4,10 @@ import {
   CalendarDateRegular,
   CheckboxCheckedRegular,
   CheckboxUncheckedRegular,
+  ChevronDownRegular,
+  ChevronRightRegular,
   OpenRegular,
+  PersonRegular,
 } from "@fluentui/react-icons";
 import { useRef, useState, type KeyboardEvent } from "react";
 import Link from "next/link";
@@ -17,16 +20,32 @@ import type {
   RecordValueState,
 } from "../../../../types";
 import RecordFieldIcon from "../../../components/RecordFieldIcon";
-import { formatRecordValue, getFieldOptions } from "../../../components/record-values";
+import {
+  formatRecordValue,
+  getFieldOptions,
+} from "../../../components/record-values";
 import RecordActivityLog from "../RecordActivityLog/RecordActivityLog";
 import RelationshipFieldSelect from "../../../components/RelationshipFieldSelect/RelationshipFieldSelect";
 import Styles from "./RecordOverviewTab.module.css";
+import RecordOwnerField from "../../../components/RecordOwnerField/RecordOwnerField";
+import ModuleIcon from "../../../components/ModuleIcon";
+import RecordDateField from "../../../components/RecordDateField/RecordDateField";
 
 type RecordOverviewTabProps = {
   record: RecordModuleRecordData;
   values: RecordValueState;
   savingFieldKey: string | null;
+  savingOwner: boolean;
   onSave: (field: RecordModuleField, value: unknown) => Promise<boolean>;
+  onOwnerChange: (ownerId: string) => Promise<void>;
+};
+
+type IncomingRelationship =
+  RecordModuleRecordData["incomingRelationships"][number];
+
+type LinkedRecordGroup = {
+  module: IncomingRelationship["sourceRecord"]["module"];
+  relationships: IncomingRelationship[];
 };
 
 const NUMERIC_FIELD_TYPES = new Set<RecordFieldType>([
@@ -37,16 +56,6 @@ const NUMERIC_FIELD_TYPES = new Set<RecordFieldType>([
 
 const toInputValue = (field: RecordModuleField, value: unknown) => {
   if (typeof value !== "string" && typeof value !== "number") return "";
-  if (field.type === RecordFieldType.DATE && typeof value === "string") {
-    return value.slice(0, 10);
-  }
-  if (field.type === RecordFieldType.DATETIME && typeof value === "string") {
-    const date = new Date(value);
-    if (!Number.isNaN(date.getTime())) {
-      const offset = date.getTimezoneOffset() * 60_000;
-      return new Date(date.getTime() - offset).toISOString().slice(0, 16);
-    }
-  }
   return String(value);
 };
 
@@ -54,13 +63,24 @@ const RecordOverviewTab = ({
   record,
   values,
   savingFieldKey,
+  savingOwner,
   onSave,
+  onOwnerChange,
 }: RecordOverviewTabProps) => {
   const optionPicker = useOptionPicker();
-  const [editingField, setEditingField] = useState<RecordModuleField | null>(null);
-  const [selectField, setSelectField] = useState<RecordModuleField | null>(null);
+  const [editingField, setEditingField] = useState<RecordModuleField | null>(
+    null,
+  );
+  const [selectField, setSelectField] = useState<RecordModuleField | null>(
+    null,
+  );
   const [draftValue, setDraftValue] = useState("");
-  const [multiSelectDraft, setMultiSelectDraft] = useState<string[] | null>(null);
+  const [multiSelectDraft, setMultiSelectDraft] = useState<string[] | null>(
+    null,
+  );
+  const [collapsedLinkedModuleIds, setCollapsedLinkedModuleIds] = useState(
+    () => new Set<string>(),
+  );
   const cancelEditRef = useRef(false);
 
   const startEditing = (field: RecordModuleField) => {
@@ -130,6 +150,39 @@ const RecordOverviewTab = ({
     optionPicker.open(target);
   };
 
+  const linkedRecordGroups = Array.from(
+    record.incomingRelationships
+      .reduce<Map<string, LinkedRecordGroup>>((groups, relationship) => {
+        const sourceModule = relationship.sourceRecord.module;
+        const group = groups.get(sourceModule.id);
+
+        if (group) {
+          group.relationships.push(relationship);
+        } else {
+          groups.set(sourceModule.id, {
+            module: sourceModule,
+            relationships: [relationship],
+          });
+        }
+
+        return groups;
+      }, new Map())
+      .values(),
+  ).sort((left, right) =>
+    (left.module.pluralName ?? left.module.name).localeCompare(
+      right.module.pluralName ?? right.module.name,
+    ),
+  );
+
+  const toggleLinkedModule = (moduleId: string) => {
+    setCollapsedLinkedModuleIds((current) => {
+      const next = new Set(current);
+      if (next.has(moduleId)) next.delete(moduleId);
+      else next.add(moduleId);
+      return next;
+    });
+  };
+
   return (
     <div className={Styles.overviewTab}>
       <section className={Styles.details}>
@@ -180,19 +233,23 @@ const RecordOverviewTab = ({
                     type="button"
                     className={Styles.valueButton}
                     disabled={Boolean(savingFieldKey)}
-                    onClick={(event) => openSelectPicker(field, event.currentTarget)}
+                    onClick={(event) =>
+                      openSelectPicker(field, event.currentTarget)
+                    }
                   >
                     {typeof value === "string" && value && (
                       <span
                         className={Styles.optionDot}
                         style={{
                           backgroundColor:
-                            options.find((option) => option.value === value)?.color ??
-                            "#94a3b8",
+                            options.find((option) => option.value === value)
+                              ?.color ?? "#94a3b8",
                         }}
                       />
                     )}
-                    <p>{isSaving ? "Saving..." : formatRecordValue(field, value)}</p>
+                    <p>
+                      {isSaving ? "Saving..." : formatRecordValue(field, value)}
+                    </p>
                   </button>
                 ) : field.type === RecordFieldType.BOOLEAN ? (
                   <button
@@ -206,8 +263,19 @@ const RecordOverviewTab = ({
                     ) : (
                       <CheckboxUncheckedRegular fontSize={17} />
                     )}
-                    <p>{isSaving ? "Saving..." : value === true ? "Yes" : "No"}</p>
+                    <p>
+                      {isSaving ? "Saving..." : value === true ? "Yes" : "No"}
+                    </p>
                   </button>
+                ) : field.type === RecordFieldType.DATE ||
+                  field.type === RecordFieldType.DATETIME ? (
+                  <RecordDateField
+                    className={Styles.valueButton}
+                    field={field}
+                    value={value}
+                    disabled={Boolean(savingFieldKey)}
+                    onChange={(nextValue) => commitValue(field, nextValue)}
+                  />
                 ) : isEditing && field.type === RecordFieldType.MULTI_SELECT ? (
                   <div className={Styles.multiSelectEditor}>
                     <div className={Styles.multiOptions}>
@@ -215,7 +283,9 @@ const RecordOverviewTab = ({
                         <label key={option.value}>
                           <input
                             type="checkbox"
-                            checked={multiSelectDraft?.includes(option.value) ?? false}
+                            checked={
+                              multiSelectDraft?.includes(option.value) ?? false
+                            }
                             onChange={(event) =>
                               setMultiSelectDraft((current) =>
                                 event.target.checked
@@ -226,13 +296,19 @@ const RecordOverviewTab = ({
                               )
                             }
                           />
-                          <span style={{ backgroundColor: option.color ?? "#94a3b8" }} />
+                          <span
+                            style={{
+                              backgroundColor: option.color ?? "#94a3b8",
+                            }}
+                          />
                           {option.label}
                         </label>
                       ))}
                     </div>
                     <div className={Styles.editorActions}>
-                      <button type="button" onClick={stopEditing}>Cancel</button>
+                      <button type="button" onClick={stopEditing}>
+                        Cancel
+                      </button>
                       <button
                         type="button"
                         disabled={isSaving}
@@ -262,17 +338,13 @@ const RecordOverviewTab = ({
                       type={
                         NUMERIC_FIELD_TYPES.has(field.type)
                           ? "number"
-                          : field.type === RecordFieldType.DATE
-                            ? "date"
-                            : field.type === RecordFieldType.DATETIME
-                              ? "datetime-local"
-                              : field.type === RecordFieldType.EMAIL
-                                ? "email"
-                                : field.type === RecordFieldType.PHONE
-                                  ? "tel"
-                                  : field.type === RecordFieldType.URL
-                                    ? "url"
-                                    : "text"
+                          : field.type === RecordFieldType.EMAIL
+                            ? "email"
+                            : field.type === RecordFieldType.PHONE
+                              ? "tel"
+                              : field.type === RecordFieldType.URL
+                                ? "url"
+                                : "text"
                       }
                       value={draftValue}
                       onChange={(event) => setDraftValue(event.target.value)}
@@ -298,13 +370,36 @@ const RecordOverviewTab = ({
                         letterCount={1}
                       />
                     )}
-                    <p>{isSaving ? "Saving..." : formatRecordValue(field, value)}</p>
+                    <p>
+                      {isSaving ? "Saving..." : formatRecordValue(field, value)}
+                    </p>
                   </button>
                 )}
               </div>
             );
           })}
-
+          <div className={Styles.infoRow}>
+            <div className={Styles.infoLabel}>
+              <PersonRegular fontSize={16} />
+              <p>Assigned to:</p>
+            </div>
+            <RecordOwnerField
+              className={Styles.ownerValue}
+              organizationId={record.organizationId}
+              owner={{
+                id: record.owner.id,
+                name: record.owner.user.name,
+                email: record.owner.user.email,
+                avatarUrl: record.owner.user.avatarUrl,
+              }}
+              onChange={
+                record.canTransferOwnership
+                  ? (owner) => void onOwnerChange(owner.id)
+                  : undefined
+              }
+              disabled={savingOwner || Boolean(savingFieldKey)}
+            />
+          </div>
           <div className={Styles.infoRow}>
             <div className={Styles.infoLabel}>
               <CalendarDateRegular fontSize={16} />
@@ -316,25 +411,84 @@ const RecordOverviewTab = ({
           </div>
         </div>
         {record.incomingRelationships.length > 0 && (
-            <section className={Styles.linkedRecords}>
-              <h2>Linked records</h2>
-              <div className={Styles.linkedRecordList}>
-                {record.incomingRelationships.map((relationship) => (
-                  <Link
-                    key={relationship.id}
-                    href={`/app/${record.organizationId}/${relationship.sourceRecord.module.key}/${relationship.sourceRecord.id}`}
+          <section className={Styles.linkedRecords}>
+            <h2>Linked records</h2>
+            <div className={Styles.linkedRecordGroups}>
+              {linkedRecordGroups.map((group) => {
+                const isCollapsed = collapsedLinkedModuleIds.has(
+                  group.module.id,
+                );
+                const bodyId = `linked-records-${group.module.id}`;
+
+                return (
+                  <section
+                    className={`${Styles.linkedRecordGroup} ${isCollapsed ? Styles.collapsed : ""}`}
+                    key={group.module.id}
                   >
-                    <span>
-                      {relationship.sourceRecord.module.pluralName ??
-                        relationship.sourceRecord.module.name}
-                      {` · ${relationship.field.label}`}
-                    </span>
-                    <strong>{relationship.sourceRecord.displayName}</strong>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
+                    <header className={Styles.linkedRecordGroupHeader}>
+                      <div className={Styles.linkedRecordGroupIdentity}>
+                        <span
+                          className={Styles.linkedModuleIcon}
+                          style={{
+                            backgroundColor:
+                              group.module.accentColor ?? "#5670ff",
+                          }}
+                        >
+                          <ModuleIcon name={group.module.icon} size={16} />
+                        </span>
+                        <h3>{group.module.pluralName ?? group.module.name}</h3>
+                        <span className={Styles.linkedRecordCount}>
+                          {group.relationships.length}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        className={Styles.linkedRecordToggle}
+                        aria-expanded={!isCollapsed}
+                        aria-controls={bodyId}
+                        aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${group.module.pluralName ?? group.module.name}`}
+                        title={isCollapsed ? "Expand group" : "Collapse group"}
+                        onClick={() => toggleLinkedModule(group.module.id)}
+                      >
+                        {isCollapsed ? (
+                          <ChevronRightRegular fontSize={18} />
+                        ) : (
+                          <ChevronDownRegular fontSize={18} />
+                        )}
+                      </button>
+                    </header>
+                    <div className={Styles.linkedRecordGroupBodyWrapper}>
+                      <div
+                        className={Styles.linkedRecordGroupBody}
+                        id={bodyId}
+                        hidden={isCollapsed}
+                      >
+                        {group.relationships.map((relationship) => (
+                          <Link
+                            className={Styles.linkedRecordPill}
+                            key={relationship.id}
+                            href={`/app/${record.organizationId}/${relationship.sourceRecord.module.key}/${relationship.sourceRecord.id}`}
+                            title={relationship.sourceRecord.displayName}
+                          >
+                            <AvatarFallback
+                              name={relationship.sourceRecord.displayName}
+                              entityKind="customer"
+                              entityId={relationship.sourceRecord.id}
+                              size={20}
+                              letterCount={1}
+                              style={{borderRadius: "6px"}}
+                            />
+                            <span>{relationship.sourceRecord.displayName}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </section>
 
       <RecordActivityLog />

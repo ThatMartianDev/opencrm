@@ -41,6 +41,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", baseUrl));
   }
 
+  if (!organizationId || organizationId !== session.organizationId) {
+    return NextResponse.redirect(
+      new URL(`${redirectBase}?error=gmail_workspace_mismatch`, baseUrl)
+    );
+  }
+
   try {
     const tokens = await exchangeGmailCodeForTokens(code);
     const tokenExpiresAt = new Date(Date.now() + tokens.expires_in * 1000);
@@ -51,8 +57,9 @@ export async function GET(request: NextRequest) {
 
     await prisma.account.upsert({
       where: {
-        userId_provider_providerAccountId: {
+        userId_organizationId_provider_providerAccountId: {
           userId: session.userId,
+          organizationId,
           provider: "google_gmail",
           providerAccountId: accountEmail,
         },
@@ -66,6 +73,7 @@ export async function GET(request: NextRequest) {
       },
       create: {
         userId: session.userId,
+        organizationId,
         provider: "google_gmail",
         providerAccountId: accountEmail,
         accessToken: tokens.access_token,

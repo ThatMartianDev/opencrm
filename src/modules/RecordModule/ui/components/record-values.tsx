@@ -66,6 +66,32 @@ const formatDate = (value: string, includeTime: boolean) => {
   return includeTime ? date.toLocaleString() : date.toLocaleDateString();
 };
 
+const formatCurrency = (field: RecordModuleField, value: unknown) => {
+  const numericValue = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(numericValue)) return String(value);
+
+  const config =
+    field.config && typeof field.config === "object" && !Array.isArray(field.config)
+      ? (field.config as { currency?: unknown })
+      : null;
+  const currency =
+    typeof config?.currency === "string" && config.currency.trim()
+      ? config.currency.trim().toUpperCase()
+      : "USD";
+
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      currencyDisplay: "narrowSymbol",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 20,
+    }).format(numericValue);
+  } catch {
+    return `${currency} ${value}`;
+  }
+};
+
 export const formatRecordValue = (
   field: RecordModuleField,
   value: unknown,
@@ -84,6 +110,9 @@ export const formatRecordValue = (
   }
 
   if (field.type === RecordFieldType.BOOLEAN) return value ? "Yes" : "No";
+  if (field.type === RecordFieldType.CURRENCY) {
+    return formatCurrency(field, value);
+  }
   if (field.type === RecordFieldType.DATE && typeof value === "string") {
     return formatDate(value, false);
   }

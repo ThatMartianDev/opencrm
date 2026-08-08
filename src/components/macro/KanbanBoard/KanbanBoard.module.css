@@ -53,7 +53,6 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    padding-bottom: 0;
 }
 
 .column_color {
@@ -84,6 +83,7 @@
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.75rem;
+    padding-top: 0;
     flex: 1;
     overflow-y: auto;
 }

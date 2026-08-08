@@ -7,6 +7,7 @@ import {
   CheckboxUncheckedRegular,
   CheckmarkRegular,
   DismissRegular,
+  PersonRegular,
 } from "@fluentui/react-icons";
 import { startTransition, useRef, useState, type KeyboardEvent } from "react";
 import { OptionPicker, useOptionPicker } from "@/components/macro/OptionPicker";
@@ -38,6 +39,8 @@ import {
 import RelationshipFieldSelect from "../RelationshipFieldSelect/RelationshipFieldSelect";
 import Styles from "./RecordListView.module.css";
 import SharedModalStyles from "@/components/macro/ModalProvider/SharedStyles.module.css";
+import RecordOwnerField from "../RecordOwnerField/RecordOwnerField";
+import RecordDateField from "../RecordDateField/RecordDateField";
 
 type RecordListViewProps = {
   module: RecordModulePageData;
@@ -68,16 +71,6 @@ const NUMERIC_FIELD_TYPES = new Set<RecordFieldType>([
 
 const toInputValue = (field: RecordModuleField, value: unknown) => {
   if (typeof value !== "string" && typeof value !== "number") return "";
-  if (field.type === RecordFieldType.DATE && typeof value === "string") {
-    return value.slice(0, 10);
-  }
-  if (field.type === RecordFieldType.DATETIME && typeof value === "string") {
-    const date = new Date(value);
-    if (!Number.isNaN(date.getTime())) {
-      const offset = date.getTimezoneOffset() * 60_000;
-      return new Date(date.getTime() - offset).toISOString().slice(0, 16);
-    }
-  }
   return String(value);
 };
 
@@ -155,7 +148,7 @@ const RecordListView = ({
     .map((_, index) =>
       index === 0 ? "clamp(220px, 20vw, 300px)" : "clamp(150px, 15vw, 300px)",
     )
-    .join(" ")} 160px`;
+    .join(" ")} clamp(180px, 16vw, 240px) 160px`;
   const fieldDrafts: RecordFieldDraft[] = module.fields.map((field) => ({
     key: field.key,
     label: field.label,
@@ -176,6 +169,7 @@ const RecordListView = ({
   };
 
   const saveColumns = () => {
+    const t = toast.loading("Saving columns...");
     if (selectedKeys.length === 0) return;
     setIsSavingColumns(true);
     startTransition(async () => {
@@ -184,7 +178,7 @@ const RecordListView = ({
         ...selectedKeys,
       ]);
       if (!result.success) {
-        toast.error({
+        t.error({
           title: "Columns not updated",
           description: result.error,
         });
@@ -195,7 +189,7 @@ const RecordListView = ({
       await onModuleChanged();
       closeColumnPicker();
       setIsSavingColumns(false);
-      toast.success({
+      t.success({
         title: "Columns added",
         description: `${selectedKeys.length} ${selectedKeys.length === 1 ? "field was" : "fields were"} added to this view.`,
       });
@@ -247,6 +241,7 @@ const RecordListView = ({
     field: RecordModuleField,
     value: unknown,
   ) => {
+    const t = toast.loading(`Saving ${field.label}...`);
     const cellKey = `${record.id}:${field.id}`;
     setEditingCell(null);
     setSavingCell(cellKey);
@@ -260,16 +255,19 @@ const RecordListView = ({
     try {
       const result = await updateModuleRecord(module.key, record.id, values);
       if (!result.success) {
-        toast.error({
+        t.error({
           title: `${field.label} not saved`,
           description: result.error,
         });
         return false;
       }
       await onModuleChanged();
+      t.success({
+        title: `${field.label} saved`,
+      });
       return true;
     } catch (error) {
-      toast.error({
+      t.error({
         title: `${field.label} not saved`,
         description:
           error instanceof Error ? error.message : "Something went wrong.",
@@ -346,6 +344,10 @@ const RecordListView = ({
               <span>{field.label}</span>
             </div>
           ))}
+          <div className={Styles.headerCell}>
+            <PersonRegular fontSize={16} />
+            <span>Assigned to</span>
+          </div>
           <button
             type="button"
             className={Styles.addColumnHeader}
@@ -477,17 +479,13 @@ const RecordListView = ({
                         type={
                           NUMERIC_FIELD_TYPES.has(field.type)
                             ? "number"
-                            : field.type === RecordFieldType.DATE
-                              ? "date"
-                              : field.type === RecordFieldType.DATETIME
-                                ? "datetime-local"
-                                : field.type === RecordFieldType.EMAIL
-                                  ? "email"
-                                  : field.type === RecordFieldType.PHONE
-                                    ? "tel"
-                                    : field.type === RecordFieldType.URL
-                                      ? "url"
-                                      : "text"
+                            : field.type === RecordFieldType.EMAIL
+                              ? "email"
+                              : field.type === RecordFieldType.PHONE
+                                ? "tel"
+                                : field.type === RecordFieldType.URL
+                                  ? "url"
+                                  : "text"
                         }
                         value={draftValue}
                         onChange={(event) => setDraftValue(event.target.value)}
@@ -497,6 +495,17 @@ const RecordListView = ({
                         onBlur={() => handleEditorBlur(record, field)}
                       />
                     )
+                  ) : field.type === RecordFieldType.DATE ||
+                    field.type === RecordFieldType.DATETIME ? (
+                    <RecordDateField
+                      className={Styles.cellValue}
+                      field={field}
+                      value={value}
+                      disabled={Boolean(savingCell)}
+                      onChange={(nextValue) => {
+                        void saveCellValue(record, field, nextValue);
+                      }}
+                    />
                   ) : (
                     <button
                       type="button"
@@ -538,6 +547,16 @@ const RecordListView = ({
                 </div>
               );
             })}
+            <RecordOwnerField
+              className={Styles.ownerCell}
+              organizationId={module.organizationId}
+              owner={{
+                id: record.owner.id,
+                name: record.owner.user.name,
+                email: record.owner.user.email,
+                avatarUrl: record.owner.user.avatarUrl,
+              }}
+            />
             <div aria-hidden="true" />
           </div>
         ))}

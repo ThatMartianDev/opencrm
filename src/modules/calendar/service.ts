@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db/client";
 import { Prisma } from "@/generated/prisma/client";
 import { refreshAccessToken } from "@/lib/auth/google";
+import { assertCrmLinksBelongToOrganization } from "@/lib/dal/crm-links";
 
 const GOOGLE_CALENDAR_API = "https://www.googleapis.com/calendar/v3";
 
@@ -83,9 +84,12 @@ function mergeMeetingLinkIntoDescription(
  * Get a valid access token for the user's calendar account.
  * Refreshes automatically if expired.
  */
-async function getValidAccessToken(userId: string): Promise<{ accessToken: string; accountId: string } | null> {
+async function getValidAccessToken(
+  userId: string,
+  organizationId: string,
+): Promise<{ accessToken: string; accountId: string } | null> {
   const account = await prisma.account.findFirst({
-    where: { userId, provider: "google_calendar" },
+    where: { userId, organizationId, provider: "google_calendar" },
   });
 
   if (!account || !account.refreshToken) return null;
@@ -136,9 +140,12 @@ async function getValidAccessToken(userId: string): Promise<{ accessToken: strin
 /**
  * Check if a user has Google Calendar connected
  */
-export async function isCalendarConnected(userId: string): Promise<boolean> {
+export async function isCalendarConnected(
+  userId: string,
+  organizationId: string,
+): Promise<boolean> {
   const account = await prisma.account.findFirst({
-    where: { userId, provider: "google_calendar" },
+    where: { userId, organizationId, provider: "google_calendar" },
     select: { refreshToken: true },
   });
   return !!account?.refreshToken;
@@ -149,7 +156,7 @@ export async function isCalendarConnected(userId: string): Promise<boolean> {
  */
 export async function disconnectCalendar(userId: string, organizationId: string): Promise<void> {
   const account = await prisma.account.findFirst({
-    where: { userId, provider: "google_calendar" },
+    where: { userId, organizationId, provider: "google_calendar" },
   });
 
   if (!account) return;
@@ -180,7 +187,7 @@ export async function syncCalendarEvents(
   organizationId: string,
   options?: { forceFullSync?: boolean; timeMin?: Date; timeMax?: Date }
 ): Promise<{ synced: number; errors: number }> {
-  const tokenResult = await getValidAccessToken(userId);
+  const tokenResult = await getValidAccessToken(userId, organizationId);
   if (!tokenResult) {
     throw new Error("Google Calendar not connected");
   }
@@ -253,7 +260,7 @@ export async function syncCalendarEvents(
       // Handle cancelled events
       if (event.status === "cancelled") {
         await prisma.calendarEvent.deleteMany({
-          where: { userId, googleEventId: event.id },
+          where: { userId, organizationId, googleEventId: event.id },
         });
         synced++;
         continue;
@@ -280,7 +287,13 @@ export async function syncCalendarEvents(
       );
 
       await prisma.calendarEvent.upsert({
-        where: { userId_googleEventId: { userId, googleEventId: event.id } },
+        where: {
+          userId_organizationId_googleEventId: {
+            userId,
+            organizationId,
+            googleEventId: event.id,
+          },
+        },
         update: {
           title: event.summary || "(No title)",
           description: descriptionWithMeetingLink,
@@ -351,7 +364,9 @@ export async function createCalendarEvent(
     companyId?: string;
   }
 ): Promise<string> {
-  const tokenResult = await getValidAccessToken(userId);
+  await assertCrmLinksBelongToOrganization(organizationId, event);
+
+  const tokenResult = await getValidAccessToken(userId, organizationId);
   if (!tokenResult) throw new Error("Google Calendar not connected");
 
   const { accessToken } = tokenResult;
@@ -450,6 +465,7 @@ export async function createCalendarEvent(
 export async function updateCalendarEvent(
   eventId: string,
   userId: string,
+  organizationId: string,
   data: {
     title: string;
     description?: string;
@@ -464,11 +480,13 @@ export async function updateCalendarEvent(
   }
 ): Promise<void> {
   const calendarEvent = await prisma.calendarEvent.findFirst({
-    where: { id: eventId, userId },
+    where: { id: eventId, userId, organizationId },
   });
   if (!calendarEvent) throw new Error("Event not found");
 
-  const tokenResult = await getValidAccessToken(userId);
+  await assertCrmLinksBelongToOrganization(organizationId, data);
+
+  const tokenResult = await getValidAccessToken(userId, organizationId);
   if (!tokenResult) throw new Error("Google Calendar not connected");
 
   const { accessToken } = tokenResult;
@@ -539,7 +557,7 @@ export async function updateCalendarEvent(
   );
 
   await prisma.calendarEvent.update({
-    where: { id: eventId },
+    where: { id: eventId, userId, organizationId },
     data: {
       title: updated.summary || data.title,
       description: descriptionWithMeetingLink,
@@ -562,14 +580,15 @@ export async function updateCalendarEvent(
  */
 export async function deleteCalendarEvent(
   eventId: string,
-  userId: string
+  userId: string,
+  organizationId: string,
 ): Promise<void> {
   const calendarEvent = await prisma.calendarEvent.findFirst({
-    where: { id: eventId, userId },
+    where: { id: eventId, userId, organizationId },
   });
   if (!calendarEvent) throw new Error("Event not found");
 
-  const tokenResult = await getValidAccessToken(userId);
+  const tokenResult = await getValidAccessToken(userId, organizationId);
   if (!tokenResult) throw new Error("Google Calendar not connected");
 
   const { accessToken } = tokenResult;
@@ -588,7 +607,9 @@ export async function deleteCalendarEvent(
     throw new Error(`Failed to delete calendar event: ${error}`);
   }
 
-  await prisma.calendarEvent.delete({ where: { id: eventId } });
+  await prisma.calendarEvent.delete({
+    where: { id: eventId, userId, organizationId },
+  });
 }
 
 /**
@@ -623,10 +644,13 @@ export async function getCalendarEvents(
 export async function linkCalendarEvent(
   eventId: string,
   userId: string,
+  organizationId: string,
   link: { dealId?: string; contactId?: string; companyId?: string }
 ) {
+  await assertCrmLinksBelongToOrganization(organizationId, link);
+
   return prisma.calendarEvent.update({
-    where: { id: eventId, userId },
+    where: { id: eventId, userId, organizationId },
     data: {
       dealId: link.dealId ?? undefined,
       contactId: link.contactId ?? undefined,
@@ -641,10 +665,11 @@ export async function linkCalendarEvent(
 export async function unlinkCalendarEvent(
   eventId: string,
   userId: string,
+  organizationId: string,
   unlink: { deal?: boolean; contact?: boolean; company?: boolean }
 ) {
   return prisma.calendarEvent.update({
-    where: { id: eventId, userId },
+    where: { id: eventId, userId, organizationId },
     data: {
       ...(unlink.deal ? { dealId: null } : {}),
       ...(unlink.contact ? { contactId: null } : {}),

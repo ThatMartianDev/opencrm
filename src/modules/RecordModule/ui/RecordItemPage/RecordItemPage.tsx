@@ -19,7 +19,11 @@ import { ModuleFeature } from "@/generated/prisma/enums";
 import { FileManager } from "@/modules/files";
 import NoteList from "@/modules/notes/components/NoteList";
 import TaskList from "@/modules/tasks/components/TaskList";
-import { getRecordModuleRecord, updateModuleRecord } from "../../actions";
+import {
+  getRecordModuleRecord,
+  transferModuleRecordOwnership,
+  updateModuleRecord,
+} from "../../actions";
 import type { RecordModuleRecordData, RecordValueState } from "../../types";
 import ModuleIcon from "../components/ModuleIcon";
 import { createInitialValues } from "../components/record-values";
@@ -38,7 +42,9 @@ const RecordItemPage = ({
   initialRecord,
 }: RecordItemPageProps) => {
   const { toast } = useToast();
-  const [record, setRecord] = useState<RecordModuleRecordData | null>(initialRecord);
+  const [record, setRecord] = useState<RecordModuleRecordData | null>(
+    initialRecord,
+  );
   const [values, setValues] = useState<RecordValueState>(() =>
     initialRecord
       ? createInitialValues(
@@ -50,6 +56,7 @@ const RecordItemPage = ({
   );
   const [activeTab, setActiveTab] = useState("overview");
   const [savingFieldKey, setSavingFieldKey] = useState<string | null>(null);
+  const [savingOwner, setSavingOwner] = useState(false);
 
   useEffect(() => {
     if (record) window.document.title = `${record.displayName} | OpenCRM`;
@@ -61,11 +68,15 @@ const RecordItemPage = ({
   ) => {
     const nextValues = { ...values, [field.key]: value };
     setSavingFieldKey(field.key);
+    const t = toast.loading(`Saving ${field.label}...`);
 
     try {
       const result = await updateModuleRecord(moduleKey, recordId, nextValues);
       if (!result.success) {
-        toast.error({ title: `${field.label} not saved`, description: result.error });
+        t.error({
+          title: `${field.label} not saved`,
+          description: result.error,
+        });
         return false;
       }
 
@@ -82,10 +93,10 @@ const RecordItemPage = ({
       } else {
         setValues(nextValues);
       }
-      toast.success({ title: `${field.label} updated`, duration: 3000 });
+      t.success({ title: `${field.label} updated`, duration: 3000 });
       return true;
     } catch (error) {
-      toast.error({
+      t.error({
         title: `${field.label} not saved`,
         description:
           error instanceof Error ? error.message : "Something went wrong.",
@@ -93,6 +104,35 @@ const RecordItemPage = ({
       return false;
     } finally {
       setSavingFieldKey(null);
+    }
+  };
+
+  const handleOwnerChange = async (ownerId: string) => {
+    if (!record || ownerId === record.ownerId) return;
+    setSavingOwner(true);
+
+    const t = toast.loading("Reassigning record...");
+    try {
+      const result = await transferModuleRecordOwnership(record.id, ownerId);
+      if (!result.success) {
+        t.error({
+          title: "Assignment not changed",
+          description: result.error,
+        });
+        return;
+      }
+
+      const refreshedRecord = await getRecordModuleRecord(moduleKey, record.id);
+      if (refreshedRecord) setRecord(refreshedRecord);
+      t.success({ title: "Record reassigned", duration: 3000 });
+    } catch (error) {
+      t.error({
+        title: "Assignment not changed",
+        description:
+          error instanceof Error ? error.message : "Something went wrong.",
+      });
+    } finally {
+      setSavingOwner(false);
     }
   };
 
@@ -150,7 +190,9 @@ const RecordItemPage = ({
           <ArrowLeftRegular fontSize={14} />
         </Link>
         <div className="g_header_section_name">
-          <span style={{ backgroundColor: record.module.accentColor ?? "#5670ff" }}>
+          <span
+            style={{ backgroundColor: record.module.accentColor ?? "#5670ff" }}
+          >
             <ModuleIcon name={record.module.icon} />
           </span>
           <h2>{moduleName}</h2>
@@ -182,15 +224,13 @@ const RecordItemPage = ({
             record={record}
             values={values}
             savingFieldKey={savingFieldKey}
+            savingOwner={savingOwner}
             onSave={handleFieldSave}
+            onOwnerChange={handleOwnerChange}
           />
         )}
-        {activeTab === "tasks" && (
-          <TaskList recordId={record.id} />
-        )}
-        {activeTab === "notes" && (
-          <NoteList recordId={record.id} />
-        )}
+        {activeTab === "tasks" && <TaskList recordId={record.id} />}
+        {activeTab === "notes" && <NoteList recordId={record.id} />}
         {activeTab === "files" && (
           <FileManager scope={{ recordId: record.id }} />
         )}

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/client";
 import { refreshAccessToken } from "@/lib/auth/google";
+import { assertCrmLinksBelongToOrganization } from "@/lib/dal/crm-links";
 import { getProvider } from "./providers";
 import type { SendEmailInput } from "./providers";
 
@@ -12,10 +13,11 @@ function isInvalidGrantError(error: unknown): boolean {
 
 async function getValidAccessToken(
   userId: string,
+  organizationId: string,
   provider: string
 ): Promise<{ accessToken: string; accountId: string; accountEmail: string, senderName: string | null } | null> {
   const account = await prisma.account.findFirst({
-    where: { userId, provider },
+    where: { userId, organizationId, provider },
     include: { 
       user: { select: { name: true } }
     }
@@ -79,11 +81,13 @@ async function getValidAccessToken(
 
 // Connection status
 export async function getConnectedMailboxes(
-  userId: string
+  userId: string,
+  organizationId: string,
 ): Promise<Array<{ provider: string; email: string; connectedAt: Date }>> {
   const accounts = await prisma.account.findMany({
     where: {
       userId,
+      organizationId,
       provider: { in: ["google_gmail", "microsoft_outlook"] },
       refreshToken: { not: null },
     },
@@ -100,10 +104,11 @@ export async function getConnectedMailboxes(
 
 export async function isMailboxConnected(
   userId: string,
+  organizationId: string,
   provider = "google_gmail"
 ): Promise<boolean> {
   const account = await prisma.account.findFirst({
-    where: { userId, provider, refreshToken: { not: null } },
+    where: { userId, organizationId, provider, refreshToken: { not: null } },
     select: { id: true },
   });
   return !!account;
@@ -116,7 +121,7 @@ export async function disconnectMailbox(
   provider = "google_gmail"
 ): Promise<void> {
   const account = await prisma.account.findFirst({
-    where: { userId, provider },
+    where: { userId, organizationId, provider },
   });
 
   if (!account) return;
@@ -144,7 +149,7 @@ export async function syncMailbox(
   provider = "google_gmail",
   options?: { forceFullSync?: boolean; lookbackDays?: number }
 ): Promise<{ synced: number; errors: number }> {
-  const tokenResult = await getValidAccessToken(userId, provider);
+  const tokenResult = await getValidAccessToken(userId, organizationId, provider);
   if (!tokenResult) throw new Error("Mailbox not connected");
 
   const { accessToken, accountId } = tokenResult;
@@ -179,8 +184,9 @@ export async function syncMailbox(
     try {
       await prisma.email.upsert({
         where: {
-          userId_provider_providerMessageId: {
+          userId_organizationId_provider_providerMessageId: {
             userId,
+            organizationId,
             provider,
             providerMessageId: email.providerMessageId,
           },
@@ -369,7 +375,7 @@ export async function getEmailThread(
   if (cached.length > 0) return cached;
 
   // otherwise fetch live from provider
-  const tokenResult = await getValidAccessToken(userId, provider);
+  const tokenResult = await getValidAccessToken(userId, organizationId, provider);
   if (!tokenResult) throw new Error("Mailbox not connected");
 
   const mailProvider = getProvider(provider);
@@ -383,7 +389,7 @@ export async function sendEmail(
   input: SendEmailInput,
   provider = "google_gmail"
 ): Promise<string> {
-  const tokenResult = await getValidAccessToken(userId, provider);
+  const tokenResult = await getValidAccessToken(userId, organizationId, provider);
   if (!tokenResult) throw new Error("Mailbox not connected");
 
   const mailProvider = getProvider(provider);
@@ -402,8 +408,9 @@ export async function sendEmail(
   if (sentMsg) {
     await prisma.email.upsert({
       where: {
-        userId_provider_providerMessageId: {
+        userId_organizationId_provider_providerMessageId: {
           userId,
+          organizationId,
           provider,
           providerMessageId: sentMsg.providerMessageId,
         },
@@ -443,51 +450,66 @@ export async function sendEmail(
 // Actions on individual messages
 export async function markEmailRead(
   userId: string,
+  organizationId: string,
   emailId: string,
   isRead: boolean
 ): Promise<void> {
   const email = await prisma.email.findFirst({
-    where: { id: emailId, userId },
+    where: { id: emailId, userId, organizationId },
   });
   if (!email) return;
 
-  const tokenResult = await getValidAccessToken(userId, email.provider);
+  const tokenResult = await getValidAccessToken(userId, organizationId, email.provider);
   if (!tokenResult) return;
 
   const mailProvider = getProvider(email.provider);
   await mailProvider.markRead(tokenResult.accessToken, email.providerMessageId, isRead);
 
-  await prisma.email.update({ where: { id: emailId }, data: { isRead } });
+  await prisma.email.update({
+    where: { id: emailId, userId, organizationId },
+    data: { isRead },
+  });
 }
 
-export async function archiveEmail(userId: string, emailId: string): Promise<void> {
+export async function archiveEmail(
+  userId: string,
+  organizationId: string,
+  emailId: string,
+): Promise<void> {
   const email = await prisma.email.findFirst({
-    where: { id: emailId, userId },
+    where: { id: emailId, userId, organizationId },
   });
   if (!email) return;
 
-  const tokenResult = await getValidAccessToken(userId, email.provider);
+  const tokenResult = await getValidAccessToken(userId, organizationId, email.provider);
   if (!tokenResult) return;
 
   const mailProvider = getProvider(email.provider);
   await mailProvider.archive(tokenResult.accessToken, email.providerMessageId);
 
-  await prisma.email.update({ where: { id: emailId }, data: { isArchived: true } });
+  await prisma.email.update({
+    where: { id: emailId, userId, organizationId },
+    data: { isArchived: true },
+  });
 }
 
-export async function trashEmail(userId: string, emailId: string): Promise<void> {
+export async function trashEmail(
+  userId: string,
+  organizationId: string,
+  emailId: string,
+): Promise<void> {
   const email = await prisma.email.findFirst({
-    where: { id: emailId, userId },
+    where: { id: emailId, userId, organizationId },
   });
   if (!email) return;
 
-  const tokenResult = await getValidAccessToken(userId, email.provider);
+  const tokenResult = await getValidAccessToken(userId, organizationId, email.provider);
   if (!tokenResult) return;
 
   const mailProvider = getProvider(email.provider);
   await mailProvider.trash(tokenResult.accessToken, email.providerMessageId);
 
-  await prisma.email.delete({ where: { id: emailId } });
+  await prisma.email.delete({ where: { id: emailId, userId, organizationId } });
 }
 
 // CRM linking
@@ -505,7 +527,7 @@ export async function getEmailContacts(
   if (contactIds.length === 0) return [];
 
   return prisma.contact.findMany({
-    where: { id: { in: contactIds } },
+    where: { id: { in: contactIds }, organizationId, deletedAt: null },
     select: { id: true, name: true, email: true },
     orderBy: { name: "asc" },
   });
@@ -514,10 +536,13 @@ export async function getEmailContacts(
 export async function linkEmail(
   emailId: string,
   userId: string,
+  organizationId: string,
   link: { dealId?: string; contactId?: string; companyId?: string }
 ): Promise<void> {
+  await assertCrmLinksBelongToOrganization(organizationId, link);
+
   await prisma.email.updateMany({
-    where: { id: emailId, userId },
+    where: { id: emailId, userId, organizationId },
     data: link,
   });
 }

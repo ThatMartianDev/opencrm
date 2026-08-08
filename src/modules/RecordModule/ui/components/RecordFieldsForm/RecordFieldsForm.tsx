@@ -6,6 +6,7 @@ import type {
 import { getFieldOptions } from "../record-values";
 import Styles from "./RecordFieldsForm.module.css";
 import RelationshipFieldSelect from "../RelationshipFieldSelect/RelationshipFieldSelect";
+import RecordDateField from "../RecordDateField/RecordDateField";
 
 type RecordFieldsFormProps = {
   fields: RecordModuleField[];
@@ -93,6 +94,15 @@ const RecordFieldsForm = ({ fields, values, onChange }: RecordFieldsFormProps) =
                 />
                 Enabled
               </label>
+            ) : field.type === RecordFieldType.DATE ||
+              field.type === RecordFieldType.DATETIME ? (
+              <RecordDateField
+                id={`record-field-${field.key}`}
+                className={Styles.dateField}
+                field={field}
+                value={value}
+                onChange={(nextValue) => onChange(field.key, nextValue)}
+              />
             ) : (
               <input
                 id={`record-field-${field.key}`}
@@ -101,17 +111,13 @@ const RecordFieldsForm = ({ fields, values, onChange }: RecordFieldsFormProps) =
                   field.type === RecordFieldType.CURRENCY ||
                   field.type === RecordFieldType.PERCENT
                     ? "number"
-                    : field.type === RecordFieldType.DATE
-                      ? "date"
-                      : field.type === RecordFieldType.DATETIME
-                        ? "datetime-local"
-                        : field.type === RecordFieldType.EMAIL
-                          ? "email"
-                          : field.type === RecordFieldType.URL
-                            ? "url"
-                            : field.type === RecordFieldType.PHONE
-                              ? "tel"
-                              : "text"
+                    : field.type === RecordFieldType.EMAIL
+                      ? "email"
+                      : field.type === RecordFieldType.URL
+                        ? "url"
+                        : field.type === RecordFieldType.PHONE
+                          ? "tel"
+                          : "text"
                 }
                 value={
                   typeof value === "string" || typeof value === "number"

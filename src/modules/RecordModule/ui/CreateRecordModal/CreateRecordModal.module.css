@@ -1,3 +1,14 @@
+.ownerField {
+  display: grid;
+  gap: 7px;
+}
+
+.ownerField label {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+}
+
 .backdrop {
   position: fixed;
   inset: 0;

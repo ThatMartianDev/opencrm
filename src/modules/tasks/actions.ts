@@ -14,13 +14,6 @@ export const getTasks = async (query?: PaginationInput) => {
     const ctx = createQueryContext(session);
     ctx.assertCan("tasks.read");
 
-    // OWNER, ADMIN, MANAGER see all tasks; MEMBER sees only their own
-    if (ctx.can("tasks.delete.any")) {
-        return TasksService.getAllTasks(
-            session.organizationId,
-            parsePaginationInput(query),
-        );
-    }
     return TasksService.getTasksForMember(
         session.organizationId,
         session.memberId,
@@ -60,7 +53,11 @@ export const getTaskById = async (taskId: string) => {
     const ctx = createQueryContext(session);
     ctx.assertCan("tasks.read");
 
-    return TasksService.getTaskById(taskId, session.organizationId);
+    return TasksService.getTaskById(
+        taskId,
+        session.organizationId,
+        session.memberId,
+    );
 };
 
 export const createTask = async (data: {
@@ -94,13 +91,15 @@ export const createTask = async (data: {
 export const updateTaskStatus = async (taskId: string, status: TaskStatus) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);
-    ctx.assertCan("tasks.update");
+    const canUpdateAny = ctx.can("tasks.update.any");
+    if (!canUpdateAny) ctx.assertCan("tasks.update.own");
 
     return TasksService.updateTaskStatus(
         taskId,
         status,
         session.organizationId,
         session.memberId,
+        canUpdateAny,
     );
 };
 
@@ -117,7 +116,8 @@ export const updateTask = async (
 ) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);
-    ctx.assertCan("tasks.update");
+    const canUpdateAny = ctx.can("tasks.update.any");
+    if (!canUpdateAny) ctx.assertCan("tasks.update.own");
 
     return TasksService.updateTask(
         taskId,
@@ -131,6 +131,7 @@ export const updateTask = async (
         },
         session.organizationId,
         session.memberId,
+        canUpdateAny,
     );
 };
 

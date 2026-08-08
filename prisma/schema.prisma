@@ -34,6 +34,7 @@ model Organization {
   invitations         Invitation[]
   calendarEvents      CalendarEvent[]
   emails              Email[]
+  accounts            Account[]
   notifications       Notification[]
   recordModules       RecordModule[]
   recordItems         RecordItem[]
@@ -62,6 +63,7 @@ model User {
 model Account {
   id                String    @id @default(cuid())
   userId            String
+  organizationId    String?
   provider          String // "google" | "google_calendar"
   providerAccountId String
   accessToken       String?
@@ -72,9 +74,11 @@ model Account {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, provider, providerAccountId])
+  @@unique([userId, organizationId, provider, providerAccountId])
+  @@index([organizationId])
   @@map("accounts")
 }
 
@@ -110,6 +114,7 @@ model Member {
   createdTasks             Task[]             @relation("TaskCreator")
   createdRecordModuleViews RecordModuleView[] @relation("RecordModuleViewCreator")
   createdRecords           RecordItem[]       @relation("RecordItemCreator")
+  ownedRecords             RecordItem[]       @relation("RecordItemOwner")
   notifications            Notification[]
 
   @@unique([userId, organizationId])
@@ -253,6 +258,9 @@ model RecordItem {
   createdById String?
   createdBy   Member? @relation("RecordItemCreator", fields: [createdById], references: [id])
 
+  ownerId String
+  owner   Member @relation("RecordItemOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   archivedAt DateTime?
@@ -260,6 +268,8 @@ model RecordItem {
   @@index([organizationId])
   @@index([moduleId])
   @@index([organizationId, moduleId])
+  @@index([organizationId, ownerId])
+  @@index([moduleId, ownerId])
 }
 
 model RecordFieldValue {
@@ -805,7 +815,7 @@ model CalendarEvent {
   contact      Contact?     @relation("ContactCalendarEvents", fields: [contactId], references: [id], onDelete: SetNull)
   company      Company?     @relation("CompanyCalendarEvents", fields: [companyId], references: [id], onDelete: SetNull)
 
-  @@unique([userId, googleEventId])
+  @@unique([userId, organizationId, googleEventId])
   @@index([organizationId, startTime])
   @@index([organizationId, dealId])
   @@index([organizationId, contactId])
@@ -859,7 +869,7 @@ model Email {
   contact      Contact?     @relation("ContactEmails", fields: [contactId], references: [id], onDelete: SetNull)
   company      Company?     @relation("CompanyEmails", fields: [companyId], references: [id], onDelete: SetNull)
 
-  @@unique([userId, provider, providerMessageId])
+  @@unique([userId, organizationId, provider, providerMessageId])
   @@index([organizationId, sentAt])
   @@index([organizationId, providerThreadId])
   @@index([userId, provider, isArchived, sentAt])

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { exchangeCalendarCodeForTokens, getGoogleUser, refreshAccessToken } from "@/lib/auth/google";
+import { exchangeCalendarCodeForTokens } from "@/lib/auth/google";
 import { getSessionClaims } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/client";
 
@@ -46,6 +46,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", baseUrl));
   }
 
+  if (!organizationId || organizationId !== session.organizationId) {
+    return NextResponse.redirect(
+      new URL(`/app/${session.organizationId}/calendar?error=calendar_workspace_mismatch`, baseUrl)
+    );
+  }
+
   try {
     // Exchange code for tokens
     const tokens = await exchangeCalendarCodeForTokens(code);
@@ -69,8 +75,9 @@ export async function GET(request: NextRequest) {
     // Upsert the google_calendar account row
     await prisma.account.upsert({
       where: {
-        userId_provider_providerAccountId: {
+        userId_organizationId_provider_providerAccountId: {
           userId: session.userId,
+          organizationId,
           provider: "google_calendar",
           providerAccountId,
         },
@@ -83,6 +90,7 @@ export async function GET(request: NextRequest) {
       },
       create: {
         userId: session.userId,
+        organizationId,
         provider: "google_calendar",
         providerAccountId,
         accessToken: tokens.access_token,

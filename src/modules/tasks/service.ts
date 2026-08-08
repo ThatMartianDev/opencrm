@@ -2,6 +2,10 @@ import { Prisma } from "@/generated/prisma/client";
 import { ActivityType, ModuleFeature, TaskStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db/client";
 import {
+    assertCrmLinksBelongToOrganization,
+    assertMemberBelongsToOrganization,
+} from "@/lib/dal/crm-links";
+import {
     createPaginatedResult,
     type PaginationQuery,
 } from "@/lib/pagination";
@@ -64,6 +68,15 @@ const getTasksPage = async (
     return createPaginatedResult(rows, pagination);
 };
 
+const linkedTaskWhere: Prisma.TaskWhereInput = {
+    OR: [
+        { recordId: { not: null } },
+        { dealId: { not: null } },
+        { contactId: { not: null } },
+        { companyId: { not: null } },
+    ],
+};
+
 export const TasksService = {
     async getAllTasks(organizationId: string, pagination: PaginationQuery) {
         return getTasksPage({ organizationId, deletedAt: null }, pagination);
@@ -75,7 +88,14 @@ export const TasksService = {
         pagination: PaginationQuery,
     ) {
         return getTasksPage(
-            { organizationId, assignedToId: memberId, deletedAt: null },
+            {
+                organizationId,
+                deletedAt: null,
+                OR: [
+                    { createdById: memberId },
+                    { assignedToId: memberId },
+                ],
+            },
             pagination,
         );
     },
@@ -116,9 +136,22 @@ export const TasksService = {
         );
     },
 
-    async getTaskById(taskId: string, organizationId: string) {
+    async getTaskById(
+        taskId: string,
+        organizationId: string,
+        memberId: string,
+    ) {
         return prisma.task.findFirst({
-            where: { id: taskId, organizationId, deletedAt: null },
+            where: {
+                id: taskId,
+                organizationId,
+                deletedAt: null,
+                OR: [
+                    { createdById: memberId },
+                    { assignedToId: memberId },
+                    linkedTaskWhere,
+                ],
+            },
             include: taskInclude,
         });
     },
@@ -136,6 +169,14 @@ export const TasksService = {
         },
         memberId?: string,
     ) {
+        await Promise.all([
+            assertCrmLinksBelongToOrganization(data.organizationId, data),
+            assertMemberBelongsToOrganization(
+                data.organizationId,
+                data.assignedToId,
+            ),
+        ]);
+
         if (data.recordId) {
             await assertRecordTasksEnabled(data.recordId, data.organizationId);
         }
@@ -190,9 +231,24 @@ export const TasksService = {
         status: TaskStatus,
         organizationId: string,
         memberId: string,
+        canUpdateAny: boolean,
     ) {
-        const task = await prisma.task.findFirst({ where: { id: taskId, organizationId, deletedAt: null } });
-        if (!task) throw new Error("Task not found");
+        const task = await prisma.task.findFirst({
+            where: {
+                id: taskId,
+                organizationId,
+                deletedAt: null,
+                ...(canUpdateAny
+                    ? {}
+                    : {
+                          OR: [
+                              { createdById: memberId },
+                              { assignedToId: memberId },
+                          ],
+                      }),
+            },
+        });
+        if (!task) throw new Error("Task not found or you do not own it");
         const oldStatus = task.status;
 
         const updated = await prisma.task.update({
@@ -249,9 +305,24 @@ export const TasksService = {
         },
         organizationId: string,
         memberId: string,
+        canUpdateAny: boolean,
     ) {
-        const task = await prisma.task.findFirst({ where: { id: taskId, organizationId, deletedAt: null } });
-        if (!task) throw new Error("Task not found");
+        const task = await prisma.task.findFirst({
+            where: {
+                id: taskId,
+                organizationId,
+                deletedAt: null,
+                ...(canUpdateAny ? {} : { createdById: memberId }),
+            },
+        });
+        if (!task) throw new Error("Task not found or you do not own it");
+        await Promise.all([
+            assertCrmLinksBelongToOrganization(organizationId, data),
+            assertMemberBelongsToOrganization(
+                organizationId,
+                data.assignedToId,
+            ),
+        ]);
         if (data.recordId) {
             await assertRecordTasksEnabled(data.recordId, organizationId);
         }

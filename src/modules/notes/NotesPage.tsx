@@ -7,6 +7,7 @@ import Styles from "./NotesPage.module.css";
 import { useModal } from "@/components/macro/ModalProvider/ModalProvider";
 import { useEffect, useState } from "react";
 import type { getNotes } from "./actions";
+import { useWorkspaceData } from "@/modules/workspace/components/workspace-provider";
 
 type NotesPageProps = {
     initialPage: Awaited<ReturnType<typeof getNotes>>;
@@ -14,7 +15,9 @@ type NotesPageProps = {
 
 const NotesPage = ({ initialPage }: NotesPageProps) => {
     const { openModal } = useModal();
+    const { member } = useWorkspaceData();
     const [refreshVersion, setRefreshVersion] = useState(0);
+    const authorizationKey = `${member.id}:${member.role}:${member.permissions.join(",")}`;
 
     function handleCreateNote() {
         openModal("note", {}, () => setRefreshVersion((current) => current + 1));
@@ -41,7 +44,7 @@ const NotesPage = ({ initialPage }: NotesPageProps) => {
                 mainButton={{ text: "New Note", onClick: handleCreateNote }}
             />
             <NoteList
-                key={refreshVersion}
+                key={`${authorizationKey}:${refreshVersion}`}
                 showHeader={false}
                 initialPage={refreshVersion === 0 ? initialPage : undefined}
             />

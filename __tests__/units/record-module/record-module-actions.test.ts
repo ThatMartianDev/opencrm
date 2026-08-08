@@ -11,6 +11,7 @@ import {
   createRecordModule,
   getRecordModuleBuilder,
   getRecordModulePage,
+  getRecordModuleRecord,
   updateRecordModule,
   updateModuleRecord,
 } from "@/modules/RecordModule/actions";
@@ -31,6 +32,7 @@ jest.mock("@/modules/RecordModule/service", () => ({
     createRecordModule: jest.fn(),
     getModuleBuilderData: jest.fn(),
     getModulePageData: jest.fn(),
+    getRecord: jest.fn(),
     updateRecord: jest.fn(),
     updateRecordModule: jest.fn(),
   },
@@ -40,6 +42,7 @@ const mockGetSessionClaims = jest.mocked(getSessionClaims);
 const mockCreateQueryContext = jest.mocked(createQueryContext);
 const mockService = jest.mocked(RecordModuleService);
 const assertCan = jest.fn();
+const can = jest.fn();
 
 const session = {
   organizationId: "org_1",
@@ -141,10 +144,12 @@ describe("RecordModule actions", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     assertCan.mockReset();
+    can.mockReset();
+    can.mockImplementation((permission: string) => permission.endsWith(".any"));
     mockGetSessionClaims.mockResolvedValue(session as never);
     mockCreateQueryContext.mockReturnValue({
       assertCan,
-      can: jest.fn(),
+      can,
       orgId: session.organizationId,
       memberId: session.memberId,
       role: session.role,
@@ -181,6 +186,34 @@ describe("RecordModule actions", () => {
     );
   });
 
+  test("allows members with update-own to reassign a record they own", async () => {
+    can.mockImplementation((permission: string) => permission === "records.update.own");
+    mockService.getRecord.mockResolvedValue({
+      id: "record_1",
+      ownerId: "member_1",
+    } as never);
+
+    await expect(
+      getRecordModuleRecord("projects", "record_1"),
+    ).resolves.toEqual(
+      expect.objectContaining({ canTransferOwnership: true }),
+    );
+  });
+
+  test("keeps another member's record assignment read-only without update-any", async () => {
+    can.mockImplementation((permission: string) => permission === "records.update.own");
+    mockService.getRecord.mockResolvedValue({
+      id: "record_1",
+      ownerId: "member_2",
+    } as never);
+
+    await expect(
+      getRecordModuleRecord("projects", "record_1"),
+    ).resolves.toEqual(
+      expect.objectContaining({ canTransferOwnership: false }),
+    );
+  });
+
   test("applies defaults and validated values when creating a record", async () => {
     mockService.createRecord.mockResolvedValue({ id: "record_1" } as never);
 
@@ -193,6 +226,7 @@ describe("RecordModule actions", () => {
       organizationId: "org_1",
       moduleId: "module_1",
       createdById: "member_1",
+      ownerId: "member_1",
       displayName: "Project Apollo",
       values: [
         { fieldId: "field_title", value: "Project Apollo" },
@@ -201,6 +235,19 @@ describe("RecordModule actions", () => {
       ],
       relationships: [],
     });
+  });
+
+  test("creates a record for the selected workspace member", async () => {
+    mockService.createRecord.mockResolvedValue({ id: "record_1" } as never);
+
+    await expect(
+      createModuleRecord("projects", { title: "Apollo" }, "member_2"),
+    ).resolves.toEqual({ success: true, recordId: "record_1" });
+
+    expect(can).toHaveBeenCalledWith("records.update.any");
+    expect(mockService.createRecord).toHaveBeenCalledWith(
+      expect.objectContaining({ ownerId: "member_2" }),
+    );
   });
 
   test("parses relationship fields into record links instead of JSON values", async () => {
@@ -218,6 +265,7 @@ describe("RecordModule actions", () => {
       organizationId: "org_1",
       moduleId: "module_1",
       createdById: "member_1",
+      ownerId: "member_1",
       displayName: "Apollo",
       values: [{ fieldId: "field_title", value: "Apollo" }],
       relationships: [
@@ -261,7 +309,7 @@ describe("RecordModule actions", () => {
 
     await updateModuleRecord("projects", "record_1", { title: "Apollo" });
 
-    expect(assertCan).toHaveBeenCalledWith("records.update");
+    expect(can).toHaveBeenCalledWith("records.update.any");
     expect(mockService.updateRecord).toHaveBeenCalledWith({
       organizationId: "org_1",
       moduleId: "module_1",
@@ -269,6 +317,8 @@ describe("RecordModule actions", () => {
       displayName: "Apollo",
       values: [{ fieldId: "field_title", value: "Apollo" }],
       relationships: [],
+      memberId: "member_1",
+      canUpdateAny: true,
     });
   });
 

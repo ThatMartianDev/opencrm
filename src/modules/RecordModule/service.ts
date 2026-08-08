@@ -352,6 +352,18 @@ const RecordModuleService = {
                       where: { id: { in: ids } },
                       include: {
                           values: true,
+                          owner: {
+                              select: {
+                                  id: true,
+                                  user: {
+                                      select: {
+                                          name: true,
+                                          email: true,
+                                          avatarUrl: true,
+                                      },
+                                  },
+                              },
+                          },
                           outgoingRelationships: {
                               include: {
                                   targetRecord: {
@@ -428,6 +440,8 @@ const RecordModuleService = {
                                         key: true,
                                         name: true,
                                         pluralName: true,
+                                        icon: true,
+                                        accentColor: true,
                                     },
                                 },
                             },
@@ -455,6 +469,18 @@ const RecordModuleService = {
                         },
                     },
                 },
+                owner: {
+                    select: {
+                        id: true,
+                        user: {
+                            select: {
+                                name: true,
+                                email: true,
+                                avatarUrl: true,
+                            },
+                        },
+                    },
+                },
             },
         });
     },
@@ -463,6 +489,7 @@ const RecordModuleService = {
         organizationId: string;
         moduleId: string;
         createdById: string;
+        ownerId?: string;
         displayName: string;
         values: RecordValueInput[];
         relationships?: RecordRelationshipInput[];
@@ -470,11 +497,19 @@ const RecordModuleService = {
         return prisma.$transaction(async (transaction) => {
             const relationships = input.relationships ?? [];
             await validateRelationships(transaction, { ...input, relationships });
+            const ownerId = input.ownerId ?? input.createdById;
+            const owner = await transaction.member.findFirst({
+                where: { id: ownerId, organizationId: input.organizationId },
+                select: { id: true },
+            });
+            if (!owner) return null;
+
             const record = await transaction.recordItem.create({
                 data: {
                     organizationId: input.organizationId,
                     moduleId: input.moduleId,
                     createdById: input.createdById,
+                    ownerId,
                     displayName: input.displayName,
                     values: { create: input.values },
                 },
@@ -501,6 +536,8 @@ const RecordModuleService = {
         displayName: string;
         values: RecordValueInput[];
         relationships?: RecordRelationshipInput[];
+        memberId: string;
+        canUpdateAny: boolean;
     }) {
         return prisma.$transaction(async (transaction) => {
             const record = await transaction.recordItem.findFirst({
@@ -509,6 +546,7 @@ const RecordModuleService = {
                     moduleId: input.moduleId,
                     organizationId: input.organizationId,
                     archivedAt: null,
+                    ...(input.canUpdateAny ? {} : { ownerId: input.memberId }),
                 },
                 select: { id: true },
             });
@@ -549,6 +587,54 @@ const RecordModuleService = {
                 include: { values: true },
             });
         });
+    },
+
+    async archiveRecord(input: {
+        organizationId: string;
+        recordId: string;
+        memberId: string;
+        canDeleteAny: boolean;
+    }) {
+        const result = await prisma.recordItem.updateMany({
+            where: {
+                id: input.recordId,
+                organizationId: input.organizationId,
+                archivedAt: null,
+                ...(input.canDeleteAny ? {} : { ownerId: input.memberId }),
+            },
+            data: { archivedAt: new Date() },
+        });
+
+        return result.count > 0;
+    },
+
+    async transferRecordOwnership(input: {
+        organizationId: string;
+        recordId: string;
+        ownerId: string;
+        memberId: string;
+        canUpdateAny: boolean;
+    }) {
+        const owner = await prisma.member.findFirst({
+            where: {
+                id: input.ownerId,
+                organizationId: input.organizationId,
+            },
+            select: { id: true },
+        });
+        if (!owner) return false;
+
+        const result = await prisma.recordItem.updateMany({
+            where: {
+                id: input.recordId,
+                organizationId: input.organizationId,
+                archivedAt: null,
+                ...(input.canUpdateAny ? {} : { ownerId: input.memberId }),
+            },
+            data: { ownerId: input.ownerId },
+        });
+
+        return result.count > 0;
     },
 
     async updateListViewColumns(input: {

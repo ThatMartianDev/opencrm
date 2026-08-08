@@ -38,6 +38,7 @@ import Styles from "./TaskModal.module.css";
 import MainButton from "@/components/micro/MainButton/MainButton";
 
 import DateTimePicker from "@/components/macro/DateTimePicker";
+import AvatarFallback from "@/components/micro/AvatarFallback/AvatarFallback";
 
 type TaskModalProps = {
   onClose: () => void;
@@ -71,11 +72,16 @@ const TaskModal = ({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TaskStatus>(TaskStatus.TODO);
-  const [initialStatus, setInitialStatus] = useState<TaskStatus>(TaskStatus.TODO);
-  const [dueDate, setDueDate] = useState(() => id ? "" : getTodayValue());
-  const [assignedToId, setAssignedToId] = useState(() => id ? "" : member.id);
-  const [assignedToName, setAssignedToName] = useState(() => id ? "" : user.name);
-  const [linkedRecord, setLinkedRecord] = useState<RecordBrowserSelection | null>(null);
+  const [initialStatus, setInitialStatus] = useState<TaskStatus>(
+    TaskStatus.TODO,
+  );
+  const [dueDate, setDueDate] = useState(() => (id ? "" : getTodayValue()));
+  const [assignedToId, setAssignedToId] = useState(() => (id ? "" : member.id));
+  const [assignedToName, setAssignedToName] = useState(() =>
+    id ? "" : user.name,
+  );
+  const [linkedRecord, setLinkedRecord] =
+    useState<RecordBrowserSelection | null>(null);
   const [showRecordBrowser, setShowRecordBrowser] = useState(false);
   const [loading, setLoading] = useState(Boolean(id || recordId));
 
@@ -225,7 +231,9 @@ const TaskModal = ({
     }
   }
 
-  const activeStatus = STATUS_OPTIONS.find((option) => option.value === status)!;
+  const activeStatus = STATUS_OPTIONS.find(
+    (option) => option.value === status,
+  )!;
 
   if (loading) return null;
 
@@ -324,7 +332,9 @@ const TaskModal = ({
               aria-haspopup="menu"
               aria-expanded={showStatusMenu}
             >
-              <span className={`${Styles.statusDot} ${Styles[activeStatus.tone]}`} />
+              <span
+                className={`${Styles.statusDot} ${Styles[activeStatus.tone]}`}
+              />
               {activeStatus.label}
               <ChevronDownRegular fontSize={15} />
             </button>
@@ -333,16 +343,22 @@ const TaskModal = ({
                 {STATUS_OPTIONS.map((option) => (
                   <button
                     key={option.value}
-                    className={status === option.value ? Styles.selectedStatus : ""}
+                    className={
+                      status === option.value ? Styles.selectedStatus : ""
+                    }
                     onClick={() => {
                       setStatus(option.value);
                       setShowStatusMenu(false);
                     }}
                     role="menuitem"
                   >
-                    <span className={`${Styles.statusDot} ${Styles[option.tone]}`} />
+                    <span
+                      className={`${Styles.statusDot} ${Styles[option.tone]}`}
+                    />
                     {option.label}
-                    {status === option.value && <CheckmarkCircleFilled fontSize={16} />}
+                    {status === option.value && (
+                      <CheckmarkCircleFilled fontSize={16} />
+                    )}
                   </button>
                 ))}
               </div>
@@ -367,7 +383,17 @@ const TaskModal = ({
             className={`${Styles.metaChip} ${assignedToId ? Styles.active : ""}`}
             onClick={(e) => picker.open(e.currentTarget)}
           >
-            <PersonRegular fontSize={18} />
+            {assignedToName ? (
+              <AvatarFallback
+                entityKind="customer"
+                entityId={assignedToId}
+                name={assignedToName}
+                size={24}
+                style={{ borderRadius: "6px" }}
+              />
+            ) : (
+              <PersonRegular fontSize={18} />
+            )}
             {assignedToName || "Assign to"}
           </button>
 
@@ -379,7 +405,10 @@ const TaskModal = ({
               >
                 <span
                   className={Styles.moduleIcon}
-                  style={{ backgroundColor: linkedRecord.module.accentColor || "#5670ff" }}
+                  style={{
+                    backgroundColor:
+                      linkedRecord.module.accentColor || "#5670ff",
+                  }}
                 >
                   <ModuleIcon name={linkedRecord.module.icon} size={13} />
                 </span>

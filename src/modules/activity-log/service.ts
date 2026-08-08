@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db/client";
 import { ActivityOutcome, ActivityType, Prisma } from "@/generated/prisma/client";
 import { EntityRef } from "./types";
+import { assertCrmLinksBelongToOrganization } from "@/lib/dal/crm-links";
 
 function entityToField(ref: EntityRef) {
     switch (ref.entityType) {
@@ -10,8 +11,22 @@ function entityToField(ref: EntityRef) {
     }
 }
 
+function entityToLinks(ref: EntityRef) {
+    switch (ref.entityType) {
+        case "deal": return { dealId: ref.entityId };
+        case "contact": return { contactId: ref.entityId };
+        case "company": return { companyId: ref.entityId };
+    }
+}
+
 export const ActivityLogService = {
     async getActivities(ref: EntityRef, organizationId: string) {
+        await assertCrmLinksBelongToOrganization(
+            organizationId,
+            entityToLinks(ref),
+            { includeDeleted: true },
+        );
+
         return prisma.activity.findMany({
             where: { ...entityToField(ref), organizationId },
             include: {
@@ -33,6 +48,12 @@ export const ActivityLogService = {
         description?: string;
         metadata?: Record<string, unknown>;
     }) {
+        await assertCrmLinksBelongToOrganization(
+            data.organizationId,
+            entityToLinks(data.entity),
+            { includeDeleted: true },
+        );
+
         return prisma.activity.create({
             data: {
                 organizationId: data.organizationId,
