@@ -145,6 +145,45 @@ export const NotificationsService = {
     });
   },
 
+  async notifyRecordAssignment(params: {
+    organizationId: string;
+    moduleKey: string;
+    recordId: string;
+    recordName: string;
+    assignedToId: string;
+    actorMemberId?: string | null;
+  }) {
+    if (params.actorMemberId === params.assignedToId) {
+      return;
+    }
+
+    const assignee = await prisma.member.findFirst({
+      where: {
+        id: params.assignedToId,
+        organizationId: params.organizationId,
+      },
+      include: { user: true },
+    });
+    if (!assignee) {
+      return;
+    }
+
+    await ensureDeliveryQueue();
+
+    await notificationDelivery.notify({
+      member: assignee,
+      type: "record_assigned",
+      title: `Record assigned to you: ${params.recordName}`,
+      body: "You are now the owner of this record.",
+      link: `/app/${params.organizationId}/${params.moduleKey}/${params.recordId}`,
+      data: {
+        recordId: params.recordId,
+        moduleKey: params.moduleKey,
+      },
+      channels: ["in_app", "email"],
+    });
+  },
+
   async notifyTaskAssignment(params: {
     organizationId: string;
     taskId: string;

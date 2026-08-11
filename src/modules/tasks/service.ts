@@ -11,6 +11,7 @@ import {
 } from "@/lib/pagination";
 import { NotificationsService } from "@/modules/notifications/service";
 import { ActivityLogService } from "@/modules/activity-log/service";
+import { RecordActivityService } from "@/modules/RecordModule/service/record-activity.service";
 
 const taskInclude = {
     assignedTo: {
@@ -205,6 +206,14 @@ export const TasksService = {
                 title: `Task created: ${data.name}`,
             });
         }
+        if (memberId && task.recordId) {
+            await RecordActivityService.taskCreated({
+                organizationId: data.organizationId,
+                memberId,
+                recordId: task.recordId,
+                taskName: task.name,
+            });
+        }
 
         try {
             await NotificationsService.notifyTaskAssignment({
@@ -268,6 +277,16 @@ export const TasksService = {
                 activityType: ActivityType.STATUS_CHANGE,
                 title: `Task status changed`,
                 metadata: { field: "status", from: oldStatus, to: status },
+            });
+        }
+        if (updated.recordId && oldStatus !== status) {
+            await RecordActivityService.taskStatusChanged({
+                organizationId,
+                memberId,
+                recordId: updated.recordId,
+                taskName: updated.name,
+                previousStatus: oldStatus,
+                nextStatus: status,
             });
         }
 
@@ -342,6 +361,14 @@ export const TasksService = {
                 title: `Task updated: ${updated.name}`,
             });
         }
+        if (updated.recordId) {
+            await RecordActivityService.taskUpdated({
+                organizationId,
+                memberId,
+                recordId: updated.recordId,
+                taskName: updated.name,
+            });
+        }
 
         const assigneeChanged =
             data.assignedToId !== undefined && data.assignedToId !== task.assignedToId;
@@ -397,7 +424,7 @@ export const TasksService = {
 
         const task = await prisma.task.findFirst({
             where: { id: data.taskId },
-            select: { dealId: true, name: true },
+            select: { dealId: true, recordId: true, name: true },
         });
 
         if (task?.dealId) {
@@ -407,6 +434,14 @@ export const TasksService = {
                 entity: { entityType: "deal", entityId: task.dealId },
                 activityType: ActivityType.STATUS_CHANGE,
                 title: `Task deleted: ${task.name}`,
+            });
+        }
+        if (task?.recordId) {
+            await RecordActivityService.taskDeleted({
+                organizationId: data.organizationId,
+                memberId: data.memberId,
+                recordId: task.recordId,
+                taskName: task.name,
             });
         }
 

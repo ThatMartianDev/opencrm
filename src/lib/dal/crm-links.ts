@@ -6,6 +6,7 @@ export type CrmEntityLinks = {
   dealId?: string | null;
   contactId?: string | null;
   companyId?: string | null;
+  recordId?: string | null;
 };
 
 export async function assertCrmLinksBelongToOrganization(
@@ -30,6 +31,16 @@ export async function assertCrmLinksBelongToOrganization(
     links.companyId
       ? prisma.company.findFirst({
           where: { id: links.companyId, organizationId, ...activeFilter },
+          select: { id: true },
+        })
+      : null,
+    links.recordId
+      ? prisma.recordItem.findFirst({
+          where: {
+            id: links.recordId,
+            organizationId,
+            ...(options.includeDeleted ? {} : { archivedAt: null }),
+          },
           select: { id: true },
         })
       : null,

@@ -6,12 +6,14 @@ jest.mock("@/lib/db/client", () => ({
     deal: { findFirst: jest.fn() },
     contact: { findFirst: jest.fn() },
     company: { findFirst: jest.fn() },
+    recordItem: { findFirst: jest.fn() },
   },
 }));
 
 const mockDeal = jest.mocked(prisma.deal);
 const mockContact = jest.mocked(prisma.contact);
 const mockCompany = jest.mocked(prisma.company);
+const mockRecord = jest.mocked(prisma.recordItem);
 
 describe("assertCrmLinksBelongToOrganization", () => {
   beforeEach(() => {
@@ -64,6 +66,38 @@ describe("assertCrmLinksBelongToOrganization", () => {
 
     expect(mockDeal.findFirst).toHaveBeenCalledWith({
       where: { id: "deal_1", organizationId: "org_1" },
+      select: { id: true },
+    });
+  });
+
+  test("scopes active RecordModule targets to the organization", async () => {
+    mockRecord.findFirst.mockResolvedValue({ id: "record_1" } as never);
+
+    await assertCrmLinksBelongToOrganization("org_1", {
+      recordId: "record_1",
+    });
+
+    expect(mockRecord.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "record_1",
+        organizationId: "org_1",
+        archivedAt: null,
+      },
+      select: { id: true },
+    });
+  });
+
+  test("can include archived RecordModule targets in activity history", async () => {
+    mockRecord.findFirst.mockResolvedValue({ id: "record_1" } as never);
+
+    await assertCrmLinksBelongToOrganization(
+      "org_1",
+      { recordId: "record_1" },
+      { includeDeleted: true },
+    );
+
+    expect(mockRecord.findFirst).toHaveBeenCalledWith({
+      where: { id: "record_1", organizationId: "org_1" },
       select: { id: true },
     });
   });

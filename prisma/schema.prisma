@@ -254,6 +254,7 @@ model RecordItem {
   notes Note[]
   tasks Task[]
   files File[]
+  activities Activity[]
 
   createdById String?
   createdBy   Member? @relation("RecordItemCreator", fields: [createdById], references: [id])
@@ -581,6 +582,9 @@ model Activity {
   companyId String?
   company   Company? @relation("CompanyActivities", fields: [companyId], references: [id], onDelete: Cascade)
 
+  recordId String?
+  record   RecordItem? @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
 
   @@index([organizationId])
@@ -588,6 +592,7 @@ model Activity {
   @@index([dealId])
   @@index([contactId])
   @@index([companyId])
+  @@index([recordId])
   @@index([activityType])
   @@index([channel])
   @@index([outcome])

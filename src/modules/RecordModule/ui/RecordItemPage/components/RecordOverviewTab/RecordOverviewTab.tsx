@@ -37,7 +37,7 @@ type RecordOverviewTabProps = {
   savingFieldKey: string | null;
   savingOwner: boolean;
   onSave: (field: RecordModuleField, value: unknown) => Promise<boolean>;
-  onOwnerChange: (ownerId: string, ownerName: string) => Promise<void>;
+  onOwnerChange: (ownerId: string, ownerName: string) => Promise<boolean>;
 };
 
 type IncomingRelationship =
@@ -81,6 +81,7 @@ const RecordOverviewTab = ({
   const [collapsedLinkedModuleIds, setCollapsedLinkedModuleIds] = useState(
     () => new Set<string>(),
   );
+  const [activityRefreshKey, setActivityRefreshKey] = useState(0);
   const cancelEditRef = useRef(false);
 
   const startEditing = (field: RecordModuleField) => {
@@ -107,7 +108,15 @@ const RecordOverviewTab = ({
 
   const commitValue = async (field: RecordModuleField, value: unknown) => {
     const saved = await onSave(field, value);
-    if (saved) stopEditing();
+    if (saved) {
+      stopEditing();
+      setActivityRefreshKey((key) => key + 1);
+    }
+  };
+
+  const commitOwner = async (ownerId: string, ownerName: string) => {
+    const saved = await onOwnerChange(ownerId, ownerName);
+    if (saved) setActivityRefreshKey((key) => key + 1);
   };
 
   const commitDraft = async () => {
@@ -394,7 +403,7 @@ const RecordOverviewTab = ({
               }}
               onChange={
                 record.canTransferOwnership
-                  ? (owner) => void onOwnerChange(owner.id, owner.name || owner.email)
+                  ? (owner) => void commitOwner(owner.id, owner.name || owner.email)
                   : undefined
               }
               disabled={savingOwner || Boolean(savingFieldKey)}
@@ -491,7 +500,10 @@ const RecordOverviewTab = ({
         )}
       </section>
 
-      <RecordActivityLog />
+      <RecordActivityLog
+        recordId={record.id}
+        refreshKey={activityRefreshKey}
+      />
 
       {selectField && optionPicker.isOpen && optionPicker.triggerRect && (
         <OptionPicker

@@ -4,6 +4,7 @@ import { ModuleFeature } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db/client";
 import { assertCrmLinksBelongToOrganization } from "@/lib/dal/crm-links";
 import { getSupabaseAdmin, STORAGE_BUCKET } from "@/lib/supabase/client";
+import { RecordActivityService } from "@/modules/RecordModule/service/record-activity.service";
 import type { CreateFolderInput, CreateExternalFileInput, EntityScope } from "./types";
 
 const assertRecordFilesEnabled = async (
@@ -177,7 +178,7 @@ export const FilesService = {
     }
 
     // Create DB record
-    return prisma.file.create({
+    const uploadedFile = await prisma.file.create({
       data: {
         organizationId,
         name: file.name,
@@ -194,6 +195,15 @@ export const FilesService = {
         uploadedById: memberId,
       },
     });
+    if (uploadedFile.recordId) {
+      await RecordActivityService.fileAdded({
+        organizationId,
+        memberId,
+        recordId: uploadedFile.recordId,
+        fileName: uploadedFile.name,
+      });
+    }
+    return uploadedFile;
   },
 
   /**
@@ -207,7 +217,7 @@ export const FilesService = {
     await assertFileScope(organizationId, input);
     await assertParentFolderMatchesScope(organizationId, input.parentId, input);
 
-    return prisma.file.create({
+    const externalFile = await prisma.file.create({
       data: {
         organizationId,
         name: input.name,
@@ -225,6 +235,15 @@ export const FilesService = {
         uploadedById: memberId,
       },
     });
+    if (externalFile.recordId) {
+      await RecordActivityService.fileAdded({
+        organizationId,
+        memberId,
+        recordId: externalFile.recordId,
+        fileName: externalFile.name,
+      });
+    }
+    return externalFile;
   },
 
   /**
@@ -326,7 +345,16 @@ export const FilesService = {
     }
 
     // Delete the DB record
-    return prisma.file.delete({ where: { id: data.fileId } });
+    const deletedFile = await prisma.file.delete({ where: { id: data.fileId } });
+    if (deletedFile.type === "FILE" && deletedFile.recordId) {
+      await RecordActivityService.fileDeleted({
+        organizationId: data.organizationId,
+        memberId: data.memberId,
+        recordId: deletedFile.recordId,
+        fileName: deletedFile.name,
+      });
+    }
+    return deletedFile;
   },
 
   /**

@@ -108,7 +108,7 @@ const RecordItemPage = ({
   };
 
   const handleOwnerChange = async (ownerId: string, ownerName: string) => {
-    if (!record || ownerId === record.ownerId) return;
+    if (!record || ownerId === record.ownerId) return false;
     setSavingOwner(true);
 
     const t = toast.loading("Reassigning record...");
@@ -119,18 +119,20 @@ const RecordItemPage = ({
           title: "Assignment not changed",
           description: result.error,
         });
-        return;
+        return false;
       }
 
       const refreshedRecord = await getRecordModuleRecord(moduleKey, record.id);
       if (refreshedRecord) setRecord(refreshedRecord);
       t.success({ title: "Record reassigned", description: `"${record.displayName}" has been reassigned to ${ownerName}`, duration: 3000 });
+      return true;
     } catch (error) {
       t.error({
         title: "Assignment not changed",
         description:
           error instanceof Error ? error.message : "Something went wrong.",
       });
+      return false;
     } finally {
       setSavingOwner(false);
     }

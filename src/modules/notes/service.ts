@@ -6,6 +6,7 @@ import {
   createPaginatedResult,
   type PaginationQuery,
 } from "@/lib/pagination";
+import { RecordActivityService } from "@/modules/RecordModule/service/record-activity.service";
 
 const noteInclude = {
   createdBy: {
@@ -156,7 +157,7 @@ export const NotesService = {
       await assertRecordNotesEnabled(data.recordId, data.organizationId);
     }
 
-    return prisma.note.create({
+    const note = await prisma.note.create({
       data: {
         title: data.title || "",
         content: data.content,
@@ -168,6 +169,15 @@ export const NotesService = {
         createdById: data.createdById,
       },
     });
+    if (note.recordId) {
+      await RecordActivityService.noteCreated({
+        organizationId: data.organizationId,
+        memberId: data.createdById,
+        recordId: note.recordId,
+        noteTitle: note.title,
+      });
+    }
+    return note;
   },
 
   async updateNote(
@@ -207,7 +217,16 @@ export const NotesService = {
     });
 
     if (result.count === 0) throw new Error("Note not found");
-    return prisma.note.findUnique({ where: { id: noteId } });
+    const note = await prisma.note.findUnique({ where: { id: noteId } });
+    if (note?.recordId) {
+      await RecordActivityService.noteUpdated({
+        organizationId: data.organizationId,
+        memberId: data.memberId,
+        recordId: note.recordId,
+        noteTitle: note.title,
+      });
+    }
+    return note;
   },
 
   async deleteNote(data: {
@@ -216,6 +235,14 @@ export const NotesService = {
     memberId: string;
     canDeleteAny: boolean;
   }) {
+    const note = await prisma.note.findFirst({
+      where: {
+        id: data.noteId,
+        organizationId: data.organizationId,
+      },
+      select: { id: true, recordId: true, title: true },
+    });
+
     const result = await prisma.note.deleteMany({
       where: {
         id: data.noteId,
@@ -225,18 +252,18 @@ export const NotesService = {
     });
 
     if (result.count > 0) {
+      if (note?.recordId) {
+        await RecordActivityService.noteDeleted({
+          organizationId: data.organizationId,
+          memberId: data.memberId,
+          recordId: note.recordId,
+          noteTitle: note.title,
+        });
+      }
       return { success: true };
     }
 
-    const noteExists = await prisma.note.findFirst({
-      where: {
-        id: data.noteId,
-        organizationId: data.organizationId,
-      },
-      select: { id: true },
-    });
-
-    if (noteExists) {
+    if (note) {
       throw new Error("You can only delete notes you created.");
     }
 

@@ -4,11 +4,13 @@ import {
     type ModuleFeature,
 } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db/client";
+import { NotificationsService } from "@/modules/notifications/service";
 import type {
     RecordPageQuery,
     RecordRelationshipInput,
     RecordValueInput,
 } from "./types";
+import { RecordActivityService } from "./record-activity.service";
 
 const validateRelationships = async (
     transaction: Prisma.TransactionClient,
@@ -18,7 +20,11 @@ const validateRelationships = async (
         relationships: RecordRelationshipInput[];
     },
 ) => {
-    if (input.relationships.length === 0) return;
+    if (input.relationships.length === 0) return new Map<string, {
+        id: string;
+        moduleId: string;
+        displayName: string;
+    }>();
 
     const fieldIds = input.relationships.map((relationship) => relationship.fieldId);
     if (new Set(fieldIds).size !== fieldIds.length) {
@@ -51,7 +57,7 @@ const validateRelationships = async (
             archivedAt: null,
             module: { archivedAt: null },
         },
-        select: { id: true, moduleId: true },
+        select: { id: true, moduleId: true, displayName: true },
     });
     const targetsById = new Map(targets.map((target) => [target.id, target]));
     const fieldsById = new Map(fields.map((field) => [field.id, field]));
@@ -67,6 +73,40 @@ const validateRelationships = async (
             throw new Error("A relationship target is invalid.");
         }
     }
+
+    return targetsById;
+};
+
+const valuesEqual = (left: unknown, right: unknown) =>
+    JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
+
+const getConfiguredOptions = (config: Prisma.JsonValue | null) => {
+    if (!config || typeof config !== "object" || Array.isArray(config)) return [];
+    const options = (config as { options?: unknown }).options;
+    if (!Array.isArray(options)) return [];
+    return options.filter((option): option is { label: string; value: string } =>
+        typeof option === "object" && option !== null &&
+        typeof (option as { label?: unknown }).label === "string" &&
+        typeof (option as { value?: unknown }).value === "string",
+    );
+};
+
+const formatFieldValue = (
+    field: { type: RecordFieldType; config: Prisma.JsonValue | null },
+    value: unknown,
+) => {
+    if (value === null || value === undefined || value === "") return null;
+    const options = getConfiguredOptions(field.config);
+    if (field.type === RecordFieldType.SELECT && typeof value === "string") {
+        return options.find((option) => option.value === value)?.label ?? value;
+    }
+    if (field.type === RecordFieldType.MULTI_SELECT && Array.isArray(value)) {
+        return value.map((item) =>
+            options.find((option) => option.value === item)?.label ?? String(item),
+        ).join(", ");
+    }
+    if (field.type === RecordFieldType.BOOLEAN) return value ? "Yes" : "No";
+    return value;
 };
 
 const RecordsService = {
@@ -373,7 +413,7 @@ const RecordsService = {
         values: RecordValueInput[];
         relationships?: RecordRelationshipInput[];
     }) {
-        return prisma.$transaction(async (transaction) => {
+        const record = await prisma.$transaction(async (transaction) => {
             const relationships = input.relationships ?? [];
             await validateRelationships(transaction, { ...input, relationships });
             const ownerId = input.ownerId ?? input.createdById;
@@ -392,7 +432,10 @@ const RecordsService = {
                     displayName: input.displayName,
                     values: { create: input.values },
                 },
-                include: { values: true },
+                include: {
+                    values: true,
+                    module: { select: { key: true } },
+                },
             });
             if (relationships.length > 0) {
                 await transaction.recordRelationship.createMany({
@@ -406,6 +449,32 @@ const RecordsService = {
             }
             return record;
         });
+        if (record) {
+            await RecordActivityService.created({
+                organizationId: input.organizationId,
+                memberId: input.createdById,
+                recordId: record.id,
+                recordName: record.displayName,
+            });
+            if (record.ownerId !== input.createdById) {
+                try {
+                    await NotificationsService.notifyRecordAssignment({
+                        organizationId: input.organizationId,
+                        moduleKey: record.module.key,
+                        recordId: record.id,
+                        recordName: record.displayName,
+                        assignedToId: record.ownerId,
+                        actorMemberId: input.createdById,
+                    });
+                } catch (error) {
+                    console.error("[records] failed to enqueue assignment notification", {
+                        recordId: record.id,
+                        error,
+                    });
+                }
+            }
+        }
+        return record;
     },
 
     async updateRecord(input: {
@@ -418,7 +487,7 @@ const RecordsService = {
         memberId: string;
         canUpdateAny: boolean;
     }) {
-        return prisma.$transaction(async (transaction) => {
+        const result = await prisma.$transaction(async (transaction) => {
             const record = await transaction.recordItem.findFirst({
                 where: {
                     id: input.recordId,
@@ -427,13 +496,79 @@ const RecordsService = {
                     archivedAt: null,
                     ...(input.canUpdateAny ? {} : { ownerId: input.memberId }),
                 },
-                select: { id: true },
+                select: {
+                    id: true,
+                    values: { select: { fieldId: true, value: true } },
+                    outgoingRelationships: {
+                        select: {
+                            fieldId: true,
+                            targetRecordId: true,
+                            targetRecord: { select: { displayName: true } },
+                        },
+                    },
+                    module: {
+                        select: {
+                            fields: {
+                                select: {
+                                    id: true,
+                                    label: true,
+                                    type: true,
+                                    config: true,
+                                },
+                            },
+                        },
+                    },
+                },
             });
 
             if (!record) return null;
 
             const relationships = input.relationships ?? [];
-            await validateRelationships(transaction, { ...input, relationships });
+            const relationshipTargets = await validateRelationships(
+                transaction,
+                { ...input, relationships },
+            );
+            const previousValues = new Map(
+                record.values.map((value) => [value.fieldId, value.value]),
+            );
+            const nextValues = new Map(
+                input.values.map((value) => [value.fieldId, value.value]),
+            );
+            const previousRelationships = new Map(
+                record.outgoingRelationships.map((relationship) => [
+                    relationship.fieldId,
+                    relationship,
+                ]),
+            );
+            const nextRelationships = new Map(
+                relationships.map((relationship) => [
+                    relationship.fieldId,
+                    relationship,
+                ]),
+            );
+            const changes = record.module.fields.flatMap((field) => {
+                if (field.type === RecordFieldType.RELATIONSHIP) {
+                    const previous = previousRelationships.get(field.id);
+                    const next = nextRelationships.get(field.id);
+                    if (previous?.targetRecordId === next?.targetRecordId) return [];
+                    return [{
+                        fieldName: field.label,
+                        previousValue: previous?.targetRecord.displayName ?? null,
+                        nextValue: next
+                            ? relationshipTargets.get(next.targetRecordId)?.displayName ?? null
+                            : null,
+                    }];
+                }
+
+                const previousValue = previousValues.get(field.id) ?? null;
+                const nextValue = nextValues.get(field.id) ?? null;
+                if (valuesEqual(previousValue, nextValue)) return [];
+                return [{
+                    fieldName: field.label,
+                    previousValue: formatFieldValue(field, previousValue),
+                    nextValue: formatFieldValue(field, nextValue),
+                }];
+            });
 
             await transaction.recordFieldValue.deleteMany({
                 where: { recordId: input.recordId },
@@ -461,11 +596,21 @@ const RecordsService = {
                 });
             }
 
-            return transaction.recordItem.findUnique({
+            const updatedRecord = await transaction.recordItem.findUnique({
                 where: { id: input.recordId },
                 include: { values: true },
             });
+            return { record: updatedRecord, changes };
         });
+        if (result?.record && result.changes.length > 0) {
+            await RecordActivityService.fieldsUpdated({
+                organizationId: input.organizationId,
+                memberId: input.memberId,
+                recordId: input.recordId,
+                changes: result.changes,
+            });
+        }
+        return result?.record ?? null;
     },
 
     async archiveRecord(input: {
@@ -474,6 +619,17 @@ const RecordsService = {
         memberId: string;
         canDeleteAny: boolean;
     }) {
+        const record = await prisma.recordItem.findFirst({
+            where: {
+                id: input.recordId,
+                organizationId: input.organizationId,
+                archivedAt: null,
+                ...(input.canDeleteAny ? {} : { ownerId: input.memberId }),
+            },
+            select: { id: true, displayName: true },
+        });
+        if (!record) return false;
+
         const result = await prisma.recordItem.updateMany({
             where: {
                 id: input.recordId,
@@ -484,7 +640,16 @@ const RecordsService = {
             data: { archivedAt: new Date() },
         });
 
-        return result.count > 0;
+        const archived = result.count > 0;
+        if (archived) {
+            await RecordActivityService.archived({
+                organizationId: input.organizationId,
+                memberId: input.memberId,
+                recordId: input.recordId,
+                recordName: record.displayName,
+            });
+        }
+        return archived;
     },
 
     async transferRecordOwnership(input: {
@@ -499,9 +664,33 @@ const RecordsService = {
                 id: input.ownerId,
                 organizationId: input.organizationId,
             },
-            select: { id: true },
+            select: {
+                id: true,
+                user: { select: { name: true, email: true } },
+            },
         });
         if (!owner) return false;
+
+        const record = await prisma.recordItem.findFirst({
+            where: {
+                id: input.recordId,
+                organizationId: input.organizationId,
+                archivedAt: null,
+                ...(input.canUpdateAny ? {} : { ownerId: input.memberId }),
+            },
+            select: {
+                displayName: true,
+                module: { select: { key: true } },
+                owner: {
+                    select: {
+                        id: true,
+                        user: { select: { name: true, email: true } },
+                    },
+                },
+            },
+        });
+        if (!record) return false;
+        if (record.owner.id === owner.id) return true;
 
         const result = await prisma.recordItem.updateMany({
             where: {
@@ -513,7 +702,36 @@ const RecordsService = {
             data: { ownerId: input.ownerId },
         });
 
-        return result.count > 0;
+        const transferred = result.count > 0;
+        if (transferred) {
+            await RecordActivityService.ownershipTransferred({
+                organizationId: input.organizationId,
+                memberId: input.memberId,
+                recordId: input.recordId,
+                previousOwnerId: record.owner.id,
+                previousOwnerName: record.owner.user.name ?? record.owner.user.email,
+                nextOwnerId: owner.id,
+                nextOwnerName: owner.user.name ?? owner.user.email,
+            });
+            if (owner.id !== input.memberId) {
+                try {
+                    await NotificationsService.notifyRecordAssignment({
+                        organizationId: input.organizationId,
+                        moduleKey: record.module.key,
+                        recordId: input.recordId,
+                        recordName: record.displayName,
+                        assignedToId: owner.id,
+                        actorMemberId: input.memberId,
+                    });
+                } catch (error) {
+                    console.error("[records] failed to enqueue assignment notification", {
+                        recordId: input.recordId,
+                        error,
+                    });
+                }
+            }
+        }
+        return transferred;
     },
 };
 

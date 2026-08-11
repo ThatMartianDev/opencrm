@@ -1,17 +1,33 @@
 import { prisma } from "@/lib/db/client";
 import { TasksService } from "@/modules/tasks/service";
+import { RecordActivityService } from "@/modules/RecordModule/service/record-activity.service";
+
+jest.mock("@/modules/RecordModule/service/record-activity.service", () => ({
+  RecordActivityService: {
+    taskCreated: jest.fn(),
+    taskUpdated: jest.fn(),
+    taskStatusChanged: jest.fn(),
+    taskDeleted: jest.fn(),
+  },
+}));
 
 jest.mock("@/lib/db/client", () => ({
   prisma: {
     task: {
+      create: jest.fn(),
       findMany: jest.fn(),
       findFirst: jest.fn(),
+      update: jest.fn(),
     },
+    recordItem: { findFirst: jest.fn() },
   },
 }));
 
 jest.mock("@/modules/notifications/service", () => ({
-  NotificationsService: {},
+  NotificationsService: {
+    notifyTaskAssignment: jest.fn(),
+    cancelPendingTaskNotifications: jest.fn(),
+  },
 }));
 
 jest.mock("@/modules/activity-log/service", () => ({
@@ -19,6 +35,8 @@ jest.mock("@/modules/activity-log/service", () => ({
 }));
 
 const mockTask = jest.mocked(prisma.task);
+const mockRecord = jest.mocked(prisma.recordItem);
+const mockRecordActivity = jest.mocked(RecordActivityService);
 
 describe("TasksService authorization", () => {
   beforeEach(() => {
@@ -120,6 +138,65 @@ describe("TasksService authorization", () => {
           { assignedToId: "member_1" },
         ],
       },
+    });
+  });
+
+  test("logs status changes for RecordModule-linked tasks", async () => {
+    mockTask.findFirst.mockResolvedValue({
+      id: "task_1",
+      name: "Send proposal",
+      status: "TODO",
+      recordId: "record_1",
+    } as never);
+    mockTask.update.mockResolvedValue({
+      id: "task_1",
+      name: "Send proposal",
+      status: "IN_PROGRESS",
+      recordId: "record_1",
+      dealId: null,
+    } as never);
+
+    await TasksService.updateTaskStatus(
+      "task_1",
+      "IN_PROGRESS",
+      "org_1",
+      "member_1",
+      true,
+    );
+
+    expect(mockRecordActivity.taskStatusChanged).toHaveBeenCalledWith({
+      organizationId: "org_1",
+      memberId: "member_1",
+      recordId: "record_1",
+      taskName: "Send proposal",
+      previousStatus: "TODO",
+      nextStatus: "IN_PROGRESS",
+    });
+  });
+
+  test("logs creation of a RecordModule-linked task", async () => {
+    mockRecord.findFirst.mockResolvedValue({ id: "record_1" } as never);
+    mockTask.create.mockResolvedValue({
+      id: "task_1",
+      name: "Send proposal",
+      description: null,
+      dueDate: null,
+      assignedToId: null,
+      dealId: null,
+      recordId: "record_1",
+    } as never);
+
+    await TasksService.createTask({
+      name: "Send proposal",
+      recordId: "record_1",
+      organizationId: "org_1",
+    }, "member_1");
+
+    expect(mockRecordActivity.taskCreated).toHaveBeenCalledWith({
+      organizationId: "org_1",
+      memberId: "member_1",
+      recordId: "record_1",
+      taskName: "Send proposal",
     });
   });
 });

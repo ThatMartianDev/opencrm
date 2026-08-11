@@ -1,5 +1,22 @@
 import { prisma } from "@/lib/db/client";
 import RecordModuleService from "@/modules/RecordModule/service";
+import { RecordActivityService } from "@/modules/RecordModule/service/record-activity.service";
+import { NotificationsService } from "@/modules/notifications/service";
+
+jest.mock("@/modules/RecordModule/service/record-activity.service", () => ({
+  RecordActivityService: {
+    created: jest.fn(),
+    fieldsUpdated: jest.fn(),
+    archived: jest.fn(),
+    ownershipTransferred: jest.fn(),
+  },
+}));
+
+jest.mock("@/modules/notifications/service", () => ({
+  NotificationsService: {
+    notifyRecordAssignment: jest.fn(),
+  },
+}));
 
 jest.mock("@/lib/db/client", () => ({
   prisma: {
@@ -9,6 +26,7 @@ jest.mock("@/lib/db/client", () => ({
     },
     recordItem: {
       create: jest.fn(),
+      findFirst: jest.fn(),
       updateMany: jest.fn(),
     },
     member: {
@@ -42,6 +60,8 @@ const transaction = {
 };
 
 const mockPrisma = jest.mocked(prisma);
+const mockRecordActivity = jest.mocked(RecordActivityService);
+const mockNotifications = jest.mocked(NotificationsService);
 const moduleRow = {
   id: "module_1",
   organizationId: "org_1",
@@ -69,6 +89,7 @@ const record = (id: string) => ({
   updatedAt: new Date("2026-08-01T00:00:00.000Z"),
   archivedAt: null,
   values: [],
+  module: { key: "projects" },
 });
 
 describe("RecordModuleService", () => {
@@ -242,13 +263,26 @@ describe("RecordModuleService", () => {
           displayName: "Apollo",
           values: { create: values },
         },
-        include: { values: true },
+        include: {
+          values: true,
+          module: { select: { key: true } },
+        },
       });
+      expect(mockRecordActivity.created).toHaveBeenCalledWith({
+        organizationId: "org_1",
+        memberId: "member_1",
+        recordId: "record_1",
+        recordName: "record_1",
+      });
+      expect(mockNotifications.notifyRecordAssignment).not.toHaveBeenCalled();
     });
 
     test("creates records for an explicitly selected organization member", async () => {
       transaction.member.findFirst.mockResolvedValue({ id: "member_2" });
-      transaction.recordItem.create.mockResolvedValue(record("record_1"));
+      transaction.recordItem.create.mockResolvedValue({
+        ...record("record_1"),
+        ownerId: "member_2",
+      });
 
       await RecordModuleService.createRecord({
         organizationId: "org_1",
@@ -268,6 +302,14 @@ describe("RecordModuleService", () => {
           data: expect.objectContaining({ ownerId: "member_2" }),
         }),
       );
+      expect(mockNotifications.notifyRecordAssignment).toHaveBeenCalledWith({
+        organizationId: "org_1",
+        moduleKey: "projects",
+        recordId: "record_1",
+        recordName: "record_1",
+        assignedToId: "member_2",
+        actorMemberId: "member_1",
+      });
     });
 
     test("rejects a selected owner outside the organization", async () => {
@@ -285,6 +327,7 @@ describe("RecordModuleService", () => {
       ).resolves.toBeNull();
 
       expect(transaction.recordItem.create).not.toHaveBeenCalled();
+      expect(mockRecordActivity.created).not.toHaveBeenCalled();
     });
 
     test("validates and creates a single relationship edge", async () => {
@@ -346,14 +389,49 @@ describe("RecordModuleService", () => {
           archivedAt: null,
           ownerId: "member_1",
         },
-        select: { id: true },
+        select: {
+          id: true,
+          values: { select: { fieldId: true, value: true } },
+          outgoingRelationships: {
+            select: {
+              fieldId: true,
+              targetRecordId: true,
+              targetRecord: { select: { displayName: true } },
+            },
+          },
+          module: {
+            select: {
+              fields: {
+                select: {
+                  id: true,
+                  label: true,
+                  type: true,
+                  config: true,
+                },
+              },
+            },
+          },
+        },
       });
       expect(transaction.recordFieldValue.deleteMany).not.toHaveBeenCalled();
       expect(transaction.recordItem.update).not.toHaveBeenCalled();
     });
 
     test("replaces field values atomically after verifying tenant scope", async () => {
-      transaction.recordItem.findFirst.mockResolvedValue({ id: "record_1" });
+      transaction.recordItem.findFirst.mockResolvedValue({
+        id: "record_1",
+        values: [
+          { fieldId: "field_title", value: "Old Apollo" },
+          { fieldId: "field_amount", value: 10 },
+        ],
+        outgoingRelationships: [],
+        module: {
+          fields: [
+            { id: "field_title", label: "Title", type: "TEXT", config: null },
+            { id: "field_amount", label: "Amount", type: "NUMBER", config: null },
+          ],
+        },
+      });
       transaction.recordFieldValue.deleteMany.mockResolvedValue({ count: 2 });
       transaction.recordRelationship.deleteMany.mockResolvedValue({ count: 0 });
       transaction.recordItem.update.mockResolvedValue(record("record_1"));
@@ -393,9 +471,59 @@ describe("RecordModuleService", () => {
       expect(
         transaction.recordFieldValue.deleteMany.mock.invocationCallOrder[0],
       ).toBeLessThan(transaction.recordItem.update.mock.invocationCallOrder[0]);
+      expect(mockRecordActivity.fieldsUpdated).toHaveBeenCalledWith({
+        organizationId: "org_1",
+        memberId: "member_1",
+        recordId: "record_1",
+        changes: [
+          {
+            fieldName: "Title",
+            previousValue: "Old Apollo",
+            nextValue: "Apollo",
+          },
+          {
+            fieldName: "Amount",
+            previousValue: 10,
+            nextValue: 42,
+          },
+        ],
+      });
+    });
+
+    test("does not log field activity when submitted values are unchanged", async () => {
+      transaction.recordItem.findFirst.mockResolvedValue({
+        id: "record_1",
+        values: [{ fieldId: "field_title", value: "Apollo" }],
+        outgoingRelationships: [],
+        module: {
+          fields: [
+            { id: "field_title", label: "Title", type: "TEXT", config: null },
+          ],
+        },
+      });
+      transaction.recordFieldValue.deleteMany.mockResolvedValue({ count: 1 });
+      transaction.recordRelationship.deleteMany.mockResolvedValue({ count: 0 });
+      transaction.recordItem.update.mockResolvedValue(record("record_1"));
+      transaction.recordItem.findUnique.mockResolvedValue(record("record_1"));
+
+      await RecordModuleService.updateRecord({
+        organizationId: "org_1",
+        moduleId: "module_1",
+        recordId: "record_1",
+        displayName: "Apollo",
+        values: [{ fieldId: "field_title", value: "Apollo" }],
+        memberId: "member_1",
+        canUpdateAny: true,
+      });
+
+      expect(mockRecordActivity.fieldsUpdated).not.toHaveBeenCalled();
     });
 
     test("archives only records owned by a member without delete-any", async () => {
+      mockPrisma.recordItem.findFirst.mockResolvedValue({
+        id: "record_1",
+        displayName: "Apollo",
+      } as never);
       mockPrisma.recordItem.updateMany.mockResolvedValue({ count: 1 });
 
       await expect(
@@ -416,10 +544,27 @@ describe("RecordModuleService", () => {
         },
         data: { archivedAt: expect.any(Date) },
       });
+      expect(mockRecordActivity.archived).toHaveBeenCalledWith({
+        organizationId: "org_1",
+        memberId: "member_1",
+        recordId: "record_1",
+        recordName: "Apollo",
+      });
     });
 
     test("transfers ownership only to a member in the organization", async () => {
-      mockPrisma.member.findFirst.mockResolvedValue({ id: "member_2" } as never);
+      mockPrisma.member.findFirst.mockResolvedValue({
+        id: "member_2",
+        user: { name: "User Two", email: "two@example.com" },
+      } as never);
+      mockPrisma.recordItem.findFirst.mockResolvedValue({
+        displayName: "Apollo",
+        module: { key: "projects" },
+        owner: {
+          id: "member_1",
+          user: { name: "User One", email: "one@example.com" },
+        },
+      } as never);
       mockPrisma.recordItem.updateMany.mockResolvedValue({ count: 1 });
 
       await expect(
@@ -434,7 +579,10 @@ describe("RecordModuleService", () => {
 
       expect(mockPrisma.member.findFirst).toHaveBeenCalledWith({
         where: { id: "member_2", organizationId: "org_1" },
-        select: { id: true },
+        select: {
+          id: true,
+          user: { select: { name: true, email: true } },
+        },
       });
       expect(mockPrisma.recordItem.updateMany).toHaveBeenCalledWith({
         where: {
@@ -444,6 +592,23 @@ describe("RecordModuleService", () => {
           ownerId: "member_1",
         },
         data: { ownerId: "member_2" },
+      });
+      expect(mockRecordActivity.ownershipTransferred).toHaveBeenCalledWith({
+        organizationId: "org_1",
+        memberId: "member_1",
+        recordId: "record_1",
+        previousOwnerId: "member_1",
+        previousOwnerName: "User One",
+        nextOwnerId: "member_2",
+        nextOwnerName: "User Two",
+      });
+      expect(mockNotifications.notifyRecordAssignment).toHaveBeenCalledWith({
+        organizationId: "org_1",
+        moduleKey: "projects",
+        recordId: "record_1",
+        recordName: "Apollo",
+        assignedToId: "member_2",
+        actorMemberId: "member_1",
       });
     });
   });

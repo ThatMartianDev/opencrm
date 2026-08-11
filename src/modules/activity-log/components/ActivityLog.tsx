@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { HistoryRegular, AddRegular } from "@fluentui/react-icons";
 import AvatarFallback from "@/components/micro/AvatarFallback/AvatarFallback";
 import { useModal } from "@/components/macro/ModalProvider/ModalProvider";
@@ -47,13 +47,21 @@ function groupByDate(activities: ActivityData[]) {
 type ActivityLogProps = {
   entityType: EntityType;
   entityId: string;
+  className?: string;
   onRefresh?: () => void;
   refreshKey?: number;
 };
 
-const AcitivtyItem = ({ activity }: { activity: ActivityData }) => {
+const ActivityItem = ({ activity }: { activity: ActivityData }) => {
   const memberName = activity.member?.user.name || "System";
   const memberAvatarUrl = activity.member?.user.avatarUrl ?? undefined;
+  const metadata = activity.metadata;
+  const legacyNote =
+    metadata && typeof metadata === "object" && !Array.isArray(metadata) &&
+    "note" in metadata && typeof metadata.note === "string"
+      ? metadata.note
+      : null;
+  const note = activity.description || legacyNote;
 
   return (
     <div key={activity.id} className={Styles.activity_item}>
@@ -70,6 +78,7 @@ const AcitivtyItem = ({ activity }: { activity: ActivityData }) => {
         <span className={Styles.activity_time}>
           {formatTime(activity.createdAt)}
         </span>
+        {note && <div className={Styles.activity_note}>{note}</div>}
       </div>
     </div>
   );
@@ -78,26 +87,27 @@ const AcitivtyItem = ({ activity }: { activity: ActivityData }) => {
 const ActivityLog = ({
   entityType,
   entityId,
+  className,
   onRefresh,
   refreshKey,
 }: ActivityLogProps) => {
   const [activities, setActivities] = useState<ActivityData[]>([]);
   const { openModal } = useModal();
 
-  const refreshActivities = () => {
+  const refreshActivities = useCallback(() => {
     getActivities(entityType, entityId).then((data) => {
       setActivities(data);
     });
-  };
+  }, [entityType, entityId]);
 
   useEffect(() => {
     refreshActivities();
-  }, [entityType, entityId, refreshKey]);
+  }, [refreshActivities, refreshKey]);
 
   const grouped = groupByDate(activities);
 
   return (
-    <div id={Styles.activityLog}>
+    <div className={[Styles.activityLog, className].filter(Boolean).join(" ")}>
       <div className={Styles.activity_header}>
         <h3>
           <HistoryRegular fontSize={18} />
@@ -131,7 +141,7 @@ const ActivityLog = ({
                   {formatDateGroup(items[0].createdAt)}
                 </span>
                 {items.map((activity, index) => (
-                  <AcitivtyItem
+                  <ActivityItem
                     activity={activity}
                     key={`${dateKey}-${index}`}
                   />
