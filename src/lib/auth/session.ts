@@ -19,7 +19,7 @@ async function decrypt(session: string | undefined = '', encodedKey: Uint8Array)
       algorithms: ['HS256'],
     })
     return payload
-  } catch (error) {
+  } catch {
     console.log('Failed to verify session')
   }
 }
@@ -82,6 +82,7 @@ export const getSessionClaims = cache(async (): Promise<SessionClaims> => {
       userId: true,
       organizationId: true,
       role: true,
+      permissions: true,
     },
   });
 
@@ -94,6 +95,7 @@ export const getSessionClaims = cache(async (): Promise<SessionClaims> => {
     memberId: member.id,
     organizationId: member.organizationId,
     role: member.role,
+    permissions: member.permissions,
   };
 });
 

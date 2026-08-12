@@ -7,6 +7,7 @@ export type Resource =
   | "deals"
   | "contacts"
   | "companies"
+  | "records"
   | "tasks"
   | "notes"
   | "files"
@@ -45,14 +46,22 @@ const ROLE_PERMISSIONS: Record<MemberRole, Permission[]> = {
     "companies.update",
     "companies.delete.any",
     "companies.delete.own",
+    "records.read",
+    "records.create",
+    "records.update.any",
+    "records.update.own",
+    "records.delete.any",
+    "records.delete.own",
     "tasks.read",
     "tasks.create",
-    "tasks.update",
+    "tasks.update.any",
+    "tasks.update.own",
     "tasks.delete.any",
     "tasks.delete.own",
     "notes.read",
     "notes.create",
-    "notes.update",
+    "notes.update.any",
+    "notes.update.own",
     "notes.delete.any",
     "notes.delete.own",
     "files.read",
@@ -81,14 +90,22 @@ const ROLE_PERMISSIONS: Record<MemberRole, Permission[]> = {
     "companies.update",
     "companies.delete.any",
     "companies.delete.own",
+    "records.read",
+    "records.create",
+    "records.update.any",
+    "records.update.own",
+    "records.delete.any",
+    "records.delete.own",
     "tasks.read",
     "tasks.create",
-    "tasks.update",
+    "tasks.update.any",
+    "tasks.update.own",
     "tasks.delete.any",
     "tasks.delete.own",
     "notes.read",
     "notes.create",
-    "notes.update",
+    "notes.update.any",
+    "notes.update.own",
     "notes.delete.any",
     "notes.delete.own",
     "files.read",
@@ -113,14 +130,21 @@ const ROLE_PERMISSIONS: Record<MemberRole, Permission[]> = {
     "companies.create",
     "companies.update",
     "companies.delete.own",
+    "records.read",
+    "records.create",
+    "records.update.any",
+    "records.update.own",
+    "records.delete.own",
     "tasks.read",
     "tasks.create",
-    "tasks.update",
+    "tasks.update.any",
+    "tasks.update.own",
     "tasks.delete.any",
     "tasks.delete.own",
     "notes.read",
     "notes.create",
-    "notes.update",
+    "notes.update.any",
+    "notes.update.own",
     "notes.delete.own",
     "files.read",
     "files.create",
@@ -137,12 +161,17 @@ const ROLE_PERMISSIONS: Record<MemberRole, Permission[]> = {
     "contacts.delete.own",
     "companies.read",
     "companies.delete.own",
+    "records.read",
+    "records.create",
+    "records.update.own",
+    "records.delete.own",
     "tasks.read",
     "tasks.create",
-    "tasks.update",
+    "tasks.update.own",
     "tasks.delete.own",
     "notes.read",
     "notes.create",
+    "notes.update.own",
     "notes.delete.own",
     "files.read",
     "files.create",
@@ -160,7 +189,10 @@ export type QueryContext = {
 };
 
 export function createQueryContext(session: SessionClaims): QueryContext {
-  const permissions = new Set(ROLE_PERMISSIONS[session.role]);
+  const permissions = new Set<string>([
+    ...ROLE_PERMISSIONS[session.role],
+    ...(session.permissions ?? []),
+  ]);
 
   function can(permission: Permission) {
     return permissions.has(permission);

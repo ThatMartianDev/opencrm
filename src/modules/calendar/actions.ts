@@ -15,7 +15,10 @@ import {
 
 export async function checkCalendarConnection() {
   const session = await getSessionClaims();
-  const connected = await isCalendarConnected(session.userId);
+  const connected = await isCalendarConnected(
+    session.userId,
+    session.organizationId,
+  );
   return { connected };
 }
 
@@ -73,7 +76,12 @@ export async function linkEvent(
 ) {
   const session = await getSessionClaims();
   try {
-    await linkCalendarEvent(eventId, session.userId, link);
+    await linkCalendarEvent(
+      eventId,
+      session.userId,
+      session.organizationId,
+      link,
+    );
     return { success: true };
   } catch {
     return { success: false, error: "Failed to link event" };
@@ -98,7 +106,7 @@ export async function updateEvent(
 ) {
   const session = await getSessionClaims();
   try {
-    await updateCalendarEvent(eventId, session.userId, {
+    await updateCalendarEvent(eventId, session.userId, session.organizationId, {
       ...data,
       startTime: new Date(data.startTime),
       endTime: new Date(data.endTime),
@@ -113,7 +121,7 @@ export async function updateEvent(
 export async function deleteEvent(eventId: string) {
   const session = await getSessionClaims();
   try {
-    await deleteCalendarEvent(eventId, session.userId);
+    await deleteCalendarEvent(eventId, session.userId, session.organizationId);
     return { success: true };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to delete event";
@@ -127,7 +135,12 @@ export async function unlinkEvent(
 ) {
   const session = await getSessionClaims();
   try {
-    await unlinkCalendarEvent(eventId, session.userId, unlink);
+    await unlinkCalendarEvent(
+      eventId,
+      session.userId,
+      session.organizationId,
+      unlink,
+    );
     return { success: true };
   } catch {
     return { success: false, error: "Failed to unlink event" };

@@ -110,6 +110,19 @@ describe("createQueryContext", () => {
         expect(ctx.can("workspace.manage")).toBe(false);
     });
 
+    test("member-specific permissions add grants to the role", () => {
+        const ctx = createQueryContext({
+          organizationId: "org1",
+          memberId: "member2",
+          userId: "user2",
+          role: "MEMBER",
+          permissions: ["records.update.any"],
+        });
+
+        expect(ctx.can("records.update.any")).toBe(true);
+        expect(ctx.can("workspace.manage")).toBe(false);
+      });
+
     test("assertCan throws error when permission is missing", () => {
         const ctx = createQueryContext({ organizationId: "org1", memberId: "member2", userId:"user2", role: "MEMBER" });
         expect(() => ctx.assertCan("members.invite")).toThrow("Forbidden: requires \"members.invite\"");

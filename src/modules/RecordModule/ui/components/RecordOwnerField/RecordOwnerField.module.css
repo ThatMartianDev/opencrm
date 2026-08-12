@@ -1,0 +1,30 @@
+.ownerField {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  border-radius: 6px;
+  color: var(--text-color);
+  font-size: var(--font-size-sm);
+  text-align: left;
+}
+
+button.ownerField {
+  cursor: pointer;
+}
+
+button.ownerField:hover:not(:disabled) {
+  background: var(--bg-02);
+}
+
+button.ownerField:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.ownerField span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

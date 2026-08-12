@@ -1,10 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  CheckmarkFilled,
   AddRegular,
-  TargetRegular,
   CheckmarkCircleFilled,
   DismissRegular,
   DeleteRegular,
@@ -16,6 +14,7 @@ import { TaskStatus } from "@/generated/prisma/enums";
 import {
   getTasks,
   getTasksForDeal,
+  getTasksForRecord,
   createTask,
   updateTaskStatus,
   deleteTask,
@@ -32,13 +31,36 @@ import {
 import { useModal } from "@/components/macro/ModalProvider/ModalProvider";
 import { useWorkspaceData } from "@/modules/workspace/components/workspace-provider";
 import { useToast } from "@/components/macro/Toaster";
+import ModuleIcon from "@/modules/RecordModule/ui/components/ModuleIcon";
 import Styles from "./TaskList.module.css";
 
 type TaskListProps = {
   dealId?: string;
+  recordId?: string;
   showHeader?: boolean;
   showTabsHeader?: boolean;
+  initialPage?: TaskPageData;
 };
+
+type TaskPageData = Awaited<ReturnType<typeof getTasks>>;
+
+const PAGE_SIZE = 20;
+
+const loadTasks = ({
+  dealId,
+  recordId,
+  page,
+}: Pick<TaskListProps, "dealId" | "recordId"> & { page: number }) => {
+  const query = { page, pageSize: PAGE_SIZE };
+  if (recordId) return getTasksForRecord(recordId, query);
+  if (dealId) return getTasksForDeal(dealId, query);
+  return getTasks(query);
+};
+
+const getQueryKey = (
+  { dealId, recordId }: Pick<TaskListProps, "dealId" | "recordId">,
+  page: number,
+) => `${recordId ?? dealId ?? "all"}:${page}`;
 
 const STATUS_LABELS: Record<TaskStatus, string> = {
   TODO: "To Do",
@@ -62,34 +84,68 @@ function isOverdue(date: string | Date | null | undefined): boolean {
 
 const TaskList = ({
   dealId,
+  recordId,
   showHeader = true,
   showTabsHeader = false,
+  initialPage,
 }: TaskListProps) => {
-  const [tasks, setTasks] = useState<TaskWithRelations[]>([]);
+  const [taskPage, setTaskPage] = useState<TaskPageData>(
+    initialPage ?? {
+      items: [],
+      pagination: { page: 1, pageSize: PAGE_SIZE, hasNext: false },
+    },
+  );
+  const [page, setPage] = useState(initialPage?.pagination.page ?? 1);
   const [showInlineForm, setShowInlineForm] = useState(false);
   const [newTaskName, setNewTaskName] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialPage);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const { openModal } = useModal();
   const { toast } = useToast();
   const { organizationId } = useWorkspaceData();
   const memberPicker = useMemberPicker();
+  const loadRequestId = useRef(0);
+  const loadedQueryKey = useRef<string | null>(
+    initialPage ? getQueryKey({ dealId, recordId }, page) : null,
+  );
+  const tasks = taskPage.items;
 
   const fetchTasks = useCallback(async () => {
+    const queryKey = getQueryKey({ dealId, recordId }, page);
+    const requestId = ++loadRequestId.current;
+    loadedQueryKey.current = queryKey;
+    setLoading(true);
+
     try {
-      const data = dealId ? await getTasksForDeal(dealId) : await getTasks();
-      setTasks(data);
+      const data = await loadTasks({ dealId, recordId, page });
+      if (requestId !== loadRequestId.current) return;
+
+      if (data.items.length === 0 && page > 1) {
+        loadedQueryKey.current = null;
+        setPage((current) => current - 1);
+        return;
+      }
+
+      setTaskPage(data);
     } catch (error) {
+      if (requestId !== loadRequestId.current) return;
       console.error("Error fetching tasks:", error);
     } finally {
-      setLoading(false);
+      if (requestId === loadRequestId.current) setLoading(false);
     }
-  }, [dealId]);
+  }, [dealId, page, recordId]);
 
   useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
+    const queryKey = getQueryKey({ dealId, recordId }, page);
+    if (loadedQueryKey.current === queryKey) return;
+    void fetchTasks();
+  }, [dealId, fetchTasks, page, recordId]);
+
+  const changePage = (nextPage: number) => {
+    clearSelection();
+    setPage(nextPage);
+  };
 
   async function handleToggleStatus(task: TaskWithRelations) {
     const nextStatus =
@@ -142,7 +198,7 @@ const TaskList = ({
     try {
       await createTask({
         name: taskName,
-        dealId: dealId || undefined,
+        recordId,
       });
       setNewTaskName("");
       setShowInlineForm(false);
@@ -171,7 +227,7 @@ const TaskList = ({
   }
 
   function handleOpenCreateModal() {
-    openModal("task", { dealId }, fetchTasks);
+    openModal("task", { recordId }, fetchTasks);
   }
 
   function toggleSelect(taskId: string, e: React.MouseEvent) {
@@ -359,7 +415,7 @@ const TaskList = ({
           <div
             key={task.id}
             className={`${Styles.taskItem} ${task.status === TaskStatus.COMPLETED ? Styles.completed : ""} ${selectedIds.has(task.id) ? Styles.selected : ""}`}
-            onClick={() => openModal("task", { id: task.id }, fetchTasks)}
+            onClick={() => openModal("task", { id: task.id, recordId }, fetchTasks)}
             style={{ cursor: "pointer" }}
           >
             <div onClick={(e) => toggleSelect(task.id, e)} className={Styles.taskSelect}>
@@ -403,10 +459,15 @@ const TaskList = ({
               {formatDueDate(task.dueDate)}
             </div>
             <div className={Styles.linkedRecord}>
-              {task.deal ? (
+              {task.record ? (
                 <span className={Styles.linkedBadge}>
-                  <TargetRegular fontSize={12} />
-                  {task.deal.title}
+                  <span
+                    className={Styles.linkedModuleIcon}
+                    style={{ backgroundColor: task.record.module.accentColor || "#5670ff" }}
+                  >
+                    <ModuleIcon name={task.record.module.icon} size={10} />
+                  </span>
+                  {task.record.displayName}
                 </span>
               ) : (
                 <span style={{ opacity: 0.4 }}>—</span>
@@ -429,6 +490,26 @@ const TaskList = ({
             </div>
           </div>
         ))}
+
+      {(page > 1 || taskPage.pagination.hasNext) && (
+        <nav className={Styles.pagination} aria-label="Task pages">
+          <button
+            type="button"
+            disabled={page === 1 || loading}
+            onClick={() => changePage(Math.max(1, page - 1))}
+          >
+            Previous
+          </button>
+          <span>Page {page}</span>
+          <button
+            type="button"
+            disabled={!taskPage.pagination.hasNext || loading}
+            onClick={() => changePage(page + 1)}
+          >
+            Next
+          </button>
+        </nav>
+      )}
 
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (

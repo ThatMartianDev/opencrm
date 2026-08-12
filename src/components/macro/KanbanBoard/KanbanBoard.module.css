@@ -15,8 +15,7 @@
 .column {
     display: flex;
     flex-direction: column;
-    min-width: 280px;
-    flex: 1;
+    min-width: 300px;
     border-radius: 8px;
     background: var(--bg-02);
     border: 1px solid var(--border-100);
@@ -54,7 +53,6 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    padding-bottom: 0;
 }
 
 .column_color {
@@ -85,6 +83,7 @@
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.75rem;
+    padding-top: 0;
     flex: 1;
     overflow-y: auto;
 }

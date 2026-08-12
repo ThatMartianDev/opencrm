@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db/client";
 import { ActivityType } from "@/generated/prisma/enums";
 import { ActivityLogService } from "@/modules/activity-log/service";
+import { assertCrmLinksBelongToOrganization } from "@/lib/dal/crm-links";
 
 export const ContactsService = {
     async getAllContacts(organizationId: string) {
@@ -35,6 +36,10 @@ export const ContactsService = {
         },
         memberId?: string,
     ) {
+        await assertCrmLinksBelongToOrganization(data.organizationId, {
+            companyId: data.companyId,
+        });
+
         const contact = await prisma.contact.create({
             data: { ...data, createdById: memberId },
         });

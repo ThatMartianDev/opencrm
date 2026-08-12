@@ -1,43 +1,158 @@
+import { Prisma } from "@/generated/prisma/client";
+import { ActivityType, ModuleFeature, TaskStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db/client";
-import { ActivityType, TaskStatus } from "@/generated/prisma/enums";
+import {
+    assertCrmLinksBelongToOrganization,
+    assertMemberBelongsToOrganization,
+} from "@/lib/dal/crm-links";
+import {
+    createPaginatedResult,
+    type PaginationQuery,
+} from "@/lib/pagination";
 import { NotificationsService } from "@/modules/notifications/service";
 import { ActivityLogService } from "@/modules/activity-log/service";
+import { RecordActivityService } from "@/modules/RecordModule/service/record-activity.service";
 
 const taskInclude = {
     assignedTo: {
         include: { user: { select: { name: true, avatarUrl: true } } },
     },
     deal: { select: { id: true, title: true } },
+    record: {
+        select: {
+            id: true,
+            displayName: true,
+            module: {
+                select: {
+                    id: true,
+                    key: true,
+                    name: true,
+                    icon: true,
+                    accentColor: true,
+                },
+            },
+        },
+    },
 } as const;
 
+const assertRecordTasksEnabled = async (
+    recordId: string,
+    organizationId: string,
+) => {
+    const record = await prisma.recordItem.findFirst({
+        where: {
+            id: recordId,
+            organizationId,
+            archivedAt: null,
+            module: {
+                archivedAt: null,
+                features: { has: ModuleFeature.TASKS },
+            },
+        },
+        select: { id: true },
+    });
+    if (!record) throw new Error("Record not found or tasks are not enabled.");
+};
+
+const getTasksPage = async (
+    where: Prisma.TaskWhereInput,
+    pagination: PaginationQuery,
+) => {
+    const rows = await prisma.task.findMany({
+        where,
+        include: taskInclude,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: (pagination.page - 1) * pagination.pageSize,
+        take: pagination.pageSize + 1,
+    });
+
+    return createPaginatedResult(rows, pagination);
+};
+
+const linkedTaskWhere: Prisma.TaskWhereInput = {
+    OR: [
+        { recordId: { not: null } },
+        { dealId: { not: null } },
+        { contactId: { not: null } },
+        { companyId: { not: null } },
+    ],
+};
+
 export const TasksService = {
-    async getAllTasks(organizationId: string) {
-        return prisma.task.findMany({
-            where: { organizationId, deletedAt: null },
-            include: taskInclude,
-            orderBy: { createdAt: "desc" },
-        });
+    async getAllTasks(organizationId: string, pagination: PaginationQuery) {
+        return getTasksPage({ organizationId, deletedAt: null }, pagination);
     },
 
-    async getTasksForMember(organizationId: string, memberId: string) {
-        return prisma.task.findMany({
-            where: { organizationId, assignedToId: memberId, deletedAt: null },
-            include: taskInclude,
-            orderBy: { createdAt: "desc" },
-        });
+    async getTasksForMember(
+        organizationId: string,
+        memberId: string,
+        pagination: PaginationQuery,
+    ) {
+        return getTasksPage(
+            {
+                organizationId,
+                deletedAt: null,
+                OR: [
+                    { createdById: memberId },
+                    { assignedToId: memberId },
+                ],
+            },
+            pagination,
+        );
     },
 
-    async getTasksForDeal(dealId: string, organizationId: string) {
-        return prisma.task.findMany({
-            where: { dealId, organizationId, deletedAt: null },
-            include: taskInclude,
-            orderBy: { createdAt: "desc" },
-        });
+    async getTasksForDeal(
+        dealId: string,
+        organizationId: string,
+        pagination: PaginationQuery,
+    ) {
+        return getTasksPage(
+            { dealId, organizationId, deletedAt: null },
+            pagination,
+        );
     },
 
-    async getTaskById(taskId: string, organizationId: string) {
+    async getTasksForRecord(
+        recordId: string,
+        organizationId: string,
+        pagination: PaginationQuery,
+    ) {
+        const record = await prisma.recordItem.findFirst({
+            where: {
+                id: recordId,
+                organizationId,
+                archivedAt: null,
+                module: {
+                    archivedAt: null,
+                    features: { has: ModuleFeature.TASKS },
+                },
+            },
+            select: { id: true },
+        });
+        if (!record) throw new Error("Record not found or tasks are not enabled.");
+
+        return getTasksPage(
+            { recordId, organizationId, deletedAt: null },
+            pagination,
+        );
+    },
+
+    async getTaskById(
+        taskId: string,
+        organizationId: string,
+        memberId: string,
+    ) {
         return prisma.task.findFirst({
-            where: { id: taskId, organizationId, deletedAt: null },
+            where: {
+                id: taskId,
+                organizationId,
+                deletedAt: null,
+                OR: [
+                    { createdById: memberId },
+                    { assignedToId: memberId },
+                    linkedTaskWhere,
+                ],
+            },
             include: taskInclude,
         });
     },
@@ -50,10 +165,23 @@ export const TasksService = {
             dueDate?: Date;
             assignedToId?: string;
             dealId?: string;
+            recordId?: string;
             organizationId: string;
         },
         memberId?: string,
     ) {
+        await Promise.all([
+            assertCrmLinksBelongToOrganization(data.organizationId, data),
+            assertMemberBelongsToOrganization(
+                data.organizationId,
+                data.assignedToId,
+            ),
+        ]);
+
+        if (data.recordId) {
+            await assertRecordTasksEnabled(data.recordId, data.organizationId);
+        }
+
         const task = await prisma.task.create({
             data: {
                 name: data.name,
@@ -62,6 +190,7 @@ export const TasksService = {
                 dueDate: data.dueDate,
                 assignedToId: data.assignedToId,
                 dealId: data.dealId,
+                recordId: data.recordId,
                 organizationId: data.organizationId,
                 createdById: memberId,
             },
@@ -75,6 +204,14 @@ export const TasksService = {
                 entity: { entityType: "deal", entityId: task.dealId },
                 activityType: ActivityType.CREATION,
                 title: `Task created: ${data.name}`,
+            });
+        }
+        if (memberId && task.recordId) {
+            await RecordActivityService.taskCreated({
+                organizationId: data.organizationId,
+                memberId,
+                recordId: task.recordId,
+                taskName: task.name,
             });
         }
 
@@ -103,9 +240,24 @@ export const TasksService = {
         status: TaskStatus,
         organizationId: string,
         memberId: string,
+        canUpdateAny: boolean,
     ) {
-        const task = await prisma.task.findFirst({ where: { id: taskId, organizationId, deletedAt: null } });
-        if (!task) throw new Error("Task not found");
+        const task = await prisma.task.findFirst({
+            where: {
+                id: taskId,
+                organizationId,
+                deletedAt: null,
+                ...(canUpdateAny
+                    ? {}
+                    : {
+                          OR: [
+                              { createdById: memberId },
+                              { assignedToId: memberId },
+                          ],
+                      }),
+            },
+        });
+        if (!task) throw new Error("Task not found or you do not own it");
         const oldStatus = task.status;
 
         const updated = await prisma.task.update({
@@ -125,6 +277,16 @@ export const TasksService = {
                 activityType: ActivityType.STATUS_CHANGE,
                 title: `Task status changed`,
                 metadata: { field: "status", from: oldStatus, to: status },
+            });
+        }
+        if (updated.recordId && oldStatus !== status) {
+            await RecordActivityService.taskStatusChanged({
+                organizationId,
+                memberId,
+                recordId: updated.recordId,
+                taskName: updated.name,
+                previousStatus: oldStatus,
+                nextStatus: status,
             });
         }
 
@@ -158,12 +320,31 @@ export const TasksService = {
             dueDate?: Date | null;
             assignedToId?: string | null;
             dealId?: string | null;
+            recordId?: string | null;
         },
         organizationId: string,
         memberId: string,
+        canUpdateAny: boolean,
     ) {
-        const task = await prisma.task.findFirst({ where: { id: taskId, organizationId, deletedAt: null } });
-        if (!task) throw new Error("Task not found");
+        const task = await prisma.task.findFirst({
+            where: {
+                id: taskId,
+                organizationId,
+                deletedAt: null,
+                ...(canUpdateAny ? {} : { createdById: memberId }),
+            },
+        });
+        if (!task) throw new Error("Task not found or you do not own it");
+        await Promise.all([
+            assertCrmLinksBelongToOrganization(organizationId, data),
+            assertMemberBelongsToOrganization(
+                organizationId,
+                data.assignedToId,
+            ),
+        ]);
+        if (data.recordId) {
+            await assertRecordTasksEnabled(data.recordId, organizationId);
+        }
 
         const updated = await prisma.task.update({
             where: { id: taskId },
@@ -178,6 +359,14 @@ export const TasksService = {
                 entity: { entityType: "deal", entityId: updated.dealId },
                 activityType: ActivityType.STATUS_CHANGE,
                 title: `Task updated: ${updated.name}`,
+            });
+        }
+        if (updated.recordId) {
+            await RecordActivityService.taskUpdated({
+                organizationId,
+                memberId,
+                recordId: updated.recordId,
+                taskName: updated.name,
             });
         }
 
@@ -235,7 +424,7 @@ export const TasksService = {
 
         const task = await prisma.task.findFirst({
             where: { id: data.taskId },
-            select: { dealId: true, name: true },
+            select: { dealId: true, recordId: true, name: true },
         });
 
         if (task?.dealId) {
@@ -245,6 +434,14 @@ export const TasksService = {
                 entity: { entityType: "deal", entityId: task.dealId },
                 activityType: ActivityType.STATUS_CHANGE,
                 title: `Task deleted: ${task.name}`,
+            });
+        }
+        if (task?.recordId) {
+            await RecordActivityService.taskDeleted({
+                organizationId: data.organizationId,
+                memberId: data.memberId,
+                recordId: task.recordId,
+                taskName: task.name,
             });
         }
 

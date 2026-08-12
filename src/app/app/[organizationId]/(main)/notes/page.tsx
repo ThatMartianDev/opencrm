@@ -1,9 +1,12 @@
 import NotesPage from "@/modules/notes/NotesPage";
+import { getNotes } from "@/modules/notes/actions";
 
-const Page = () => {
+const Page = async () => {
+    const initialPage = await getNotes();
+
     return (
         <div>
-            <NotesPage />
+            <NotesPage initialPage={initialPage} />
         </div>
     );
 };

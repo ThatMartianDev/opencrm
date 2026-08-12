@@ -1,0 +1,23 @@
+.dataFields {
+  display: none;
+  flex-direction: column;
+  gap: 32px;
+  padding: 20px;
+}
+.dataFields.active {
+    display: flex;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.header h3 {
+    font-size: var(--font-size-md);
+    font-weight: 500;
+}
+.header p {
+    font-size: var(--font-size-xs);
+}

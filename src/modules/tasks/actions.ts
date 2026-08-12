@@ -3,26 +3,61 @@
 import { TaskStatus } from "@/generated/prisma/enums";
 import { getSessionClaims } from "@/lib/auth/session";
 import { createQueryContext } from "@/lib/dal/scoped-query";
+import {
+    parsePaginationInput,
+    type PaginationInput,
+} from "@/lib/pagination";
 import { TasksService } from "./service";
 
-export const getTasks = async () => {
+export const getTasks = async (query?: PaginationInput) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);
     ctx.assertCan("tasks.read");
 
-    // OWNER, ADMIN, MANAGER see all tasks; MEMBER sees only their own
-    if (ctx.can("tasks.delete.any")) {
-        return TasksService.getAllTasks(session.organizationId);
-    }
-    return TasksService.getTasksForMember(session.organizationId, session.memberId);
+    return TasksService.getTasksForMember(
+        session.organizationId,
+        session.memberId,
+        parsePaginationInput(query),
+    );
 };
 
-export const getTasksForDeal = async (dealId: string) => {
+export const getTasksForDeal = async (dealId: string, query?: PaginationInput) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);
     ctx.assertCan("tasks.read");
 
-    return TasksService.getTasksForDeal(dealId, session.organizationId);
+    return TasksService.getTasksForDeal(
+        dealId,
+        session.organizationId,
+        parsePaginationInput(query),
+    );
+};
+
+export const getTasksForRecord = async (
+    recordId: string,
+    query?: PaginationInput,
+) => {
+    const session = await getSessionClaims();
+    const ctx = createQueryContext(session);
+    ctx.assertCan("tasks.read");
+
+    return TasksService.getTasksForRecord(
+        recordId,
+        session.organizationId,
+        parsePaginationInput(query),
+    );
+};
+
+export const getTaskById = async (taskId: string) => {
+    const session = await getSessionClaims();
+    const ctx = createQueryContext(session);
+    ctx.assertCan("tasks.read");
+
+    return TasksService.getTaskById(
+        taskId,
+        session.organizationId,
+        session.memberId,
+    );
 };
 
 export const createTask = async (data: {
@@ -32,6 +67,7 @@ export const createTask = async (data: {
     dueDate?: string;
     assignedToId?: string;
     dealId?: string;
+    recordId?: string;
 }) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);
@@ -42,9 +78,10 @@ export const createTask = async (data: {
             name: data.name,
             description: data.description,
             status: data.status,
-            dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
-            assignedToId: data.assignedToId,
+            dueDate: data.dueDate ? new Date(data.dueDate) : new Date(),
+            assignedToId: data.assignedToId ?? session.memberId,
             dealId: data.dealId,
+            recordId: data.recordId,
             organizationId: session.organizationId,
         },
         session.memberId,
@@ -54,13 +91,15 @@ export const createTask = async (data: {
 export const updateTaskStatus = async (taskId: string, status: TaskStatus) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);
-    ctx.assertCan("tasks.update");
+    const canUpdateAny = ctx.can("tasks.update.any");
+    if (!canUpdateAny) ctx.assertCan("tasks.update.own");
 
     return TasksService.updateTaskStatus(
         taskId,
         status,
         session.organizationId,
         session.memberId,
+        canUpdateAny,
     );
 };
 
@@ -72,11 +111,13 @@ export const updateTask = async (
         dueDate?: string | null;
         assignedToId?: string | null;
         dealId?: string | null;
+        recordId?: string | null;
     },
 ) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);
-    ctx.assertCan("tasks.update");
+    const canUpdateAny = ctx.can("tasks.update.any");
+    if (!canUpdateAny) ctx.assertCan("tasks.update.own");
 
     return TasksService.updateTask(
         taskId,
@@ -86,9 +127,11 @@ export const updateTask = async (
             dueDate: data.dueDate ? new Date(data.dueDate) : data.dueDate as null | undefined,
             assignedToId: data.assignedToId,
             dealId: data.dealId,
+            recordId: data.recordId,
         },
         session.organizationId,
         session.memberId,
+        canUpdateAny,
     );
 };
 

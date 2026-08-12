@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState } from "react";
 import {
   CheckmarkCircleFilled,
   DismissFilled,
@@ -10,16 +10,18 @@ import {
   CheckmarkSquareRegular,
   MoreVerticalFilled,
   DeleteRegular,
+  ChevronDownRegular,
 } from "@fluentui/react-icons";
-import { TaskStatus } from "@/generated/prisma/enums";
+import { ModuleFeature, TaskStatus } from "@/generated/prisma/enums";
 import {
   createTask,
   updateTask,
   updateTaskStatus,
   deleteTask,
+  getTaskById,
 } from "../../actions";
-import { TasksService } from "../../service";
-import { getDeals } from "@/modules/deals/actions";
+import { getLinkableRecord } from "@/modules/RecordModule/actions";
+import ModuleIcon from "@/modules/RecordModule/ui/components/ModuleIcon";
 import { useWorkspaceData } from "@/modules/workspace/components/workspace-provider";
 import { useToast } from "@/components/macro/Toaster";
 import {
@@ -28,84 +30,84 @@ import {
 } from "@/components/macro/MemberPicker/useMemberPicker";
 import { MemberPicker } from "@/components/macro/MemberPicker";
 import {
-  ContactPicker,
-  PickerContact,
-  useContactPicker,
-} from "@/components/macro/ContactPicker";
-import {
-  CompanyPicker,
-  PickerCompany,
-  useCompanyPicker,
-} from "@/components/macro/CompanyPicker";
+  RecordBrowserOverlay,
+  type RecordBrowserSelection,
+} from "@/components/macro/RecordBrowser";
 import S from "@/components/macro/ModalProvider/SharedStyles.module.css";
 import Styles from "./TaskModal.module.css";
 import MainButton from "@/components/micro/MainButton/MainButton";
 
 import DateTimePicker from "@/components/macro/DateTimePicker";
-
-type RecordOption = {
-  id: string;
-  label: string;
-  type: "deal";
-  contactId?: string | null;
-  contactName?: string | null;
-  companyId?: string | null;
-  companyName?: string | null;
-};
+import AvatarFallback from "@/components/micro/AvatarFallback/AvatarFallback";
 
 type TaskModalProps = {
   onClose: () => void;
   onDataChanged?: () => void;
-  id?: string; // if provided, we're editing
-  dealId?: string;
-  contactId?: string;
-  companyId?: string;
+  id?: string;
+  recordId?: string;
 };
+
+const STATUS_OPTIONS = [
+  { value: TaskStatus.TODO, label: "To do", tone: "todo" },
+  { value: TaskStatus.IN_PROGRESS, label: "In progress", tone: "progress" },
+  { value: TaskStatus.COMPLETED, label: "Completed", tone: "completed" },
+] as const;
+
+function getTodayValue() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 const TaskModal = ({
   onClose,
   onDataChanged,
   id,
-  dealId,
-  contactId,
-  companyId,
+  recordId,
 }: TaskModalProps) => {
-  const { organizationId } = useWorkspaceData();
+  const { organizationId, member, user } = useWorkspaceData();
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TaskStatus>(TaskStatus.TODO);
-  const [dueDate, setDueDate] = useState("");
-  const [assignedToId, setAssignedToId] = useState("");
-  const [assignedToName, setAssignedToName] = useState("");
-  const [linkedDeal, setLinkedDeal] = useState(dealId || "");
-  const [linkedContactId, setLinkedContactId] = useState(contactId || "");
-  const [linkedContactName, setLinkedContactName] = useState("");
-  const [linkedCompanyId, setLinkedCompanyId] = useState(companyId || "");
-  const [linkedCompanyName, setLinkedCompanyName] = useState("");
-  const [deals, setDeals] = useState<RecordOption[]>([]);
-  const [loading, setLoading] = useState(!!id);
+  const [initialStatus, setInitialStatus] = useState<TaskStatus>(
+    TaskStatus.TODO,
+  );
+  const [dueDate, setDueDate] = useState(() => (id ? "" : getTodayValue()));
+  const [assignedToId, setAssignedToId] = useState(() => (id ? "" : member.id));
+  const [assignedToName, setAssignedToName] = useState(() =>
+    id ? "" : user.name,
+  );
+  const [linkedRecord, setLinkedRecord] =
+    useState<RecordBrowserSelection | null>(null);
+  const [showRecordBrowser, setShowRecordBrowser] = useState(false);
+  const [loading, setLoading] = useState(Boolean(id || recordId));
 
   const [showOptions, setShowOptions] = useState(false);
+  const [showStatusMenu, setShowStatusMenu] = useState(false);
 
   const picker = useMemberPicker();
-  const contactPicker = useContactPicker();
-  const companyPicker = useCompanyPicker();
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateTriggerRect, setDateTriggerRect] = useState<DOMRect | null>(null);
 
   const isEditing = !!id;
 
-  // Load task data if editing
   useEffect(() => {
-    if (id) {
-      import("../../actions").then(({ getTasks }) => {
-        getTasks().then((tasks) => {
-          const task = tasks.find((t) => t.id === id);
+    let active = true;
+
+    async function loadInitialData() {
+      try {
+        if (id) {
+          const task = await getTaskById(id);
+          if (!active) return;
           if (task) {
             setName(task.name);
+            setDescription(task.description || "");
             setStatus(task.status);
+            setInitialStatus(task.status);
             setDueDate(
               task.dueDate
                 ? new Date(task.dueDate).toISOString().split("T")[0]
@@ -115,47 +117,24 @@ const TaskModal = ({
             if (task.assignedTo) {
               setAssignedToName(task.assignedTo.user.name || "");
             }
-            if (task.deal) {
-              setLinkedDeal(task.deal.id);
+            if (task.record) {
+              setLinkedRecord(task.record);
             }
           }
-          setLoading(false);
-        });
-      });
-    }
-  }, [id]);
-
-  // Load deals for linking
-  useEffect(() => {
-    getDeals()
-      .then((data) => {
-        const mapped = data.map((d) => ({
-          id: d.id,
-          label: d.title,
-          type: "deal" as const,
-          contactId: d.contact?.id || null,
-          contactName: d.contact?.name || null,
-          companyId: d.company?.id || null,
-          companyName: d.company?.name || null,
-        }));
-        setDeals(mapped);
-        // Autofill from initial dealId prop
-        if (dealId && !linkedContactId && !linkedCompanyId) {
-          const deal = mapped.find((d) => d.id === dealId);
-          if (deal) {
-            if (deal.contactId) {
-              setLinkedContactId(deal.contactId);
-              setLinkedContactName(deal.contactName || "");
-            }
-            if (deal.companyId) {
-              setLinkedCompanyId(deal.companyId);
-              setLinkedCompanyName(deal.companyName || "");
-            }
-          }
+        } else if (recordId) {
+          const record = await getLinkableRecord(recordId, ModuleFeature.TASKS);
+          if (active && record) setLinkedRecord(record);
         }
-      })
-      .catch(() => {});
-  }, []);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    void loadInitialData();
+    return () => {
+      active = false;
+    };
+  }, [id, recordId]);
 
   const handleSelectMember = (member: PickerMember) => {
     if (member) {
@@ -163,42 +142,6 @@ const TaskModal = ({
       setAssignedToName(member.name || "");
     }
   };
-
-  const handleSelectContact = (contact: PickerContact) => {
-    setLinkedContactId(contact.id);
-    setLinkedContactName(contact.name);
-    if (contact.companyId) {
-      setLinkedCompanyId(contact.companyId);
-      setLinkedCompanyName(contact.companyName || "");
-    }
-  };
-
-  const handleSelectCompany = (company: PickerCompany) => {
-    setLinkedCompanyId(company.id);
-    setLinkedCompanyName(company.name);
-    // Clear contact since it may not belong to the new company
-    if (linkedContactId) {
-      setLinkedContactId("");
-      setLinkedContactName("");
-    }
-  };
-
-  function handleDealChange(dealId: string) {
-    setLinkedDeal(dealId);
-    if (dealId) {
-      const deal = deals.find((d) => d.id === dealId);
-      if (deal) {
-        if (deal.contactId && !linkedContactId) {
-          setLinkedContactId(deal.contactId);
-          setLinkedContactName(deal.contactName || "");
-        }
-        if (deal.companyId && !linkedCompanyId) {
-          setLinkedCompanyId(deal.companyId);
-          setLinkedCompanyName(deal.companyName || "");
-        }
-      }
-    }
-  }
 
   async function handleSave() {
     if (!name.trim()) return;
@@ -211,10 +154,15 @@ const TaskModal = ({
       if (isEditing) {
         await updateTask(id!, {
           name: name.trim(),
+          description: description.trim(),
           dueDate: dueDate || null,
           assignedToId: assignedToId || null,
-          dealId: linkedDeal || null,
+          dealId: null,
+          recordId: linkedRecord?.id || null,
         });
+        if (status !== initialStatus) {
+          await updateTaskStatus(id!, status);
+        }
         t.success({
           title: "Task updated",
           description: `Your task "${name.trim()}" has been updated.`,
@@ -224,10 +172,11 @@ const TaskModal = ({
       } else {
         await createTask({
           name: name.trim(),
+          description: description.trim() || undefined,
           status,
           dueDate: dueDate || undefined,
           assignedToId: assignedToId || undefined,
-          dealId: linkedDeal || undefined,
+          recordId: linkedRecord?.id,
         });
         t.success({
           title: "Task created",
@@ -282,9 +231,9 @@ const TaskModal = ({
     }
   }
 
-  const linkedDealLabel = linkedDeal
-    ? deals.find((d) => d.id === linkedDeal)?.label
-    : null;
+  const activeStatus = STATUS_OPTIONS.find(
+    (option) => option.value === status,
+  )!;
 
   if (loading) return null;
 
@@ -376,15 +325,45 @@ const TaskModal = ({
             {dueDate ? `Due ${dueDate}` : "Set due date"}
           </button>
 
-          <select
-            className={Styles.recordSelect}
-            value={status}
-            onChange={(e) => setStatus(e.target.value as TaskStatus)}
-          >
-            <option value={TaskStatus.TODO}>To Do</option>
-            <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
-            <option value={TaskStatus.COMPLETED}>Completed</option>
-          </select>
+          <div className={Styles.statusControl}>
+            <button
+              className={Styles.statusButton}
+              onClick={() => setShowStatusMenu((current) => !current)}
+              aria-haspopup="menu"
+              aria-expanded={showStatusMenu}
+            >
+              <span
+                className={`${Styles.statusDot} ${Styles[activeStatus.tone]}`}
+              />
+              {activeStatus.label}
+              <ChevronDownRegular fontSize={15} />
+            </button>
+            {showStatusMenu && (
+              <div className={Styles.statusMenu} role="menu">
+                {STATUS_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    className={
+                      status === option.value ? Styles.selectedStatus : ""
+                    }
+                    onClick={() => {
+                      setStatus(option.value);
+                      setShowStatusMenu(false);
+                    }}
+                    role="menuitem"
+                  >
+                    <span
+                      className={`${Styles.statusDot} ${Styles[option.tone]}`}
+                    />
+                    {option.label}
+                    {status === option.value && (
+                      <CheckmarkCircleFilled fontSize={16} />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Description */}
@@ -398,43 +377,61 @@ const TaskModal = ({
           />
         </div>
 
-        {/* Assignee, Linked deal, Contact, Company */}
+        {/* Assignee and linked record */}
         <div className={Styles.taskMetaRow}>
           <button
             className={`${Styles.metaChip} ${assignedToId ? Styles.active : ""}`}
             onClick={(e) => picker.open(e.currentTarget)}
           >
-            <PersonRegular fontSize={18} />
+            {assignedToName ? (
+              <AvatarFallback
+                entityKind="customer"
+                entityId={assignedToId}
+                name={assignedToName}
+                size={24}
+                style={{ borderRadius: "6px" }}
+              />
+            ) : (
+              <PersonRegular fontSize={18} />
+            )}
             {assignedToName || "Assign to"}
           </button>
 
-          {linkedDealLabel ? (
-            <span className={Styles.linkedChip}>
-              <LinkRegular fontSize={12} />
-              {linkedDealLabel}
-            </span>
+          {linkedRecord ? (
+            <div className={Styles.linkedControl}>
+              <button
+                className={Styles.linkedChip}
+                onClick={() => setShowRecordBrowser(true)}
+              >
+                <span
+                  className={Styles.moduleIcon}
+                  style={{
+                    backgroundColor:
+                      linkedRecord.module.accentColor || "#5670ff",
+                  }}
+                >
+                  <ModuleIcon name={linkedRecord.module.icon} size={13} />
+                </span>
+                {linkedRecord.displayName}
+              </button>
+              <button
+                className={Styles.unlinkButton}
+                onClick={() => setLinkedRecord(null)}
+                aria-label="Unlink record"
+                title="Unlink record"
+              >
+                <DismissFilled fontSize={14} />
+              </button>
+            </div>
           ) : (
-            <select
-              className={Styles.recordSelect}
-              value={linkedDeal}
-              onChange={(e) => handleDealChange(e.target.value)}
+            <button
+              className={Styles.metaChip}
+              onClick={() => setShowRecordBrowser(true)}
             >
-              <option value="">Link deal</option>
-              {deals.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.label}
-                </option>
-              ))}
-            </select>
+              <LinkRegular fontSize={17} />
+              Link record
+            </button>
           )}
-
-          <button
-            className={`${Styles.metaChip} ${linkedContactId ? Styles.active : ""}`}
-            onClick={(e) => contactPicker.open(e.currentTarget)}
-          >
-            <PersonRegular fontSize={18} />
-            {linkedContactName || "Contact"}
-          </button>
         </div>
       </div>
 
@@ -449,21 +446,6 @@ const TaskModal = ({
           triggerRect={picker.triggerRect}
           onSelect={handleSelectMember}
           onClose={picker.close}
-        />
-      )}
-      {contactPicker.isOpen && contactPicker.triggerRect && (
-        <ContactPicker
-          triggerRect={contactPicker.triggerRect}
-          companyId={linkedCompanyId || undefined}
-          onSelect={handleSelectContact}
-          onClose={contactPicker.close}
-        />
-      )}
-      {companyPicker.isOpen && companyPicker.triggerRect && (
-        <CompanyPicker
-          triggerRect={companyPicker.triggerRect}
-          onSelect={handleSelectCompany}
-          onClose={companyPicker.close}
         />
       )}
       {showDatePicker && dateTriggerRect && (
@@ -481,6 +463,14 @@ const TaskModal = ({
             setShowDatePicker(false);
           }}
           onClose={() => setShowDatePicker(false)}
+        />
+      )}
+      {showRecordBrowser && (
+        <RecordBrowserOverlay
+          requiredFeature={ModuleFeature.TASKS}
+          selectedRecordId={linkedRecord?.id}
+          onSelect={setLinkedRecord}
+          onClose={() => setShowRecordBrowser(false)}
         />
       )}
     </div>

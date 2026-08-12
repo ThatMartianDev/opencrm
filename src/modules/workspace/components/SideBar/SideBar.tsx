@@ -21,9 +21,6 @@ import {
   SettingsRegular,
   SignOutRegular,
   CheckmarkFilled,
-  TargetFilled,
-  PeopleFilled,
-  BuildingFilled,
 } from "@fluentui/react-icons";
 
 import { useWorkspaceData } from "../workspace-provider";
@@ -37,6 +34,7 @@ import AvatarFallback from "@/components/micro/AvatarFallback/AvatarFallback";
 import Styles from "./SideBar.module.css";
 import ModalStyles from "@/components/macro/ModalProvider/ModalProvider.module.css";
 import { useModal } from "@/components/macro/ModalProvider/ModalProvider";
+import ModuleIcon from "@/modules/RecordModule/ui/components/ModuleIcon";
 
 const NotificationBadge = ({
   unreadCount,
@@ -74,14 +72,18 @@ const NotificationBadge = ({
 const SideBar = () => {
   const { openModal, closeModal } = useModal();
   const pathname = usePathname();
-  const { organizationId, organization, user } = useWorkspaceData();
+  const { organizationId, organization, user, recordModules } =
+    useWorkspaceData();
   const linksPrefix = "/app/" + organizationId;
   const [showOrgMenu, setShowOrgMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [openRecordMenuId, setOpenRecordMenuId] = useState<string | null>(null);
   const { unreadCount } = useNotifications();
 
+  const [showMySpaceNav, setShowMySpaceNav] = useState(true);
+  const [showRecordsNav, setShowRecordsNav] = useState(true);
   const [openSideBar, setOpenSideBar] = useState(true);
 
   const isActive = (href: string) => {
@@ -106,7 +108,7 @@ const SideBar = () => {
     return () => {
       window.removeEventListener("keydown", handleONkeydown);
     };
-  }, []);
+  }, [closeModal, openModal]);
 
   return (
     <div
@@ -229,49 +231,60 @@ const SideBar = () => {
           </div>
         )}
 
-        <nav className={Styles.nav}>
-          <Link
-            title="Home"
-            href={linksPrefix + "/home"}
-            className={isActive(linksPrefix + "/home") ? Styles.active : ""}
-          >
-            <HomeRegular />
-            <p>Home</p>
-          </Link>
-          <Link
-            title="Tasks"
-            href={linksPrefix + "/tasks"}
-            className={isActive(linksPrefix + "/tasks") ? Styles.active : ""}
-          >
-            <TaskListSquareLtrRegular />
-            <p>Tasks</p>
-          </Link>
-          <Link
-            title="Notes"
-            href={linksPrefix + "/notes"}
-            className={isActive(linksPrefix + "/notes") ? Styles.active : ""}
-          >
-            <NoteRegular />
-            <p>Notes</p>
-          </Link>
-          <Link
-            title="Emails"
-            href={linksPrefix + "/emails"}
-            className={isActive(linksPrefix + "/emails") ? Styles.active : ""}
-          >
-            <MailRegular />
-            <p>Emails</p>
-          </Link>
-          <Link
-            title="Calendar"
-            href={linksPrefix + "/calendar"}
-            className={isActive(linksPrefix + "/calendar") ? Styles.active : ""}
-          >
-            <CalendarRegular />
-            <p>Calendar</p>
-          </Link>
+        <nav className={`${Styles.nav} ${showMySpaceNav ? Styles.expanded : ""}`}>
+          <div className={Styles.nav_header}>
+            <button className={`${Styles.expand_nav_btn}`} onClick={()=>{setShowMySpaceNav(!showMySpaceNav)}}>
+              <ChevronDownFilled />
+              <p>My Space</p>
+            </button>
+          </div>
+          <div className={Styles.nav_body}>
+            <Link
+              title="Home"
+              href={linksPrefix + "/home"}
+              className={isActive(linksPrefix + "/home") ? Styles.active : ""}
+            >
+              <HomeRegular />
+              <p>Home</p>
+            </Link>
+            <Link
+              title="Tasks"
+              href={linksPrefix + "/tasks"}
+              className={isActive(linksPrefix + "/tasks") ? Styles.active : ""}
+            >
+              <TaskListSquareLtrRegular />
+              <p>Tasks</p>
+            </Link>
+            <Link
+              title="Notes"
+              href={linksPrefix + "/notes"}
+              className={isActive(linksPrefix + "/notes") ? Styles.active : ""}
+            >
+              <NoteRegular />
+              <p>Notes</p>
+            </Link>
+            <Link
+              title="Emails"
+              href={linksPrefix + "/emails"}
+              className={isActive(linksPrefix + "/emails") ? Styles.active : ""}
+            >
+              <MailRegular />
+              <p>Emails</p>
+            </Link>
+            <Link
+              title="Calendar"
+              href={linksPrefix + "/calendar"}
+              className={
+                isActive(linksPrefix + "/calendar") ? Styles.active : ""
+              }
+            >
+              <CalendarRegular />
+              <p>Calendar</p>
+            </Link>
+          </div>
         </nav>
-        <nav className={Styles.nav}>
+        <nav className={`${Styles.nav} ${showRecordsNav ? Styles.expanded : ""}`}>
+          {/* Legacy fixed record modules are replaced by configurable record modules.
           <Link
             title="Deals"
             href={linksPrefix + "/deals"}
@@ -304,6 +317,101 @@ const SideBar = () => {
             </span>
             <p>Companies</p>
           </Link>
+          */}
+          <div className={Styles.nav_header}>
+            <button className={Styles.expand_nav_btn} onClick={()=>{setShowRecordsNav(!showRecordsNav)}}>
+              <ChevronDownFilled />
+              <p>Records</p>
+            </button>
+            <button className={Styles.nav_icon_btn}
+              onClick={() => openModal("new-module")}
+              title="New Record Module"
+            >
+              <AddFilled fontSize={14}/>
+            </button>
+          </div>
+          <div className={Styles.nav_body}>
+            {recordModules.map((module) => {
+              const moduleName = module.pluralName ?? module.name;
+              const moduleHref = `${linksPrefix}/${module.key}`;
+
+              return (
+                <div
+                  className={`${Styles.recordModuleItem} ${isActive(moduleHref) ? Styles.active : ""}`}
+                  key={module.id}
+                >
+                  <Link title={moduleName} href={moduleHref}>
+                    <span
+                      style={{
+                        backgroundColor: module.accentColor ?? "#5670ff",
+                      }}
+                    >
+                      <ModuleIcon name={module.icon} />
+                    </span>
+                    <p>{moduleName}</p>
+                  </Link>
+                  {openSideBar && (
+                    <button
+                      type="button"
+                      className={Styles.recordMenuButton}
+                      title={`${moduleName} options`}
+                      aria-label={`${moduleName} options`}
+                      aria-expanded={openRecordMenuId === module.id}
+                      onClick={() =>
+                        setOpenRecordMenuId((current) =>
+                          current === module.id ? null : module.id,
+                        )
+                      }
+                    >
+                      <MoreVerticalFilled />
+                    </button>
+                  )}
+                  {openRecordMenuId === module.id && (
+                    <>
+                      <button
+                        className={Styles.recordMenuBackdrop}
+                        aria-label="Close module options"
+                        onClick={() => setOpenRecordMenuId(null)}
+                      />
+                      <div className={Styles.recordMenu}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpenRecordMenuId(null);
+                            openModal("new-module", { moduleId: module.id });
+                          }}
+                        >
+                          <SettingsRegular />
+                          <span>Manage</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpenRecordMenuId(null);
+                            openModal("create-record", {
+                              moduleKey: module.key,
+                            });
+                          }}
+                        >
+                          <AddRegular />
+                          <span>New {module.name}</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+            {recordModules.length === 0 && (
+              <button
+                className={Styles.newModuleButton}
+                onClick={() => openModal("new-module")}
+              >
+                <AddFilled />
+                <p>New Module</p>
+              </button>
+            )}
+          </div>
         </nav>
 
         {!openSideBar && (

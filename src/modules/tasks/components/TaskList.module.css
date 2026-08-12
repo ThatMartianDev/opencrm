@@ -237,12 +237,19 @@
     border-radius: 6px;
     font-size: var(--font-size-xs);
     font-weight: 500;
-    background: rgba(0, 130, 54, 0.08);
-    color: rgba(0, 130, 54, 1);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 100%;
+}
+
+.linkedModuleIcon {
+    width: 18px;
+    height: 18px;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 4px;
 }
 
 /* Selection states */
@@ -396,4 +403,27 @@
 
 .bulkDropdown button:hover {
     background: var(--bg-03);
+}
+
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px 0 4px;
+    font-size: var(--font-size-sm);
+}
+
+.pagination button {
+    padding: 6px 10px;
+    border: 1px solid var(--border-100);
+    border-radius: 6px;
+    background: var(--bg-00);
+    color: var(--text-color);
+    cursor: pointer;
+}
+
+.pagination button:disabled {
+    cursor: default;
+    opacity: 0.45;
 }

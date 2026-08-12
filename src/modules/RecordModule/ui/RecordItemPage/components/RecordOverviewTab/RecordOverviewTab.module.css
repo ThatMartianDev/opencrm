@@ -1,0 +1,356 @@
+.overviewTab {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(360px, 1fr);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.details {
+  min-width: 0;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+.details>h2 {
+  margin-bottom: 12px;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+
+.infoTable {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--border-100);
+  border-radius: 12px;
+}
+
+.infoRow {
+  display: grid;
+  min-height: 44px;
+  grid-template-columns: minmax(150px, 1fr) minmax(0, 1fr);
+  border-bottom: 1px solid var(--border-100);
+}
+
+.infoRow:last-child {
+  border-bottom: 0;
+}
+
+.infoLabel,
+.valueButton,
+.readOnlyValue {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  padding: 10px;
+  font-size: var(--font-size-sm);
+  text-align: left;
+}
+
+.infoLabel {
+  color: var(--text-color);
+}
+
+.infoLabel svg {
+  flex: 0 0 auto;
+  color: var(--grey-500);
+}
+
+.valueButton {
+  width: 100%;
+  cursor: pointer;
+}
+
+.valueButton:hover {
+  outline: 1px solid var(--border-100);
+  background: var(--bg-02);
+}
+
+.valueButton:disabled {
+  cursor: wait;
+}
+
+.ownerValue {
+  min-height: 43px;
+  border: 0;
+  border-radius: 0;
+  padding-left: 10px;
+}
+
+button.ownerValue:hover:not(:disabled) {
+  outline: 1px solid var(--border-100);
+}
+
+.relationshipValue {
+  position: relative;
+  min-width: 0;
+}
+
+.relationshipValue>div {
+  height: 100%;
+}
+
+.relationshipTrigger {
+  height: 100%;
+  min-height: 43px;
+  border: 0;
+  border-radius: 0;
+  padding-right: 44px;
+}
+
+.relationshipTrigger:hover:not(:disabled) {
+  outline: 1px solid var(--border-100);
+}
+
+.openRelationship {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  translate: 0 -50%;
+  border-radius: 6px;
+  color: var(--text-secondary);
+}
+
+.openRelationship:hover {
+  background: var(--bg-04);
+  color: var(--text-color);
+}
+
+.valueButton p,
+.readOnlyValue {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.optionDot,
+.multiOptions label>span {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  border-radius: 50%;
+}
+
+.inlineInput {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 1px solid var(--border-200);
+  padding: 10px;
+  background: var(--bg-02);
+  color: var(--text-color);
+  font: inherit;
+  font-size: var(--font-size-sm);
+}
+
+textarea.inlineInput {
+  min-height: 86px;
+  resize: vertical;
+}
+
+.multiSelectEditor {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-02);
+}
+
+.multiOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 12px;
+}
+
+.multiOptions label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+
+.editorActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.editorActions button {
+  border: 1px solid var(--border-100);
+  border-radius: 6px;
+  padding: 4px 9px;
+  font-size: var(--font-size-xs);
+}
+
+.editorActions button:last-child {
+  background: var(--text-color);
+  color: var(--bg-00);
+}
+
+.linkedRecords {
+  margin-top: 24px;
+}
+
+.linkedRecords>h2 {
+  margin-bottom: 12px;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+
+.linkedRecordGroups {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--border-100);
+  border-radius: 8px;
+}
+
+.linkedRecordGroup {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  min-width: 0;
+  border-bottom: 1px solid var(--border-100);
+  transition: all 0.3s ease;
+  align-items: flex-start;
+}
+
+.linkedRecordGroup.collapsed {
+  grid-template-rows: auto 0fr;
+}
+
+.linkedRecordGroup:last-child {
+  border-bottom: 0;
+}
+
+.linkedRecordGroupHeader {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 10px 8px 12px;
+  overflow: hidden;
+}
+
+.linkedRecordGroupIdentity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.linkedModuleIcon {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.linkedRecordGroupIdentity h3 {
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linkedRecordCount {
+  display: inline-flex;
+  min-width: 21px;
+  height: 21px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-100);
+  border-radius: 999px;
+  padding: 0 6px;
+  background: var(--bg-00);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.linkedRecordToggle {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--text-secondary);
+}
+
+.linkedRecordToggle:hover {
+  background: var(--bg-04);
+  color: var(--text-color);
+}
+
+.linkedRecordGroupBodyWrapper {
+  display: grid;
+  overflow: hidden;
+}
+
+.linkedRecordGroupBody {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-top: 1px solid var(--border-100);
+  padding: 10px 12px;
+}
+
+.linkedRecordPill {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--border-100);
+  border-radius: 10px;
+  padding: 6px 10px 6px 6px;
+  color: var(--text-color);
+}
+
+.linkedRecordPill:hover {
+  border-color: var(--border-200);
+  background: var(--bg-02);
+}
+
+.linkedRecordPill>span {
+  overflow: hidden;
+  max-width: 220px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .overviewTab {
+    display: flex;
+    overflow-y: auto;
+    flex-direction: column;
+  }
+
+  .details {
+    flex: 0 0 auto;
+    overflow: visible;
+    padding: 18px 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  .infoRow {
+    grid-template-columns: minmax(110px, 0.8fr) minmax(0, 1.2fr);
+  }
+}

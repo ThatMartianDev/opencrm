@@ -1,4 +1,4 @@
-export type EntityType = "deal" | "contact" | "company";
+export type EntityType = "deal" | "contact" | "company" | "record";
 
 export type EntityRef = {
     entityType: EntityType;

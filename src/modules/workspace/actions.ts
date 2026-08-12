@@ -229,10 +229,24 @@ export async function removeMember(memberId: string) {
 
     const target = await prisma.member.findFirst({
         where: { id: memberId, organizationId: session.organizationId },
+        include: {
+            _count: {
+                select: {
+                    ownedRecords: true,
+                    createdNotes: true,
+                },
+            },
+        },
     });
 
     if (!target) throw new Error("Member not found");
     if (target.role === "OWNER") throw new Error("Cannot remove the workspace owner");
+    if (target._count.ownedRecords > 0) {
+        throw new Error("Transfer this member's records before removing them");
+    }
+    if (target._count.createdNotes > 0) {
+        throw new Error("Delete or reassign this member's notes before removing them");
+    }
 
     await prisma.member.delete({ where: { id: memberId } });
 

@@ -8,7 +8,7 @@ import { logActivity } from "../actions";
 import { EntityType } from "../types";
 
 
-import { ActivityType, ActivitySource, ActivityOutcome } from "@/generated/prisma/enums";
+import { ActivityType, ActivityOutcome } from "@/generated/prisma/enums";
 import {ACTIVITY_TYPES, ACTIVITY_VERDICTS} from "@/modules/activity-log/components/enums";
 
 type LogActivityModalProps = {
@@ -31,15 +31,19 @@ const LogActivityModal = ({
 
   async function handleSubmit() {
     if (!activityType || !entityType || !entityId) return;
+    const typeLabel = ACTIVITY_TYPES.find((type) => type.value === activityType)?.label;
+    const outcomeLabel = ACTIVITY_VERDICTS.find(
+      (verdict) => verdict.parent === activityType,
+    )?.options.find((option) => option.value === outcome)?.label;
     setLoading(true);
     try {
       await logActivity({
         entityType,
         entityId,
-        activityType: activityType,
+        activityType,
         outcome: outcome || undefined,
-        title: `${ACTIVITY_TYPES.find(t => t.value === activityType)?.label} - ${ACTIVITY_VERDICTS.find(v => v.parent === activityType)?.options.find(o => o.value === outcome)?.label}`,
-        metadata: note ? { note } : undefined, 
+        title: outcomeLabel ? `${typeLabel} - ${outcomeLabel}` : typeLabel ?? "Activity logged",
+        description: note.trim() || undefined,
       });
       onSuccess?.();
       onClose();

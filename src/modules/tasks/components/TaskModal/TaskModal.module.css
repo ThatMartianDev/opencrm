@@ -185,6 +185,124 @@
     border-color: var(--border-200);
 }
 
+.linkedControl {
+    display: inline-flex;
+    align-items: stretch;
+    min-width: 0;
+}
+
+.linkedChip {
+    min-width: 0;
+    border-radius: 6px 0 0 6px;
+}
+
+.moduleIcon {
+    width: 24px;
+    height: 24px;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 5px;
+}
+
+.unlinkButton {
+    width: 30px;
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--border-100);
+    border-left: 0;
+    border-radius: 0 6px 6px 0;
+    background: var(--bg-00);
+    color: var(--text-color);
+    cursor: pointer;
+}
+
+.unlinkButton:hover {
+    background: rgba(190, 30, 45, 0.08);
+    color: #a3152b;
+}
+
+.statusControl {
+    position: relative;
+}
+
+.statusButton {
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 8px;
+    border: 1px solid var(--border-100);
+    border-radius: 7px;
+    background: var(--bg-00);
+    color: var(--text-color);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+}
+
+.statusButton:hover {
+    border-color: var(--border-200);
+    background: var(--bg-01);
+}
+
+.statusDot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--grey-300);
+}
+
+.statusDot.todo {
+    background: #89909a;
+}
+
+.statusDot.progress {
+    background: #d18a18;
+}
+
+.statusDot.completed {
+    background: #1f9c49;
+}
+
+.statusMenu {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 5px);
+    left: 0;
+    width: 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 5px;
+    border: 1px solid var(--border-200);
+    border-radius: 8px;
+    background: var(--bg-00);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
+}
+
+.statusMenu button {
+    min-height: 34px;
+    display: grid;
+    grid-template-columns: 12px 1fr 18px;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text-color);
+    text-align: left;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+}
+
+.statusMenu button:hover,
+.statusMenu .selectedStatus {
+    background: var(--bg-03);
+}
+
 
 .taskModalFooter {
     display: flex;
@@ -193,16 +311,4 @@
     gap: 8px;
     padding: 8px 10px;
     border-top: 1px solid var(--border-100);
-}
-
-.recordSelect {
-    border: 1px solid var(--border-100);
-    border-radius: 6px;
-    padding: 4px 8px;
-    font-size: var(--font-size-xs);
-    background: var(--bg-00);
-    color: var(--text-color);
-    outline: none;
-    cursor: pointer;
-    max-width: 160px;
 }

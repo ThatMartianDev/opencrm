@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AddRegular,
   TargetRegular,
@@ -14,22 +14,52 @@ import {
   getNotesForDeal,
   getNotesForContact,
   getNotesForCompany,
+  getNotesForRecord,
   deleteNote,
 } from "../actions";
 import AvatarFallback from "@/components/micro/AvatarFallback/AvatarFallback";
 import { useModal } from "@/components/macro/ModalProvider/ModalProvider";
 import { useToast } from "@/components/macro/Toaster";
+import ModuleIcon from "@/modules/RecordModule/ui/components/ModuleIcon";
+import NoteContent from "./NoteContent/NoteContent";
 import Styles from "./NoteList.module.css";
 
-type NoteData = Awaited<ReturnType<typeof getNotes>>[number];
+type NotePageData = Awaited<ReturnType<typeof getNotes>>;
+type NoteData = NotePageData["items"][number];
 
 type NoteListProps = {
   dealId?: string;
   contactId?: string;
   companyId?: string;
+  recordId?: string;
   showHeader?: boolean;
   onCreateClick?: () => void;
+  initialPage?: NotePageData;
 };
+
+const PAGE_SIZE = 20;
+
+const loadNotes = ({
+  dealId,
+  contactId,
+  companyId,
+  recordId,
+  page,
+}: Pick<NoteListProps, "dealId" | "contactId" | "companyId" | "recordId"> & {
+  page: number;
+}) => {
+  const query = { page, pageSize: PAGE_SIZE };
+  if (recordId) return getNotesForRecord(recordId, query);
+  if (dealId) return getNotesForDeal(dealId, query);
+  if (contactId) return getNotesForContact(contactId, query);
+  if (companyId) return getNotesForCompany(companyId, query);
+  return getNotes(query);
+};
+
+const getQueryKey = (
+  { dealId, contactId, companyId, recordId }: NoteListProps,
+  page: number,
+) => `${recordId ?? dealId ?? contactId ?? companyId ?? "all"}:${page}`;
 
 function formatDate(date: string | Date): string {
   const d = new Date(date);
@@ -39,6 +69,7 @@ function formatDate(date: string | Date): string {
 function getLinkedRecordLabel(
   note: NoteData,
 ): { label: string; type: string } | null {
+  if (note.record) return { label: note.record.displayName, type: "record" };
   if (note.dealId) return { label: "Deal", type: "deal" };
   if (note.contactId) return { label: "Contact", type: "contact" };
   if (note.companyId) return { label: "Company", type: "company" };
@@ -71,19 +102,56 @@ const NoteCard = ({
   const linked = getLinkedRecordLabel(note);
 
   const creator = note.createdBy
-    ? { id: note.createdBy.user.id, name: note.createdBy.user.name || "Unknown", avatarUrl: note.createdBy.user.avatarUrl }
+    ? {
+        id: note.createdBy.user.id,
+        name: note.createdBy.user.name || "Unknown",
+        avatarUrl: note.createdBy.user.avatarUrl,
+      }
     : null;
 
   return (
-    <div className={Styles.noteCard} onClick={onClick} style={{ cursor: "pointer" }}>
+    <div
+      className={Styles.noteCard}
+      onClick={onClick}
+      style={{ cursor: "pointer" }}
+    >
       <div className={Styles.noteCardHeader}>
-        <p className={Styles.noteTitle}>{note.title || "Untitled note"}</p>
         <button
           className={`${Styles.showActionsMenu}`}
-          onClick={(e) => { e.stopPropagation(); setShowActions(!showActions); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowActions(!showActions);
+          }}
         >
           <MoreVerticalFilled fontSize={14} />
         </button>
+        {linked && (
+          <span className={`${Styles.linkedRecord} ${Styles[linked.type]}`}>
+            {note.record ? (
+              <span
+                className={Styles.moduleIcon}
+                style={{
+                  backgroundColor: note.record.module.accentColor || "#5670ff",
+                }}
+              >
+                <ModuleIcon name={note.record.module.icon} size={11} />
+              </span>
+            ) : (
+              getLinkedRecordIcon(linked.type)
+            )}
+            {note.record
+              ? note.record.displayName
+              : note.deal
+                ? note.deal.title
+                : note.contact
+                  ? note.contact.name
+                  : note.company
+                    ? note.company.name
+                    : ""}
+          </span>
+        )}
+
+        <p className={Styles.noteTitle}>{note.title || "Untitled note"}</p>
       </div>
       <div
         className={`${Styles.noteActions} ${showActions ? Styles.show : ""}`}
@@ -99,14 +167,7 @@ const NoteCard = ({
         </button>
       </div>
 
-      <div className={Styles.noteContent}>{note.content}</div>
-
-      {linked && (
-        <span className={`${Styles.linkedRecord} ${Styles[linked.type]}`}>
-          {getLinkedRecordIcon(linked.type)}
-          {note.deal ? note.deal.title : note.contact ? note.contact.name : note.company ? note.company.name : ""}
-        </span>
-      )}
+      <NoteContent content={note.content} minimizeFontSize={true} />
 
       <div className={Styles.noteFooter}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -130,43 +191,77 @@ const NoteList = ({
   dealId,
   contactId,
   companyId,
+  recordId,
   showHeader = true,
   onCreateClick,
+  initialPage,
 }: NoteListProps) => {
-  const [notes, setNotes] = useState<NoteData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [notePage, setNotePage] = useState<NotePageData>(
+    initialPage ?? {
+      items: [],
+      pagination: { page: 1, pageSize: PAGE_SIZE, hasNext: false },
+    },
+  );
+  const [page, setPage] = useState(initialPage?.pagination.page ?? 1);
+  const [loading, setLoading] = useState(!initialPage);
   const { openModal } = useModal();
   const { toast } = useToast();
+  const loadRequestId = useRef(0);
+  const loadedQueryKey = useRef<string | null>(
+    initialPage
+      ? getQueryKey({ dealId, contactId, companyId, recordId }, page)
+      : null,
+  );
+  const notes = notePage.items;
 
   const fetchNotes = useCallback(async () => {
+    const queryKey = getQueryKey(
+      { dealId, contactId, companyId, recordId },
+      page,
+    );
+    const requestId = ++loadRequestId.current;
+    loadedQueryKey.current = queryKey;
+    setLoading(true);
+
     try {
-      let data: NoteData[];
-      if (dealId) {
-        data = await getNotesForDeal(dealId);
-      } else if (contactId) {
-        data = await getNotesForContact(contactId);
-      } else if (companyId) {
-        data = await getNotesForCompany(companyId);
-      } else {
-        data = await getNotes();
+      const data = await loadNotes({
+        dealId,
+        contactId,
+        companyId,
+        recordId,
+        page,
+      });
+      if (requestId !== loadRequestId.current) return;
+
+      if (data.items.length === 0 && page > 1) {
+        loadedQueryKey.current = null;
+        setPage((current) => current - 1);
+        return;
       }
-      setNotes(data);
+
+      setNotePage(data);
     } catch (error) {
+      if (requestId !== loadRequestId.current) return;
       console.error("Error fetching notes:", error);
     } finally {
-      setLoading(false);
+      if (requestId === loadRequestId.current) setLoading(false);
     }
-  }, [dealId, contactId, companyId]);
+  }, [dealId, contactId, companyId, recordId, page]);
 
   useEffect(() => {
-    fetchNotes();
-  }, [fetchNotes]);
+    const queryKey = getQueryKey(
+      { dealId, contactId, companyId, recordId },
+      page,
+    );
+    if (loadedQueryKey.current === queryKey) return;
+    void fetchNotes();
+  }, [companyId, contactId, dealId, fetchNotes, page, recordId]);
 
   function handleCreate() {
     if (onCreateClick) {
       onCreateClick();
     } else {
-      openModal("note", { dealId, contactId, companyId });
+      openModal("note", { dealId, contactId, companyId, recordId }, fetchNotes);
     }
   }
 
@@ -184,7 +279,8 @@ const NoteList = ({
     } catch (err) {
       t.error({
         title: "Failed to delete note",
-        description: err instanceof Error ? err.message : "Something went wrong.",
+        description:
+          err instanceof Error ? err.message : "Something went wrong.",
       });
     }
   }
@@ -215,9 +311,36 @@ const NoteList = ({
 
       <div className={Styles.grid}>
         {notes.map((note) => (
-          <NoteCard key={note.id} note={note} onDelete={handleDelete} onClick={() => openModal("note", { id: note.id })} />
+          <NoteCard
+            key={note.id}
+            note={note}
+            onDelete={handleDelete}
+            onClick={() =>
+              openModal("note", { id: note.id, recordId }, fetchNotes)
+            }
+          />
         ))}
       </div>
+
+      {(page > 1 || notePage.pagination.hasNext) && (
+        <nav className={Styles.pagination} aria-label="Note pages">
+          <button
+            type="button"
+            disabled={page === 1 || loading}
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+          >
+            Previous
+          </button>
+          <span>Page {page}</span>
+          <button
+            type="button"
+            disabled={!notePage.pagination.hasNext || loading}
+            onClick={() => setPage((current) => current + 1)}
+          >
+            Next
+          </button>
+        </nav>
+      )}
     </div>
   );
 };

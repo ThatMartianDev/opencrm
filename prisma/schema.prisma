@@ -22,19 +22,23 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  members        Member[]
-  companies      Company[]
-  contacts       Contact[]
-  deals          Deal[]
-  tasks          Task[]
-  notes          Note[]
-  tags           Tag[]
-  activities     Activity[]
-  files          File[]
-  invitations    Invitation[]
-  calendarEvents CalendarEvent[]
-  emails         Email[]
-  notifications  Notification[]
+  members             Member[]
+  companies           Company[]
+  contacts            Contact[]
+  deals               Deal[]
+  tasks               Task[]
+  notes               Note[]
+  tags                Tag[]
+  activities          Activity[]
+  files               File[]
+  invitations         Invitation[]
+  calendarEvents      CalendarEvent[]
+  emails              Email[]
+  accounts            Account[]
+  notifications       Notification[]
+  recordModules       RecordModule[]
+  recordItems         RecordItem[]
+  recordRelationships RecordRelationship[]
 
   @@map("organizations")
 }
@@ -59,19 +63,22 @@ model User {
 model Account {
   id                String    @id @default(cuid())
   userId            String
-  provider          String    // "google" | "google_calendar"
+  organizationId    String?
+  provider          String // "google" | "google_calendar"
   providerAccountId String
   accessToken       String?
   refreshToken      String?
   tokenExpiresAt    DateTime?
   scope             String?
-  syncToken         String?   // For Google Calendar incremental sync
+  syncToken         String? // For Google Calendar incremental sync
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, provider, providerAccountId])
+  @@unique([userId, organizationId, provider, providerAccountId])
+  @@index([organizationId])
   @@map("accounts")
 }
 
@@ -87,25 +94,28 @@ model EmailVerification {
 }
 
 model Member {
-  id             String       @id @default(cuid())
+  id             String     @id @default(cuid())
   userId         String
   organizationId String
-  role           MemberRole   @default(MEMBER)
-  permissions    String[]     @default([])
-  joinedAt       DateTime     @default(now())
+  role           MemberRole @default(MEMBER)
+  permissions    String[]   @default([])
+  joinedAt       DateTime   @default(now())
 
   user         User         @relation(fields: [userId], references: [id])
   organization Organization @relation(fields: [organizationId], references: [id])
 
-  assignedDeals  Deal[]     @relation("AssignedDeals")
-  assignedTasks  Task[]     @relation("AssignedTasks")
-  activities     Activity[]
-  createdNotes   Note[]     @relation("NoteCreator")
-  createdDeals   Deal[]     @relation("DealCreator")
-  createdContacts Contact[] @relation("ContactCreator")
-  createdCompanies Company[] @relation("CompanyCreator")
-  createdTasks   Task[]     @relation("TaskCreator")
-  notifications  Notification[]
+  assignedDeals            Deal[]             @relation("AssignedDeals")
+  assignedTasks            Task[]             @relation("AssignedTasks")
+  activities               Activity[]
+  createdNotes             Note[]             @relation("NoteCreator")
+  createdDeals             Deal[]             @relation("DealCreator")
+  createdContacts          Contact[]          @relation("ContactCreator")
+  createdCompanies         Company[]          @relation("CompanyCreator")
+  createdTasks             Task[]             @relation("TaskCreator")
+  createdRecordModuleViews RecordModuleView[] @relation("RecordModuleViewCreator")
+  createdRecords           RecordItem[]       @relation("RecordItemCreator")
+  ownedRecords             RecordItem[]       @relation("RecordItemOwner")
+  notifications            Notification[]
 
   @@unique([userId, organizationId])
   @@map("members")
@@ -119,15 +129,15 @@ enum MemberRole {
 }
 
 model Invitation {
-  id             String       @id @default(cuid())
+  id             String     @id @default(cuid())
   email          String
-  token          String       @unique
-  role           MemberRole   @default(MEMBER)
+  token          String     @unique
+  role           MemberRole @default(MEMBER)
   organizationId String
   invitedById    String
   expiresAt      DateTime
   acceptedAt     DateTime?
-  createdAt      DateTime     @default(now())
+  createdAt      DateTime   @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id])
 
@@ -137,6 +147,225 @@ model Invitation {
 
 // ─── Core CRM Models ───
 
+// Record Module
+
+model RecordModule {
+  id             String @id @default(cuid())
+  organizationId String
+
+  key        String
+  name       String
+  pluralName String?
+
+  icon        String
+  accentColor String?
+
+  features ModuleFeature[]
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  fields                       RecordField[]
+  records                      RecordItem[]
+  views                        RecordModuleView[]
+  relationshipFieldDefinitions RecordRelationshipDefinition[] @relation("RelationshipTargetModule")
+
+  @@unique([organizationId, key])
+  @@index([organizationId])
+}
+
+model RecordModuleView {
+  id String @id @default(cuid())
+
+  moduleId String
+  module   RecordModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  name String
+
+  type RecordViewType
+
+  position Int @default(0)
+
+  isDefault Boolean @default(false)
+
+  config Json?
+
+  createdById String?
+  createdBy   Member? @relation("RecordModuleViewCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([moduleId])
+}
+
+model RecordField {
+  id String @id @default(cuid())
+
+  moduleId String
+  module   RecordModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  key   String
+  label String
+
+  type RecordFieldType
+
+  required Boolean @default(false)
+  unique   Boolean @default(false)
+
+  isPrimary Boolean @default(false)
+  isSystem  Boolean @default(false)
+
+  position Int @default(0)
+
+  config       Json?
+  defaultValue Json?
+
+  values                 RecordFieldValue[]
+  relationshipDefinition RecordRelationshipDefinition?
+  relationships          RecordRelationship[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([moduleId, key])
+  @@index([moduleId])
+  @@index([moduleId, position])
+}
+
+model RecordItem {
+  id String @id @default(cuid())
+
+  organizationId String
+  moduleId       String
+
+  displayName String
+
+  module       RecordModule @relation(fields: [moduleId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  values                RecordFieldValue[]
+  outgoingRelationships RecordRelationship[] @relation("RelationshipSource")
+  incomingRelationships RecordRelationship[] @relation("RelationshipTarget")
+
+  notes Note[]
+  tasks Task[]
+  files File[]
+  activities Activity[]
+
+  createdById String?
+  createdBy   Member? @relation("RecordItemCreator", fields: [createdById], references: [id])
+
+  ownerId String
+  owner   Member @relation("RecordItemOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+
+  @@index([organizationId])
+  @@index([moduleId])
+  @@index([organizationId, moduleId])
+  @@index([organizationId, ownerId])
+  @@index([moduleId, ownerId])
+}
+
+model RecordFieldValue {
+  id String @id @default(cuid())
+
+  recordId String
+  fieldId  String
+
+  value           Json
+  normalizedValue String?
+
+  record RecordItem  @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  field  RecordField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([recordId, fieldId])
+  @@unique([fieldId, normalizedValue])
+  @@index([recordId])
+  @@index([fieldId])
+}
+
+model RecordRelationshipDefinition {
+  fieldId        String @id
+  targetModuleId String
+
+  field        RecordField  @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  targetModule RecordModule @relation("RelationshipTargetModule", fields: [targetModuleId], references: [id], onDelete: Restrict)
+
+  @@index([targetModuleId])
+}
+
+model RecordRelationship {
+  id             String @id @default(cuid())
+  organizationId String
+  fieldId        String
+  sourceRecordId String
+  targetRecordId String
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  field        RecordField  @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  sourceRecord RecordItem   @relation("RelationshipSource", fields: [sourceRecordId], references: [id], onDelete: Cascade)
+  targetRecord RecordItem   @relation("RelationshipTarget", fields: [targetRecordId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([fieldId, sourceRecordId])
+  @@index([sourceRecordId])
+  @@index([targetRecordId])
+  @@index([organizationId])
+}
+
+enum ModuleFeature {
+  NOTES
+  TASKS
+  FILES
+  EMAILS
+  CALENDAR
+}
+
+enum RecordViewType {
+  LIST
+  KANBAN
+  CALENDAR
+  GALLERY
+  GANTT
+}
+
+enum RecordFieldType {
+  TEXT
+  LONG_TEXT
+
+  NUMBER
+  CURRENCY
+  PERCENT
+
+  BOOLEAN
+
+  DATE
+  DATETIME
+
+  EMAIL
+  PHONE
+  URL
+
+  SELECT
+  MULTI_SELECT
+
+  RELATIONSHIP
+
+  USER
+
+  FILE
+}
+
+// Company model
+
 model Company {
   id             String    @id @default(cuid())
   organizationId String
@@ -145,7 +374,7 @@ model Company {
   phone          String?
   website        String?
   industry       String?
-  size           String?   // "1-10", "11-50", "51-200", "201-500", "500+"
+  size           String? // "1-10", "11-50", "51-200", "201-500", "500+"
   address        String?
   notes          String?
   createdById    String?
@@ -177,7 +406,7 @@ model Contact {
   email          String?
   phone          String?
   jobTitle       String?
-  source         String?   // WhatsApp, Website, Referral, etc.
+  source         String? // WhatsApp, Website, Referral, etc.
   companyId      String?
   notes          String?
   createdById    String?
@@ -210,9 +439,9 @@ model Deal {
   value          Decimal?  @db.Decimal(12, 2)
   currency       String?   @default("USD")
   stage          DealStage @default(PROSPECT)
-  status         String?   // Custom sub-status
-  source         String?   // Where this deal came from
-  category       String?   // Product/service category
+  status         String? // Custom sub-status
+  source         String? // Where this deal came from
+  category       String? // Product/service category
   expectedClose  DateTime?
   wonAt          DateTime?
   lostAt         DateTime?
@@ -274,6 +503,9 @@ model Task {
   updatedAt      DateTime   @updatedAt
   deletedAt      DateTime?
 
+  recordId String?
+  record   RecordItem? @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
   organization Organization @relation(fields: [organizationId], references: [id])
   assignedTo   Member?      @relation("AssignedTasks", fields: [assignedToId], references: [id])
   createdBy    Member?      @relation("TaskCreator", fields: [createdById], references: [id])
@@ -281,6 +513,7 @@ model Task {
   contact      Contact?     @relation("ContactTasks", fields: [contactId], references: [id])
   company      Company?     @relation("CompanyTasks", fields: [companyId], references: [id])
 
+  @@index([organizationId, recordId])
   @@index([organizationId, status])
   @@index([organizationId, assignedToId])
   @@index([organizationId, dueDate])
@@ -299,7 +532,7 @@ model FollowUp {
   id             String    @id @default(cuid())
   organizationId String
   dealId         String
-  type           String    // Call back, Follow up, Send quote, Send Email
+  type           String // Call back, Follow up, Send quote, Send Email
   dueAt          DateTime
   completedAt    DateTime?
   notes          String?
@@ -314,48 +547,52 @@ model FollowUp {
 // ─── Activity / Audit System ───
 
 model Activity {
-  id             String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Multi-tenancy
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   // Actor
-  memberId       String?
-  member         Member? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  memberId String?
+  member   Member? @relation(fields: [memberId], references: [id], onDelete: SetNull)
 
   // Activity origin
-  source         ActivitySource @default(MANUAL)
+  source ActivitySource @default(MANUAL)
 
   // Core activity semantics
-  activityType   ActivityType
-  channel        ActivityChannel?
-  outcome        ActivityOutcome?
+  activityType ActivityType
+  channel      ActivityChannel?
+  outcome      ActivityOutcome?
 
   // Feed display
-  title          String
-  description    String?
+  title       String
+  description String?
 
   // Flexible structured data
-  metadata       Json?
+  metadata Json?
 
   // Related entities
-  dealId         String?
-  deal           Deal? @relation("DealActivities", fields: [dealId], references: [id], onDelete: Cascade)
+  dealId String?
+  deal   Deal?   @relation("DealActivities", fields: [dealId], references: [id], onDelete: Cascade)
 
-  contactId      String?
-  contact        Contact? @relation("ContactActivities", fields: [contactId], references: [id], onDelete: Cascade)
+  contactId String?
+  contact   Contact? @relation("ContactActivities", fields: [contactId], references: [id], onDelete: Cascade)
 
-  companyId      String?
-  company        Company? @relation("CompanyActivities", fields: [companyId], references: [id], onDelete: Cascade)
+  companyId String?
+  company   Company? @relation("CompanyActivities", fields: [companyId], references: [id], onDelete: Cascade)
 
-  createdAt      DateTime @default(now())
+  recordId String?
+  record   RecordItem? @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
 
   @@index([organizationId])
   @@index([memberId])
   @@index([dealId])
   @@index([contactId])
   @@index([companyId])
+  @@index([recordId])
   @@index([activityType])
   @@index([channel])
   @@index([outcome])
@@ -440,12 +677,16 @@ model Note {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  recordId String?
+  record   RecordItem? @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
   organization Organization @relation(fields: [organizationId], references: [id])
   createdBy    Member       @relation("NoteCreator", fields: [createdById], references: [id])
   deal         Deal?        @relation("DealNotes", fields: [dealId], references: [id])
   contact      Contact?     @relation("ContactNotes", fields: [contactId], references: [id])
   company      Company?     @relation("CompanyNotes", fields: [companyId], references: [id])
 
+  @@index([organizationId, recordId])
   @@index([organizationId, dealId])
   @@index([organizationId, contactId])
   @@index([organizationId, companyId])
@@ -455,7 +696,7 @@ model Note {
 // ─── Tags ───
 
 model Tag {
-  id             String @id @default(cuid())
+  id             String  @id @default(cuid())
   organizationId String
   name           String
   color          String?
@@ -468,16 +709,16 @@ model Tag {
 }
 
 model TagAssignment {
-  id         String  @id @default(cuid())
-  tagId      String
-  dealId     String?
-  contactId  String?
-  companyId  String?
+  id        String  @id @default(cuid())
+  tagId     String
+  dealId    String?
+  contactId String?
+  companyId String?
 
-  tag      Tag      @relation(fields: [tagId], references: [id])
-  deal     Deal?    @relation(fields: [dealId], references: [id])
-  contact  Contact? @relation(fields: [contactId], references: [id])
-  company  Company? @relation(fields: [companyId], references: [id])
+  tag     Tag      @relation(fields: [tagId], references: [id])
+  deal    Deal?    @relation(fields: [dealId], references: [id])
+  contact Contact? @relation(fields: [contactId], references: [id])
+  company Company? @relation(fields: [companyId], references: [id])
 
   @@map("tag_assignments")
 }
@@ -504,28 +745,31 @@ model File {
   source         FileSource @default(SUPABASE)
 
   // For SUPABASE-hosted files
-  storagePath    String?    // Path in the bucket: "{orgId}/{entityType}/{entityId}/{...nested}/filename"
-  fileSize       Int?
-  mimeType       String?
+  storagePath String? // Path in the bucket: "{orgId}/{entityType}/{entityId}/{...nested}/filename"
+  fileSize    Int?
+  mimeType    String?
 
   // For third-party linked files
-  externalUrl    String?
-  externalId     String?    // ID in the external system
+  externalUrl String?
+  externalId  String? // ID in the external system
 
   // Nesting (self-referential)
-  parentId       String?
-  parent         File?      @relation("FileChildren", fields: [parentId], references: [id])
-  children       File[]     @relation("FileChildren")
+  parentId String?
+  parent   File?   @relation("FileChildren", fields: [parentId], references: [id])
+  children File[]  @relation("FileChildren")
 
   // Entity scoping (which record this file tree belongs to)
-  dealId         String?
-  contactId      String?
-  companyId      String?
+  dealId    String?
+  contactId String?
+  companyId String?
+
+  recordId String?
+  record   RecordItem? @relation(fields: [recordId], references: [id], onDelete: Cascade)
 
   // Audit
-  uploadedById   String     // Member ID
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  uploadedById String // Member ID
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relations
   organization Organization @relation(fields: [organizationId], references: [id])
@@ -533,6 +777,7 @@ model File {
   contact      Contact?     @relation("ContactFiles", fields: [contactId], references: [id])
   company      Company?     @relation("CompanyFiles", fields: [companyId], references: [id])
 
+  @@index([organizationId, recordId])
   @@index([parentId])
   @@index([organizationId, dealId])
   @@index([organizationId, contactId])
@@ -543,31 +788,31 @@ model File {
 // ─── Google Calendar ───
 
 model CalendarEvent {
-  id              String    @id @default(cuid())
-  googleEventId   String
-  userId          String
-  organizationId  String
-  calendarId      String    @default("primary")
+  id             String @id @default(cuid())
+  googleEventId  String
+  userId         String
+  organizationId String
+  calendarId     String @default("primary")
 
-  title           String
-  description     String?
-  location        String?
-  startTime       DateTime
-  endTime         DateTime
-  allDay          Boolean   @default(false)
-  status          String?   // confirmed, tentative, cancelled
-  htmlLink        String?   // Link to event in Google Calendar
-  attendees       Json?     // Array of { email, displayName, responseStatus }
+  title       String
+  description String?
+  location    String?
+  startTime   DateTime
+  endTime     DateTime
+  allDay      Boolean  @default(false)
+  status      String? // confirmed, tentative, cancelled
+  htmlLink    String? // Link to event in Google Calendar
+  attendees   Json? // Array of { email, displayName, responseStatus }
 
   // CRM entity links
-  dealId          String?
-  contactId       String?
-  companyId       String?
+  dealId    String?
+  contactId String?
+  companyId String?
 
   // Sync metadata
-  syncedAt        DateTime  @default(now())
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  syncedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -575,7 +820,7 @@ model CalendarEvent {
   contact      Contact?     @relation("ContactCalendarEvents", fields: [contactId], references: [id], onDelete: SetNull)
   company      Company?     @relation("CompanyCalendarEvents", fields: [companyId], references: [id], onDelete: SetNull)
 
-  @@unique([userId, googleEventId])
+  @@unique([userId, organizationId, googleEventId])
   @@index([organizationId, startTime])
   @@index([organizationId, dealId])
   @@index([organizationId, contactId])
@@ -587,41 +832,41 @@ model CalendarEvent {
 // ─── Mailbox ───
 
 model Email {
-  id                 String    @id @default(cuid())
-  provider           String    // "google_gmail" | "microsoft_outlook"
-  providerMessageId  String
-  providerThreadId   String
-  userId             String
-  organizationId     String
+  id                String @id @default(cuid())
+  provider          String // "google_gmail" | "microsoft_outlook"
+  providerMessageId String
+  providerThreadId  String
+  userId            String
+  organizationId    String
 
-  subject            String?
-  snippet            String?
-  body               String?   // Full decoded body (HTML preferred, fallback to plain)
-  from               String    // "Name <email@example.com>"
-  to                 String[]
-  cc                 String[]  @default([])
-  bcc                String[]  @default([])
-  replyTo            String?
+  subject String?
+  snippet String?
+  body    String? // Full decoded body (HTML preferred, fallback to plain)
+  from    String // "Name <email@example.com>"
+  to      String[]
+  cc      String[] @default([])
+  bcc     String[] @default([])
+  replyTo String?
 
-  isRead             Boolean   @default(false)
-  isStarred          Boolean   @default(false)
-  isSent             Boolean   @default(false)
-  isDraft            Boolean   @default(false)
-  isArchived         Boolean   @default(false)
-  labelIds           String[]  @default([])
+  isRead     Boolean  @default(false)
+  isStarred  Boolean  @default(false)
+  isSent     Boolean  @default(false)
+  isDraft    Boolean  @default(false)
+  isArchived Boolean  @default(false)
+  labelIds   String[] @default([])
 
-  hasAttachments     Boolean   @default(false)
-  sentAt             DateTime
+  hasAttachments Boolean  @default(false)
+  sentAt         DateTime
 
   // CRM entity links
-  dealId             String?
-  contactId          String?
-  companyId          String?
+  dealId    String?
+  contactId String?
+  companyId String?
 
   // Sync metadata
-  syncedAt           DateTime  @default(now())
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  syncedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -629,7 +874,7 @@ model Email {
   contact      Contact?     @relation("ContactEmails", fields: [contactId], references: [id], onDelete: SetNull)
   company      Company?     @relation("CompanyEmails", fields: [companyId], references: [id], onDelete: SetNull)
 
-  @@unique([userId, provider, providerMessageId])
+  @@unique([userId, organizationId, provider, providerMessageId])
   @@index([organizationId, sentAt])
   @@index([organizationId, providerThreadId])
   @@index([userId, provider, isArchived, sentAt])
@@ -641,29 +886,29 @@ model Email {
 
 // ─── Notifications ───
 model Notification {
-  id             String    @id @default(cuid())
+  id             String @id @default(cuid())
   organizationId String
   recipientId    String
 
-  type           String    // task_assigned, follow_up_due, deal_assigned
-  title          String
-  body           String?
-  link           String?
-  data           Json?     // structured payload (taskId, dealId, etc.)
+  type  String // task_assigned, follow_up_due, deal_assigned
+  title String
+  body  String?
+  link  String?
+  data  Json? // structured payload (taskId, dealId, etc.)
 
-  status         NotificationStatus @default(PENDING) // PENDING, SENT, FAILED
-  readAt         DateTime?
-  sentAt         DateTime?         // when it actually went out, vs scheduledAt = when it should
-  scheduledAt    DateTime          @default(now()) // give it a default so instant notifs don't need to pass it
+  status      NotificationStatus @default(PENDING) // PENDING, SENT, FAILED
+  readAt      DateTime?
+  sentAt      DateTime? // when it actually went out, vs scheduledAt = when it should
+  scheduledAt DateTime           @default(now()) // give it a default so instant notifs don't need to pass it
 
-  dedupeKey      String?           // optional, for idempotency on retries
+  dedupeKey String? // optional, for idempotency on retries
 
-  createdAt      DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  recipient      Member       @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  recipient    Member       @relation(fields: [recipientId], references: [id], onDelete: Cascade)
 
-  deliveries     NotificationDelivery[]
+  deliveries NotificationDelivery[]
 
   @@unique([organizationId, recipientId, type, dedupeKey])
   @@index([recipientId, readAt, createdAt])
@@ -673,16 +918,16 @@ model Notification {
 
 // for channel handlers (in-app, email, push) each handle own their own delivery row and lifecycle.
 model NotificationDelivery {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   notificationId String
   notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
 
-  channel        String   // in_app, email, push
-  status         String   // PENDING, SENT, FAILED
-  sentAt         DateTime?
-  error          String?
+  channel String // in_app, email, push
+  status  String // PENDING, SENT, FAILED
+  sentAt  DateTime?
+  error   String?
 
-  createdAt      DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([notificationId])
   @@map("notification_deliveries")
