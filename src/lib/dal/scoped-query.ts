@@ -12,7 +12,8 @@ export type Resource =
   | "notes"
   | "files"
   | "members"
-  | "workspace";
+  | "workspace"
+  | "ai.catcher";
 
 export type Action =
   | "read"
@@ -21,7 +22,8 @@ export type Action =
   | "delete"
   | "invite"
   | "remove"
-  | "manage";
+  | "manage"
+  | "run";
 
 export type Scope = "own" | "any";
 
@@ -73,6 +75,7 @@ const ROLE_PERMISSIONS: Record<MemberRole, Permission[]> = {
     "members.invite",
     "members.remove",
     "workspace.manage",
+    "ai.catcher.run",
   ],
   ADMIN: [
     "deals.read",
@@ -116,6 +119,7 @@ const ROLE_PERMISSIONS: Record<MemberRole, Permission[]> = {
     "members.read",
     "members.invite",
     "members.remove",
+    "ai.catcher.run"
   ],
   MANAGER: [
     "deals.read",
@@ -151,6 +155,7 @@ const ROLE_PERMISSIONS: Record<MemberRole, Permission[]> = {
     "files.update",
     "files.delete.own",
     "members.read",
+    "ai.catcher.run"
   ],
   MEMBER: [
     "deals.read",
@@ -177,6 +182,7 @@ const ROLE_PERMISSIONS: Record<MemberRole, Permission[]> = {
     "files.create",
     "files.delete.own",
     "members.read",
+    "ai.catcher.run"
   ],
 };
 

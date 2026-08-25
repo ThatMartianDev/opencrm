@@ -6,7 +6,7 @@ import { getSessionClaims } from "@/lib/auth/session";
 import { createQueryContext } from "@/lib/dal/scoped-query";
 import { z } from "zod";
 import RecordModuleService from "../service";
-import { parseRecordValues } from "./helpers";
+import { isEmptyValue, parseRecordValues } from "./helpers";
 import {
 	linkableModuleFeatureSchema,
 	recordPageQuerySchema,
@@ -174,6 +174,76 @@ export async function updateModuleRecord(
 			return { success: false, error: "A record already uses a value that must be unique." };
 		}
 		console.error("Failed to update module record", error);
+		return { success: false, error: "Unable to update the record." };
+	}
+}
+
+export async function patchModuleRecordFields(
+	moduleKey: string,
+	recordId: string,
+	rawValues: Record<string, unknown>,
+): Promise<SaveRecordResult> {
+	try {
+		const session = await getSessionClaims();
+		const ctx = createQueryContext(session);
+		const canUpdateAny = ctx.can("records.update.any");
+		if (!canUpdateAny) ctx.assertCan("records.update.own");
+
+		const recordModule = await RecordModuleService.getModulePageData(
+			moduleKey,
+			session.organizationId,
+		);
+		if (!recordModule) return { success: false, error: "Module not found." };
+
+		const fieldsByKey = new Map(recordModule.fields.map((field) => [field.key, field]));
+		const suppliedKeys = Object.keys(rawValues);
+		if (suppliedKeys.length === 0) {
+			return { success: false, error: "At least one record field is required." };
+		}
+		if (suppliedKeys.some((key) => !fieldsByKey.has(key))) {
+			return { success: false, error: "One or more record fields are invalid." };
+		}
+
+		const suppliedFields = suppliedKeys.map((key) => fieldsByKey.get(key)!);
+		const parsed = parseRecordValues(suppliedFields, rawValues, false);
+		if (!parsed.success) return { success: false, error: parsed.error };
+
+		const valueFieldIds = suppliedFields
+			.filter((field) => field.type !== "RELATIONSHIP")
+			.map((field) => field.id);
+		const relationshipFieldIds = suppliedFields
+			.filter((field) => field.type === "RELATIONSHIP")
+			.map((field) => field.id);
+		const primaryField = suppliedFields.find((field) => field.isPrimary);
+
+		const record = await RecordModuleService.patchRecordFields({
+			organizationId: session.organizationId,
+			moduleId: recordModule.id,
+			recordId,
+			values: parsed.values,
+			valueFieldIds,
+			relationships: parsed.relationships,
+			relationshipFieldIds,
+			displayName: primaryField && !isEmptyValue(rawValues[primaryField.key])
+				? parsed.displayName
+				: undefined,
+			memberId: session.memberId,
+			canUpdateAny,
+		});
+		return record
+			? { success: true, recordId: record.id }
+			: { success: false, error: "Record not found or you do not own it" };
+	} catch (error) {
+		if (error instanceof Error && error.message.startsWith("Forbidden:")) {
+			return { success: false, error: "You do not have permission to update records." };
+		}
+		if (
+			error instanceof Prisma.PrismaClientKnownRequestError &&
+			error.code === "P2002"
+		) {
+			return { success: false, error: "A record already uses a value that must be unique." };
+		}
+		console.error("Failed to patch module record fields", error);
 		return { success: false, error: "Unable to update the record." };
 	}
 }

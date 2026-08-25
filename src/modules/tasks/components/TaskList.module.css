@@ -1,10 +1,27 @@
-.taskList {
+.wrapper {
     display: flex;
     flex-direction: column;
     width: 100%;
     height: 100%;
-    overflow-y: auto;
-    padding: 16px 0;
+    position: relative;
+    overflow: hidden;
+    padding-top: 16px;
+}
+
+.taskListContainer {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+}
+
+.taskList {
+    display: flex;
+    flex-direction: column;
+    width: max-content;
+    height: auto;
+    padding-bottom: 16px;
 }
 
 .taskListHeader {
@@ -42,15 +59,15 @@
 .taskItem,
 .tableHeader {
     display: grid;
-    grid-template-columns: auto 2fr 0.5fr 0.5fr 1.5fr 1fr;
+    grid-template-columns: auto clamp(300px, 40vw, 600px) clamp(150px, 20vw, 200px) clamp(150px, 20vw, 200px) clamp(200px, 20vw, 300px) clamp(200px, 20vw, 300px);
     align-items: center;
     padding-right: 10px;
     border-bottom: 1px solid var(--border-100);
     transition: all 0.15s ease;
 }
 
-.taskItem > *,
-.tableHeader > * {
+.taskItem>*,
+.tableHeader>* {
     padding: 10px;
     height: 100%;
 }
@@ -87,6 +104,7 @@
 .taskItem .taskSelectBtn {
     opacity: 0;
 }
+
 .taskItem:hover .taskSelectBtn {
     opacity: 1;
 }
@@ -105,6 +123,7 @@
 .checkbox {
     width: 18px;
     height: 18px;
+    aspect-ratio: 1 / 1;
     border-radius: 50%;
     border: 1px dashed var(--border-600);
     cursor: pointer;
@@ -130,6 +149,9 @@
 
 .taskName p {
     margin: 0;
+        overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .taskName .description {
@@ -293,6 +315,7 @@
         opacity: 0;
         transform: translateX(-50%) translateY(12px);
     }
+
     to {
         opacity: 1;
         transform: translateX(-50%) translateY(0);

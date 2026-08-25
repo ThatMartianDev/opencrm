@@ -6,7 +6,7 @@ import {
   createPaginatedResult,
   type PaginationQuery,
 } from "@/lib/pagination";
-import { RecordActivityService } from "@/modules/RecordModule/service/record-activity.service";
+import { RecordActivityService } from "@/modules/RecordModule/service/record.activity.service";
 
 const noteInclude = {
   createdBy: {

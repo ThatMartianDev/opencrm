@@ -14,6 +14,7 @@ import {
   TaskListSquareLtrRegular,
   NoteRegular,
   MailRegular,
+  BotSparkleRegular,
 } from "@fluentui/react-icons";
 
 type QuickActionItem = {
@@ -38,6 +39,12 @@ const QuickActions = ({ onClose }: { onClose: () => void }) => {
     {
       category: "my-space",
       items: [
+        {
+          id: "quick-catcher",
+          title: "Quick Catcher",
+          action: () => openModal("quick_catcher"),
+          icon: <BotSparkleRegular fontSize={20} />,
+        },
         {
           id: "1",
           title: "New Task",

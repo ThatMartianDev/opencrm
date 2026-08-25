@@ -11,7 +11,7 @@ import {
 } from "@/lib/pagination";
 import { NotificationsService } from "@/modules/notifications/service";
 import { ActivityLogService } from "@/modules/activity-log/service";
-import { RecordActivityService } from "@/modules/RecordModule/service/record-activity.service";
+import { RecordActivityService } from "@/modules/RecordModule/service/record.activity.service";
 
 const taskInclude = {
     assignedTo: {

@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
-const PUBLIC_PATHS = ["/login", "/register", "/invitation", "/api/auth"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/register",
+  "/invitation",
+  "/api/auth",
+];
+const INTERNAL_TOOL_PATHS = ["/api/internal/ai/tools/search-records", "/api/internal/ai/tools/get-linked-records"];
 
 function redirectToLogin(request: NextRequest) {
   const loginUrl = request.nextUrl.clone();
@@ -21,7 +27,10 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Skip auth check for public routes
-  if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+  if (
+    PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/")) ||
+    INTERNAL_TOOL_PATHS.includes(pathname)
+  ) {
     return NextResponse.next();
   }
 
