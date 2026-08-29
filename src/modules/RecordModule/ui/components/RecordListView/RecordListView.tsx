@@ -42,6 +42,7 @@ import Styles from "./RecordListView.module.css";
 import SharedModalStyles from "@/components/macro/ModalProvider/SharedStyles.module.css";
 import RecordOwnerField from "../RecordOwnerField/RecordOwnerField";
 import RecordDateField from "../RecordDateField/RecordDateField";
+import { useWorkspaceData } from "@/modules/workspace/components/workspace-provider";
 
 type RecordListViewProps = {
   module: RecordModulePageData;
@@ -114,6 +115,7 @@ const RecordListView = ({
   onModuleChanged,
 }: RecordListViewProps) => {
   const { toast } = useToast();
+  const { organization } = useWorkspaceData();
   const [showColumnPicker, setShowColumnPicker] = useState(false);
   const [showFieldBuilder, setShowFieldBuilder] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
@@ -423,7 +425,7 @@ const RecordListView = ({
                       </button>
                       <Link
                         className={Styles.avatarLink}
-                        href={`/app/${module.organizationId}/${module.key}/${record.id}`}
+                        href={`/app/${organization.slug}/${module.key}/${record.id}`}
                         aria-label={`Open ${record.displayName}`}
                       >
                         <AvatarFallback

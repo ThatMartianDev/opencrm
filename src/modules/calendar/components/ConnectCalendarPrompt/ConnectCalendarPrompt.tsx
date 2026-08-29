@@ -6,7 +6,7 @@ import { useWorkspaceData } from "@/modules/workspace/components/workspace-provi
 import Styles from "./ConnectCalendarPrompt.module.css";
 
 const ConnectCalendarPrompt = () => {
-  const { organizationId } = useWorkspaceData();
+  const { organization } = useWorkspaceData();
 
   return (
     <div className={Styles.container}>
@@ -19,7 +19,7 @@ const ConnectCalendarPrompt = () => {
           Link your Google Calendar to see your events, schedule meetings with contacts,
           and automatically link calendar events to deals and companies.
         </p>
-        <Link href={`/app/${organizationId}/settings/accounts?tab=calendar`} className={Styles.connectBtn}>
+        <Link href={`/app/${organization.slug}/settings/accounts?tab=calendar`} className={Styles.connectBtn}>
           Go to Settings to Connect
         </Link>
         <p className={Styles.permissions}>

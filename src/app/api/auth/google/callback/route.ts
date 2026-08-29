@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { exchangeCodeForTokens, getGoogleUser } from "@/lib/auth/google";
-import { createSession } from "@/lib/auth/session";
+import {
+  clearWorkspaceCreationSession,
+  clearWorkspaceSelectionSession,
+  createSession,
+  createWorkspaceCreationSession,
+  createWorkspaceSelectionSession,
+} from "@/lib/auth/session";
 import { prisma } from "@/lib/db/client";
 
 export async function GET(request: NextRequest) {
@@ -38,28 +44,44 @@ export async function GET(request: NextRequest) {
     }
 
     // Find or create user + account
-    const { user, isNewUser } = await findOrCreateUser(googleUser, tokens);
+    const { user } = await findOrCreateUser(googleUser, tokens);
 
-    // Find the user's membership
-    const member = await prisma.member.findFirst({
+    // Find the user's memberships
+    const memberships = await prisma.member.findMany({
       where: { userId: user.id },
-      include: { organization: true },
+      select: {
+        id: true,
+        organizationId: true,
+        role: true,
+        organization: { select: { slug: true } },
+      },
+      orderBy: { joinedAt: "asc" },
     });
 
-    // If the user has a membership, create session and redirect to app
-    if (member) {
+    if (memberships.length > 1) {
+      await clearWorkspaceCreationSession();
+      await createWorkspaceSelectionSession(user.id);
+      return NextResponse.redirect(new URL("/select-workspace", request.url));
+    }
+
+    // If the user has one membership, create session and redirect to app
+    if (memberships.length === 1) {
+      const [membership] = memberships;
+      await clearWorkspaceCreationSession();
+      await clearWorkspaceSelectionSession();
       await createSession({
         userId: user.id,
-        memberId: member.id,
-        organizationId: member.organizationId,
-        role: member.role,
+        memberId: membership.id,
+        organizationId: membership.organizationId,
+        role: membership.role,
       });
-      return NextResponse.redirect(new URL(`/app/${member.organizationId}`, request.url));
+      return NextResponse.redirect(new URL(`/app/${membership.organization.slug}/home`, request.url));
     }
 
     // New user with no org — check for pending invitation
     const invitation = await prisma.invitation.findFirst({
       where: { email: user.email, acceptedAt: null, expiresAt: { gt: new Date() } },
+      include: { organization: { select: { slug: true } } },
     });
 
     if (invitation) {
@@ -85,20 +107,15 @@ export async function GET(request: NextRequest) {
         organizationId: invitation.organizationId,
         role: newMember.role,
       });
-      return NextResponse.redirect(new URL(`/app/${invitation.organizationId}`, request.url));
+      await clearWorkspaceCreationSession();
+      await clearWorkspaceSelectionSession();
+      return NextResponse.redirect(new URL(`/app/${invitation.organization.slug}/home`, request.url));
     }
 
-    // Truly new user with no invitation — redirect to onboarding/workspace setup
-    // Store userId in a short-lived cookie so the onboarding page knows who they are
-    cookieStore.set("pending_user_id", user.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 30, // 30 minutes
-      path: "/",
-    });
-
-    return NextResponse.redirect(new URL("/register?step=workspace", request.url));
+    // Truly new user with no invitation — continue to workspace creation.
+    await clearWorkspaceSelectionSession();
+    await createWorkspaceCreationSession(user.id);
+    return NextResponse.redirect(new URL("/create-workspace", request.url));
   } catch (err) {
     console.error("Google OAuth callback error:", err);
     return NextResponse.redirect(new URL("/login?error=oauth_failed", request.url));

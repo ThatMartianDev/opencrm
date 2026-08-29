@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { getSessionClaims } from "@/lib/auth/session";
 import LoginForm from "@/modules/auth/components/login-form";
+import { WorkspaceService } from "@/modules/workspace/service";
 import Styles from "../Styles.module.css";
 
 const LoginPage = async () => {
@@ -13,7 +14,11 @@ const LoginPage = async () => {
     }
 
     if (session) {
-        redirect(`/app/${session.organizationId}/home`);
+        const workspaceSlug = await WorkspaceService.getWorkspaceSlug(
+            session.organizationId,
+            session.userId,
+        );
+        redirect(`/app/${workspaceSlug}/home`);
     }
 
     return (

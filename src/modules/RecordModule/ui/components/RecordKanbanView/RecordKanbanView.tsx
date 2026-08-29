@@ -22,6 +22,7 @@ import {
 import Styles from "./RecordKanbanView.module.css";
 import RecordOwnerField from "../RecordOwnerField/RecordOwnerField";
 import AvatarFallback from "@/components/micro/AvatarFallback/AvatarFallback";
+import { useWorkspaceData } from "@/modules/workspace/components/workspace-provider";
 
 type RecordKanbanViewProps = {
   module: RecordModulePageData;
@@ -65,6 +66,7 @@ const RecordKanbanView = ({
   onRecordsChanged,
 }: RecordKanbanViewProps) => {
   const { toast } = useToast();
+  const { organization } = useWorkspaceData();
   const config = getKanbanConfig(view);
   const groupField = module.fields.find((field) => field.key === config.groupByField);
   const cardFields = config.cardFields
@@ -110,7 +112,7 @@ const RecordKanbanView = ({
         element: (
           <Link
             className={Styles.card}
-            href={`/app/${module.organizationId}/${module.key}/${record.id}`}
+            href={`/app/${organization.slug}/${module.key}/${record.id}`}
           >
             <div className={Styles.cardHeader}>
               <AvatarFallback entityKind="customer" entityId={record.id} name={record.displayName} size={20} style={{borderRadius: "6px"}}/>

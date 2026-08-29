@@ -45,7 +45,7 @@ export default function InvitationPage() {
 
         try {
             const result = await acceptInvitation(token);
-            router.push(`/app/${result.organizationId}/home`);
+            router.push(`/app/${result.workspaceSlug}/home`);
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to accept invitation");
             setAccepting(false);

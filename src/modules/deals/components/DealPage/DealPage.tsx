@@ -28,6 +28,7 @@ import { DealWithRelations } from "../../types";
 import AvatarFallback from "@/components/micro/AvatarFallback/AvatarFallback";
 import Link from "next/link";
 import { useModal } from "@/components/macro/ModalProvider/ModalProvider";
+import { useWorkspaceData } from "@/modules/workspace/components/workspace-provider";
 
 const tabs = [
   { label: "Overview", id: "overview" },
@@ -59,6 +60,7 @@ const DealPage = () => {
   const [deal, setDeal] = useState<DealWithRelations | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const { openModal } = useModal();
+  const { organization } = useWorkspaceData();
 
   const contactPhone = deal?.contact?.phone;
 
@@ -117,7 +119,7 @@ const DealPage = () => {
       <div id={Styles.leadPage}>
         <header className="global_header">
           <Link
-            href={`/app/${deal.organizationId}/deals`}
+            href={`/app/${organization.slug}/deals`}
             className="g_header_section_name"
           >
             <ArrowLeftRegular fontSize={14} />

@@ -25,15 +25,18 @@ import {
 
 import { useWorkspaceData } from "../workspace-provider";
 import { signOut } from "@/modules/auth/actions";
+import { switchWorkspace } from "@/modules/workspace/actions";
 import InviteMemberModal from "../InviteMemberModal/InviteMemberModal";
 import { useNotifications } from "@/modules/notifications/NotificationsProvider";
 import NotificationPanel from "@/modules/notifications/NotificationPanel/NotificationPanel";
+import { disconnectSocket } from "@/lib/realtime/client";
 
 import AvatarFallback from "@/components/micro/AvatarFallback/AvatarFallback";
 
 import Styles from "./SideBar.module.css";
 import ModalStyles from "@/components/macro/ModalProvider/ModalProvider.module.css";
 import { useModal } from "@/components/macro/ModalProvider/ModalProvider";
+import { useToast } from "@/components/macro/Toaster";
 import ModuleIcon from "@/modules/RecordModule/ui/components/ModuleIcon";
 
 const NotificationBadge = ({
@@ -71,15 +74,17 @@ const NotificationBadge = ({
 
 const SideBar = () => {
   const { openModal, closeModal } = useModal();
+  const { toast } = useToast();
   const pathname = usePathname();
-  const { organizationId, organization, user, recordModules } =
+  const { organizationId, organization, workspaces, user, recordModules } =
     useWorkspaceData();
-  const linksPrefix = "/app/" + organizationId;
+  const linksPrefix = "/app/" + organization.slug;
   const [showOrgMenu, setShowOrgMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [openRecordMenuId, setOpenRecordMenuId] = useState<string | null>(null);
+  const [switchingWorkspaceName, setSwitchingWorkspaceName] = useState<string | null>(null);
   const { unreadCount } = useNotifications();
 
   const [showMySpaceNav, setShowMySpaceNav] = useState(true);
@@ -88,6 +93,25 @@ const SideBar = () => {
 
   const isActive = (href: string) => {
     return pathname === href || pathname.startsWith(href + "/");
+  };
+
+  const handleWorkspaceSwitch = async (targetId: string, targetName: string) => {
+    if (targetId === organizationId || switchingWorkspaceName) return;
+
+    setShowOrgMenu(false);
+    setSwitchingWorkspaceName(targetName);
+
+    try {
+      const result = await switchWorkspace(targetId);
+      disconnectSocket();
+      window.location.replace(`/app/${result.workspaceSlug}/home`);
+    } catch {
+      setSwitchingWorkspaceName(null);
+      toast.error({
+        title: "Could not change workspace",
+        description: "Your access may have changed. Refresh and try again.",
+      });
+    }
   };
 
   useEffect(() => {
@@ -153,21 +177,33 @@ const SideBar = () => {
             />
             <div className={Styles.orgMenu}>
               <div className={Styles.orgMenuSection}>
-                <div
-                  className={`${Styles.orgMenuItem} ${Styles.orgMenuItemActive}`}
-                >
-                  <AvatarFallback
-                    name={organization.name}
-                    entityKind="organization"
-                    entityId={organizationId}
-                    size={22}
-                    style={{ borderRadius: 6 }}
-                    imageUrl={organization.logoUrl ?? undefined}
-                    letterCount={1}
-                  />
-                  <span>{organization.name}</span>
-                  <CheckmarkFilled className={Styles.orgMenuCheck} />
-                </div>
+                {workspaces.map((workspace) => {
+                  const isCurrent = workspace.id === organizationId;
+
+                  return (
+                    <button
+                      type="button"
+                      key={workspace.id}
+                      className={`${Styles.orgMenuItem} ${isCurrent ? Styles.orgMenuItemActive : ""}`}
+                      disabled={isCurrent || switchingWorkspaceName !== null}
+                      onClick={() => handleWorkspaceSwitch(workspace.id, workspace.name)}
+                    >
+                      <AvatarFallback
+                        name={workspace.name}
+                        entityKind="organization"
+                        entityId={workspace.id}
+                        size={22}
+                        style={{ borderRadius: 6 }}
+                        imageUrl={workspace.logoUrl ?? undefined}
+                        letterCount={1}
+                      />
+                      <span>{workspace.name}</span>
+                      {isCurrent && (
+                        <CheckmarkFilled className={Styles.orgMenuCheck} />
+                      )}
+                    </button>
+                  );
+                })}
                 <Link href={"/create-workspace"} className={Styles.orgMenuItem}>
                   <AddRegular />
                   <span>New Workspace</span>
@@ -523,6 +559,13 @@ const SideBar = () => {
           >
             <InviteMemberModal onClose={() => setShowInviteModal(false)} />
           </div>
+        </div>
+      )}
+      {switchingWorkspaceName && (
+        <div className={Styles.workspaceSwitchOverlay} role="status" aria-live="polite">
+          <span className={Styles.workspaceSwitchSpinner} aria-hidden="true" />
+          <p>Changing workspace</p>
+          <span>{switchingWorkspaceName}</span>
         </div>
       )}
     </div>

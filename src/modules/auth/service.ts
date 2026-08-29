@@ -39,12 +39,18 @@ export const AuthService = {
       throw new AppError("Invalid email or password", "INVALID_CREDENTIALS", 401);
     }
 
-    const member = await prisma.member.findFirst({
+    const memberships = await prisma.member.findMany({
       where: { userId: user.id },
-      include: { organization: true },
+      select: {
+        id: true,
+        organizationId: true,
+        role: true,
+        organization: { select: { slug: true } },
+      },
+      orderBy: { joinedAt: "asc" },
     });
 
-    return { user, member };
+    return { user, memberships };
   },
 
   async registerWithInvite(input: {

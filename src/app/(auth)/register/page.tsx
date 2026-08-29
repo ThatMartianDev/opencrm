@@ -1,16 +1,14 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import {
   sendVerificationCode,
   verifyEmailCode,
   setPassword,
   setupProfile,
-  setupWorkspace,
   getInvitationByToken,
 } from "@/modules/auth/actions";
-import { slugify } from "@/lib/utils";
 
 type InviteData = {
   email: string;
@@ -25,19 +23,25 @@ const RegisterPageContent = () => {
   const router = useRouter();
   const invitationToken = searchParams.get("invitation") || null;
 
-  const initialStep = (searchParams.get("step") as Step) || "email";
+  const requestedStep = (searchParams.get("step") as Step) || "email";
+  const initialStep = requestedStep === "workspace" ? "profile" : requestedStep;
   const [step, setStep] = useState<Step>(initialStep);
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [password, setPassword_] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
-  const [workspaceName, setWorkspaceName] = useState("");
-  const [workspaceSlug, setWorkspaceSlug] = useState("");
-  const [userId, setUserId] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [inviteData, setInviteData] = useState<InviteData | null>(null);
+
+  useEffect(() => {
+    if (requestedStep === "workspace") {
+      router.replace("/create-workspace");
+    }
+  }, [requestedStep, router]);
+
+  if (requestedStep === "workspace") return null;
 
   //  Step: Email
   async function handleSendCode() {
@@ -70,7 +74,6 @@ const RegisterPageContent = () => {
       return;
     }
 
-    setUserId(result.userId!);
     setStep("password");
   }
 
@@ -126,28 +129,7 @@ const RegisterPageContent = () => {
       }
     }
 
-    setStep("workspace");
-  }
-
-  //  Step: Workspace
-  async function handleSetupWorkspace() {
-    if (!workspaceName.trim()) {
-      setError("Please enter a workspace name");
-      return;
-    }
-    setError("");
-    setLoading(true);
-
-    const slug = workspaceSlug.trim() || slugify(workspaceName);
-    const result = await setupWorkspace({ name: workspaceName.trim(), slug });
-    setLoading(false);
-
-    if (result.error) {
-      setError(result.error);
-      return;
-    }
-
-    router.push(`/app/${result.organizationId}/home`);
+    router.push("/create-workspace");
   }
 
   return (
@@ -292,57 +274,6 @@ const RegisterPageContent = () => {
         </>
       )}
 
-      {step === "workspace" && (
-        <>
-          <h1>Create your workspace</h1>
-          <p>This is where your team will collaborate.</p>
-          {error && (
-            <p style={{ color: "red", fontSize: "0.875rem" }}>{error}</p>
-          )}
-          <div className="form-group">
-            <label htmlFor="workspaceName" className="form-label">
-              Workspace name:
-            </label>
-            <input
-              type="text"
-              id="workspaceName"
-              value={workspaceName}
-              onChange={(e) => {
-                setWorkspaceName(e.target.value);
-                setWorkspaceSlug(slugify(e.target.value));
-              }}
-              className="form-input"
-              required
-              autoFocus
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="workspaceSlug" className="form-label">
-              URL:
-            </label>
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ fontSize: "0.875rem", color: "#666" }}>
-                opencrm.app/
-              </span>
-              <input
-                type="text"
-                id="workspaceSlug"
-                value={workspaceSlug}
-                onChange={(e) =>
-                  setWorkspaceSlug(
-                    e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
-                  )
-                }
-                onKeyDown={(e) => e.key === "Enter" && handleSetupWorkspace()}
-                className="form-input"
-              />
-            </div>
-          </div>
-          <button onClick={handleSetupWorkspace} disabled={loading}>
-            {loading ? "Creating..." : "Create workspace"}
-          </button>
-        </>
-      )}
     </div>
   );
 };

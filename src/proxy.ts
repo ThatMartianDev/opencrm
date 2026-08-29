@@ -5,6 +5,8 @@ const PUBLIC_PATHS = [
   "/login",
   "/register",
   "/invitation",
+  "/create-workspace",
+  "/select-workspace",
   "/api/auth",
 ];
 const INTERNAL_TOOL_PATHS = ["/api/internal/ai/tools/search-records", "/api/internal/ai/tools/get-linked-records"];
@@ -60,5 +62,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/app/:organizationId", "/app/:organizationId/:path*", "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)"],
+  matcher: ["/app/:workspaceSlug", "/app/:workspaceSlug/:path*", "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)"],
 };

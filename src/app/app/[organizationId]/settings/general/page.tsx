@@ -54,7 +54,11 @@ export default function GeneralPage() {
         setSuccess("");
 
         try {
-            await updateWorkspace({ name, slug });
+            const result = await updateWorkspace({ name, slug });
+            if (result.workspaceSlug !== organization.slug) {
+                window.location.replace(`/app/${result.workspaceSlug}/settings/general`);
+                return;
+            }
             setSuccess("Settings saved successfully");
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to save");

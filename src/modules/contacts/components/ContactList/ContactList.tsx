@@ -12,13 +12,13 @@ type ContactListProps = {
     contacts: ContactRow[];
 };
 
-const ContactListItem = ({ contact, workspaceId }: { contact: ContactRow; workspaceId: string }) => {
+const ContactListItem = ({ contact, workspaceSlug }: { contact: ContactRow; workspaceSlug: string }) => {
     const router = useRouter();
 
     return (
         <div
             className={Styles.table_row}
-            onClick={() => router.push(`/app/${workspaceId}/contacts/${contact.id}`)}
+            onClick={() => router.push(`/app/${workspaceSlug}/contacts/${contact.id}`)}
         >
             <div className={Styles.item_name}>
                 <AvatarFallback
@@ -67,7 +67,7 @@ const ContactList = ({ contacts }: ContactListProps) => {
                     <ContactListItem
                         key={contact.id}
                         contact={contact}
-                        workspaceId={workspace.organizationId}
+                        workspaceSlug={workspace.organization.slug}
                     />
                 ))}
             </div>

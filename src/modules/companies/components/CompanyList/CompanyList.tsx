@@ -12,13 +12,13 @@ type CompanyListProps = {
     companies: CompanyRow[];
 };
 
-const CompanyListItem = ({ company, workspaceId }: { company: CompanyRow; workspaceId: string }) => {
+const CompanyListItem = ({ company, workspaceSlug }: { company: CompanyRow; workspaceSlug: string }) => {
     const router = useRouter();
 
     return (
         <div
             className={Styles.table_row}
-            onClick={() => router.push(`/app/${workspaceId}/companies/${company.id}`)}
+            onClick={() => router.push(`/app/${workspaceSlug}/companies/${company.id}`)}
         >
             <div className={Styles.item_name}>
                 <AvatarFallback
@@ -68,7 +68,7 @@ const CompanyList = ({ companies }: CompanyListProps) => {
                     <CompanyListItem
                         key={company.id}
                         company={company}
-                        workspaceId={workspace.organizationId}
+                        workspaceSlug={workspace.organization.slug}
                     />
                 ))}
             </div>

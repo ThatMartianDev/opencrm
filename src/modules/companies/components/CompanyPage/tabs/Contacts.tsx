@@ -15,7 +15,7 @@ type ContactsTabProps = {
 const ContactsTab = ({ companyId }: ContactsTabProps) => {
     const [contacts, setContacts] = useState<ContactRow[]>([]);
     const router = useRouter();
-    const { organizationId } = useWorkspaceData();
+    const { organization } = useWorkspaceData();
 
     useEffect(() => {
         getContacts()
@@ -34,7 +34,7 @@ const ContactsTab = ({ companyId }: ContactsTabProps) => {
                     {contacts.map((contact) => (
                         <div
                             key={contact.id}
-                            onClick={() => router.push(`/app/${organizationId}/contacts/${contact.id}`)}
+                            onClick={() => router.push(`/app/${organization.slug}/contacts/${contact.id}`)}
                             style={{
                                 display: "flex",
                                 alignItems: "center",

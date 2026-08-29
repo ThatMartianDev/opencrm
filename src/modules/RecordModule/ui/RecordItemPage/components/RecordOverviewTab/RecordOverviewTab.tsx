@@ -30,6 +30,7 @@ import Styles from "./RecordOverviewTab.module.css";
 import RecordOwnerField from "../../../components/RecordOwnerField/RecordOwnerField";
 import ModuleIcon from "../../../components/ModuleIcon";
 import RecordDateField from "../../../components/RecordDateField/RecordDateField";
+import { useWorkspaceData } from "@/modules/workspace/components/workspace-provider";
 
 type RecordOverviewTabProps = {
   record: RecordModuleRecordData;
@@ -68,6 +69,7 @@ const RecordOverviewTab = ({
   onOwnerChange,
 }: RecordOverviewTabProps) => {
   const optionPicker = useOptionPicker();
+  const { organization } = useWorkspaceData();
   const [editingField, setEditingField] = useState<RecordModuleField | null>(
     null,
   );
@@ -229,7 +231,7 @@ const RecordOverviewTab = ({
                     {relationship && (
                       <Link
                         className={Styles.openRelationship}
-                        href={`/app/${record.organizationId}/${relationship.targetRecord.module.key}/${relationship.targetRecord.id}`}
+                        href={`/app/${organization.slug}/${relationship.targetRecord.module.key}/${relationship.targetRecord.id}`}
                         aria-label={`Open ${relationship.targetRecord.displayName}`}
                         title="Open linked record"
                       >
@@ -476,7 +478,7 @@ const RecordOverviewTab = ({
                           <Link
                             className={Styles.linkedRecordPill}
                             key={relationship.id}
-                            href={`/app/${record.organizationId}/${relationship.sourceRecord.module.key}/${relationship.sourceRecord.id}`}
+                            href={`/app/${organization.slug}/${relationship.sourceRecord.module.key}/${relationship.sourceRecord.id}`}
                             title={relationship.sourceRecord.displayName}
                           >
                             <AvatarFallback

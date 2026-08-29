@@ -1,5 +1,13 @@
 export type WorkspaceRole = "OWNER" | "ADMIN" | "MANAGER" | "MEMBER";
 
+export type WorkspaceSummary = {
+	id: string;
+	name: string;
+	slug: string;
+	logoUrl: string | null;
+	role: WorkspaceRole;
+};
+
 export type WorkspaceBootstrap = {
 	organizationId: string;
 	user: {
@@ -20,6 +28,7 @@ export type WorkspaceBootstrap = {
 		plan: string;
 		logoUrl: string | null;
 	};
+	workspaces: WorkspaceSummary[];
 	recordModules: {
 		id: string;
 		key: string;

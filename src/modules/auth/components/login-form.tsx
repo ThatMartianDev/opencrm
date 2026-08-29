@@ -1,12 +1,16 @@
 "use client";
 
 import { login } from "@/modules/auth/actions";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 
 import Styles from "./Styles.module.css";
 
 const LoginForm = () => {
   const [state, formAction, pending] = useActionState(login, null);
+
+  useEffect(() => {
+    window.document.title = "Login | OpenCRM";
+  }, []);
 
   return (
     <div className={Styles.loginForm}>

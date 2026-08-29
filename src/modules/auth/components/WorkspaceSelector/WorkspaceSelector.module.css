@@ -1,0 +1,141 @@
+.selector {
+    display: grid;
+    width: min(440px, 96vw);
+    gap: 20px;
+    padding: 24px;
+    background: var(--bg-00);
+    border: 1px solid var(--border-100);
+    border-radius: 8px;
+}
+
+.selector header {
+    display: grid;
+    gap: 6px;
+}
+
+.selector h1 {
+    font-size: var(--font-size-lg);
+}
+
+.selector header p,
+.workspaceDetails span,
+.backLink {
+    color: var(--grey-500);
+    font-size: var(--font-size-sm);
+}
+
+.workspaceList {
+    display: grid;
+    gap: 8px;
+}
+
+.workspaceButton {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) 20px;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 58px;
+    padding: 8px;
+    text-align: left;
+    background: var(--bg-00);
+    border: 1px solid var(--border-100);
+    border-radius: 8px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.workspaceButton:hover:not(:disabled),
+.workspaceButton:focus-visible {
+    background: var(--bg-02);
+    border-color: var(--border-200);
+}
+
+.workspaceButton:disabled {
+    cursor: wait;
+}
+
+.workspaceDetails {
+    display: grid;
+    min-width: 0;
+    gap: 3px;
+}
+
+.workspaceDetails strong,
+.workspaceDetails span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.workspaceDetails strong {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.workspaceDetails span {
+    text-transform: capitalize;
+}
+
+.arrow {
+    color: var(--grey-500);
+    font-size: 18px;
+    text-align: center;
+}
+
+.error {
+    padding: 8px;
+    color: #b42318;
+    font-size: var(--font-size-sm);
+    background: #fef3f2;
+    border: 1px solid #fecdca;
+    border-radius: 6px;
+}
+
+.backLink {
+    width: fit-content;
+}
+
+.backLink:hover {
+    color: var(--text-color);
+}
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: var(--bg-00);
+}
+
+.overlay p {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+}
+
+.overlay > span:last-child {
+    max-width: min(420px, 80vw);
+    overflow: hidden;
+    color: var(--grey-500);
+    font-size: var(--font-size-sm);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border-200);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import TabsControlHeader from "@/components/macro/TabsControlHeader/TabsControlHeader";
 import AvatarFallback from "@/components/micro/AvatarFallback/AvatarFallback";
 import { useToast } from "@/components/macro/Toaster";
+import { useWorkspaceData } from "@/modules/workspace/components/workspace-provider";
 import { ModuleFeature } from "@/generated/prisma/enums";
 import { FileManager } from "@/modules/files";
 import NoteList from "@/modules/notes/components/NoteList";
@@ -42,6 +43,7 @@ const RecordItemPage = ({
   initialRecord,
 }: RecordItemPageProps) => {
   const { toast } = useToast();
+  const { organization } = useWorkspaceData();
   const [record, setRecord] = useState<RecordModuleRecordData | null>(
     initialRecord,
   );
@@ -147,7 +149,7 @@ const RecordItemPage = ({
   }
 
   const moduleName = record.module.pluralName ?? record.module.name;
-  const moduleHref = `/app/${record.organizationId}/${record.module.key}`;
+  const moduleHref = `/app/${organization.slug}/${record.module.key}`;
   const tabs = [
     { label: "Overview", id: "overview" },
     ...(record.module.features.includes(ModuleFeature.TASKS)
