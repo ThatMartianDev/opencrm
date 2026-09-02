@@ -9,6 +9,18 @@ import {
 } from "@/lib/pagination";
 import { TasksService } from "./service";
 
+export const getUpcomingTasks = async (limit = 6) => {
+    const session = await getSessionClaims();
+    const ctx = createQueryContext(session);
+    ctx.assertCan("tasks.read");
+
+    return TasksService.getUpcomingTasksForMember(
+        session.organizationId,
+        session.memberId,
+        Math.min(Math.max(limit, 1), 6),
+    );
+};
+
 export const getTasks = async (query?: PaginationInput) => {
     const session = await getSessionClaims();
     const ctx = createQueryContext(session);

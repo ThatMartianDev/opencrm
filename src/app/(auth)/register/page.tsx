@@ -1,7 +1,9 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useEffect, useState, Suspense } from "react";
+import AuthShell from "@/modules/auth/components/AuthShell/AuthShell";
 import {
   sendVerificationCode,
   verifyEmailCode,
@@ -9,6 +11,7 @@ import {
   setupProfile,
   getInvitationByToken,
 } from "@/modules/auth/actions";
+import Styles from "../Styles.module.css";
 
 type InviteData = {
   email: string;
@@ -34,8 +37,10 @@ const RegisterPageContent = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [inviteData, setInviteData] = useState<InviteData | null>(null);
+  const stepNumber = ["email", "code", "password", "profile"].indexOf(step) + 1;
 
   useEffect(() => {
+    window.document.title = "Create account | UntitledCRM";
     if (requestedStep === "workspace") {
       router.replace("/create-workspace");
     }
@@ -133,17 +138,23 @@ const RegisterPageContent = () => {
   }
 
   return (
-    <div>
-      {invitationToken && inviteData && (
+    <div className={Styles.registerForm}>
+      <div className={Styles.progressHeader}>
+        <span>Step {stepNumber} of 4</span>
         <div
-          style={{
-            padding: "12px 16px",
-            background: "#e8f5e9",
-            borderRadius: 8,
-            marginBottom: 16,
-            fontSize: "0.875rem",
-          }}
+          className={Styles.progressTrack}
+          role="progressbar"
+          aria-label="Account setup progress"
+          aria-valuemin={1}
+          aria-valuemax={4}
+          aria-valuenow={stepNumber}
         >
+          <span style={{ width: `${stepNumber * 25}%` }} />
+        </div>
+      </div>
+
+      {invitationToken && inviteData && (
+        <div className={Styles.invitationNotice}>
           You&apos;ve been invited to join{" "}
           <strong>{inviteData.organizationName}</strong>. Complete your account
           setup to continue.
@@ -151,43 +162,59 @@ const RegisterPageContent = () => {
       )}
 
       {step === "email" && (
-        <>
-          <h1>Create your account</h1>
-          <p>Enter your email to get started.</p>
+        <section className={Styles.stepContent}>
+          <div className={Styles.heading}>
+            <p className={Styles.kicker}>Get started</p>
+            <h1>Create your account</h1>
+            <p>Use your work email to begin setting up UntitledCRM.</p>
+          </div>
           {error && (
-            <p style={{ color: "red", fontSize: "0.875rem" }}>{error}</p>
+            <p className={Styles.error} role="alert">{error}</p>
           )}
-          <div>
-            <label htmlFor="email">Email:</label>
+          <div className={Styles.field}>
+            <label htmlFor="email">Email</label>
             <input
               type="email"
               id="email"
+              placeholder="you@company.com"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendCode()}
               required
             />
           </div>
-          <button onClick={handleSendCode} disabled={loading}>
+          <button className={Styles.primaryButton} onClick={handleSendCode} disabled={loading || !email.trim()}>
             {loading ? "Sending..." : "Continue"}
           </button>
-        </>
+          <p className={Styles.legalCopy}>
+            By creating an account, you agree to the{" "}
+            <Link href="/legal/user-agreement">User Agreement</Link> and
+            acknowledge the{" "}
+            <Link href="/legal/privacy-policy">Privacy Policy</Link>.
+          </p>
+          <p className={Styles.switchPrompt}>
+            Already have an account? <Link href="/login">Sign in</Link>
+          </p>
+        </section>
       )}
 
       {step === "code" && (
-        <>
-          <h1>Check your email</h1>
-          <p>
-            We sent a 6-digit code to <strong>{email}</strong>
-          </p>
+        <section className={Styles.stepContent}>
+          <div className={Styles.heading}>
+            <p className={Styles.kicker}>Verify your email</p>
+            <h1>Check your inbox</h1>
+            <p>We sent a 6-digit code to <strong>{email}</strong>.</p>
+          </div>
           {error && (
-            <p style={{ color: "red", fontSize: "0.875rem" }}>{error}</p>
+            <p className={Styles.error} role="alert">{error}</p>
           )}
-          <div>
-            <label htmlFor="code">Verification code:</label>
+          <div className={Styles.field}>
+            <label htmlFor="code">Verification code</label>
             <input
               type="text"
               id="code"
+              className={Styles.codeInput}
               value={code}
               onChange={(e) =>
                 setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
@@ -195,72 +222,92 @@ const RegisterPageContent = () => {
               onKeyDown={(e) => e.key === "Enter" && handleVerifyCode()}
               maxLength={6}
               placeholder="000000"
+              inputMode="numeric"
+              autoComplete="one-time-code"
               autoFocus
             />
           </div>
-          <button
-            onClick={handleVerifyCode}
-            disabled={loading || code.length !== 6}
-          >
-            {loading ? "Verifying..." : "Verify"}
+          <div className={Styles.buttonGroup}>
+            <button
+              className={Styles.primaryButton}
+              onClick={handleVerifyCode}
+              disabled={loading || code.length !== 6}
+            >
+              {loading ? "Verifying..." : "Verify email"}
+            </button>
+            <button
+              className={Styles.secondaryButton}
+              onClick={handleSendCode}
+              disabled={loading}
+            >
+              Resend code
+            </button>
+          </div>
+          <button className={Styles.textButton} onClick={() => { setError(""); setStep("email"); }}>
+            Use a different email
           </button>
-          <button
-            onClick={handleSendCode}
-            disabled={loading}
-            style={{ marginLeft: 8 }}
-          >
-            Resend code
-          </button>
-        </>
+        </section>
       )}
 
       {step === "password" && (
-        <>
-          <h1>Set your password</h1>
-          <p>Choose a secure password for your account.</p>
+        <section className={Styles.stepContent}>
+          <div className={Styles.heading}>
+            <p className={Styles.kicker}>Secure your account</p>
+            <h1>Create a password</h1>
+            <p>Use at least 8 characters to keep your workspace protected.</p>
+          </div>
           {error && (
-            <p style={{ color: "red", fontSize: "0.875rem" }}>{error}</p>
+            <p className={Styles.error} role="alert">{error}</p>
           )}
-          <div>
-            <label htmlFor="password">Password:</label>
+          <div className={Styles.field}>
+            <label htmlFor="password">Password</label>
             <input
               type="password"
               id="password"
+              placeholder="At least 8 characters"
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword_(e.target.value)}
               required
               autoFocus
             />
           </div>
-          <div>
-            <label htmlFor="confirmPassword">Confirm password:</label>
+          <div className={Styles.field}>
+            <label htmlFor="confirmPassword">Confirm password</label>
             <input
               type="password"
               id="confirmPassword"
+              placeholder="Enter it again"
+              autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSetPassword()}
               required
             />
           </div>
-          <button onClick={handleSetPassword} disabled={loading}>
+          <button className={Styles.primaryButton} onClick={handleSetPassword} disabled={loading}>
             {loading ? "Setting password..." : "Continue"}
           </button>
-        </>
+        </section>
       )}
 
       {step === "profile" && (
-        <>
-          <h1>Set up your profile</h1>
-          <p>How should we call you?</p>
+        <section className={Styles.stepContent}>
+          <div className={Styles.heading}>
+            <p className={Styles.kicker}>One last detail</p>
+            <h1>Set up your profile</h1>
+            <p>Tell your teammates what they should call you.</p>
+          </div>
           {error && (
-            <p style={{ color: "red", fontSize: "0.875rem" }}>{error}</p>
+            <p className={Styles.error} role="alert">{error}</p>
           )}
-          <div>
-            <label htmlFor="name">Name:</label>
+          <div className={Styles.field}>
+            <label htmlFor="name">Full name</label>
             <input
               type="text"
               id="name"
+              placeholder="Your name"
+              autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSetupProfile()}
@@ -268,21 +315,22 @@ const RegisterPageContent = () => {
               autoFocus
             />
           </div>
-          <button onClick={handleSetupProfile} disabled={loading}>
-            {loading ? "Saving..." : "Continue"}
+          <button className={Styles.primaryButton} onClick={handleSetupProfile} disabled={loading || !name.trim()}>
+            {loading ? "Saving..." : "Finish setup"}
           </button>
-        </>
+        </section>
       )}
-
     </div>
   );
 };
 
 const RegisterPage = () => {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <RegisterPageContent />
-    </Suspense>
+    <AuthShell>
+      <Suspense fallback={<div className={Styles.loading}>Preparing your account...</div>}>
+        <RegisterPageContent />
+      </Suspense>
+    </AuthShell>
   );
 };
 

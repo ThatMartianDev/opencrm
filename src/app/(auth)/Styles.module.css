@@ -3,6 +3,249 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 100vh;
+    min-height: 100dvh;
     padding: 20px;
+}
+
+.registerForm {
+    display: grid;
+    gap: 24px;
+    width: 100%;
+}
+
+.progressHeader {
+    display: grid;
+    gap: 8px;
+}
+
+.progressHeader > span {
+    color: #858b83;
+    font-size: 0.68rem;
+    font-weight: 650;
+}
+
+.progressTrack {
+    width: 100%;
+    height: 3px;
+    overflow: hidden;
+    border-radius: 2px;
+    background: #e9ece6;
+}
+
+.progressTrack span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #4f46e5;
+    transition: width 240ms ease;
+}
+
+.stepContent {
+    display: grid;
+    gap: 16px;
+    animation: stepIn 220ms ease both;
+}
+
+.heading {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.kicker {
+    color: #4f46e5;
+    font-size: 0.7rem;
+    font-weight: 750;
+    text-transform: uppercase;
+}
+
+.heading h1 {
+    font-size: clamp(1.8rem, 3vw, 2.35rem);
+    line-height: 1.15;
+    letter-spacing: 0;
+}
+
+.heading > p:last-child {
+    color: #6b7068;
+    font-size: 0.86rem;
+    line-height: 1.55;
+}
+
+.heading strong {
+    color: #353934;
+    font-weight: 650;
+}
+
+.field {
+    display: grid;
+    gap: 7px;
+}
+
+.field label {
+    color: #343833;
+    font-size: 0.75rem;
+    font-weight: 650;
+}
+
+.field input {
+    width: 100%;
+    min-height: 46px;
+    padding: 0 13px;
+    border: 1px solid #dfe3dc;
+    border-radius: 6px;
+    background: #f8f9f6;
+    color: #171916;
+    font-size: 0.86rem;
+    transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.field input::placeholder {
+    color: #a0a69e;
+}
+
+.field input:focus {
+    border-color: #4f46e5;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgb(79 70 229 / 12%);
+}
+
+.field .codeInput {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-align: center;
+}
+
+.primaryButton,
+.secondaryButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    padding: 0 16px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.primaryButton {
+    width: 100%;
+    background: #171916;
+    color: #fff;
+}
+
+.primaryButton:hover:not(:disabled) {
+    transform: translateY(-1px);
+    background: #2b2e29;
+}
+
+.secondaryButton {
+    border: 1px solid #dfe3dc;
+    background: #fff;
+    color: #343833;
+}
+
+.secondaryButton:hover:not(:disabled) {
+    border-color: #bfc5bc;
+    background: #f8f9f6;
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.buttonGroup {
+    display: grid;
+    grid-template-columns: 1fr 0.72fr;
+    gap: 10px;
+}
+
+.textButton {
+    width: fit-content;
+    color: #4338ca;
+    font-size: 0.75rem;
+    font-weight: 650;
+}
+
+.textButton:hover {
+    text-decoration: underline;
+}
+
+.error,
+.invitationNotice {
+    padding: 10px 12px;
+    border-radius: 5px;
+    font-size: 0.77rem;
+    line-height: 1.45;
+}
+
+.error {
+    border: 1px solid #efd0ca;
+    background: #fff5f3;
+    color: #a43d2f;
+}
+
+.invitationNotice {
+    border: 1px solid #c7d2fe;
+    background: #eef2ff;
+    color: #3730a3;
+}
+
+.legalCopy,
+.switchPrompt {
+    color: #858b83;
+    font-size: 0.7rem;
+    line-height: 1.55;
+}
+
+.legalCopy a,
+.switchPrompt a {
+    color: #4338ca;
+    font-weight: 650;
+}
+
+.legalCopy a:hover,
+.switchPrompt a:hover {
+    text-decoration: underline;
+}
+
+.switchPrompt {
+    margin-top: 2px;
+    text-align: center;
+}
+
+.loading {
+    color: #747a72;
+    font-size: 0.82rem;
+}
+
+@keyframes stepIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 420px) {
+    .buttonGroup {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .stepContent {
+        animation: none;
+    }
+
+    .progressTrack span {
+        transition: none;
+    }
 }

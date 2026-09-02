@@ -79,6 +79,27 @@ const linkedTaskWhere: Prisma.TaskWhereInput = {
 };
 
 export const TasksService = {
+    async getUpcomingTasksForMember(
+        organizationId: string,
+        memberId: string,
+        limit: number,
+    ) {
+        return prisma.task.findMany({
+            where: {
+                organizationId,
+                assignedToId: memberId,
+                deletedAt: null,
+                status: { not: TaskStatus.COMPLETED },
+            },
+            include: taskInclude,
+            orderBy: [
+                { dueDate: { sort: "asc", nulls: "last" } },
+                { createdAt: "desc" },
+            ],
+            take: limit,
+        });
+    },
+
     async getAllTasks(organizationId: string, pagination: PaginationQuery) {
         return getTasksPage({ organizationId, deletedAt: null }, pagination);
     },

@@ -8,6 +8,7 @@ import AvatarFallback from "@/components/micro/AvatarFallback/AvatarFallback";
 import { selectWorkspaceAfterLogin } from "@/modules/auth/actions";
 import type { WorkspaceSummary } from "@/modules/workspace/types";
 import Styles from "./WorkspaceSelector.module.css";
+import MainButton from "@/components/micro/MainButton/MainButton";
 
 type WorkspaceSelectorProps = {
   workspaces: WorkspaceSummary[];
@@ -33,7 +34,7 @@ export default function WorkspaceSelector({ workspaces }: WorkspaceSelectorProps
   };
 
     useEffect(() => {
-      window.document.title = "Choose a workspace | OpenCRM";
+      window.document.title = "Choose a workspace | UntitledCRM";
     }, []);
 
   return (
@@ -71,7 +72,7 @@ export default function WorkspaceSelector({ workspaces }: WorkspaceSelectorProps
       </div>
 
       {error && <p className={Styles.error} role="alert">{error}</p>}
-      <Link href="/login" className={Styles.backLink}>Back to login</Link>
+      <MainButton type="primary" htmlTag="a" href="/login" text="Back to login"/>
 
       {switchingWorkspace && (
         <div className={Styles.overlay} role="status" aria-live="polite">

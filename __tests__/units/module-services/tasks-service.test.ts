@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db/client";
 import { TasksService } from "@/modules/tasks/service";
 import { RecordActivityService } from "@/modules/RecordModule/service/record.activity.service";
 
-jest.mock("@/modules/RecordModule/service/record-activity.service", () => ({
+jest.mock("@/modules/RecordModule/service/record.activity.service", () => ({
   RecordActivityService: {
     taskCreated: jest.fn(),
     taskUpdated: jest.fn(),
@@ -60,6 +60,26 @@ describe("TasksService authorization", () => {
             { assignedToId: "member_1" },
           ],
         },
+      }),
+    );
+  });
+
+  test("returns six assigned open tasks ordered by due date for home", async () => {
+    await TasksService.getUpcomingTasksForMember("org_1", "member_1", 6);
+
+    expect(mockTask.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          organizationId: "org_1",
+          assignedToId: "member_1",
+          deletedAt: null,
+          status: { not: "COMPLETED" },
+        },
+        orderBy: [
+          { dueDate: { sort: "asc", nulls: "last" } },
+          { createdAt: "desc" },
+        ],
+        take: 6,
       }),
     );
   });

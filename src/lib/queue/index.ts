@@ -14,31 +14,27 @@ function requireDatabaseUrl() {
 
 const globalForBoss = globalThis as unknown as {
   boss: PgBoss | undefined;
-  bossStarted: boolean | undefined;
+  bossStartPromise: Promise<PgBoss> | undefined;
 };
 
 export const boss =
-  globalForBoss.boss ??
-  new PgBoss(requireDatabaseUrl());
+  globalForBoss.boss ?? new PgBoss(requireDatabaseUrl());
 
-if (process.env.NODE_ENV !== "production") {
-  globalForBoss.boss = boss;
-}
+globalForBoss.boss = boss;
 
 export async function ensureQueueStarted() {
-  if (globalForBoss.bossStarted) {
-    return;
-  }
+  globalForBoss.bossStartPromise ??= boss.start().catch((error) => {
+    globalForBoss.bossStartPromise = undefined;
+    throw error;
+  });
 
-  await boss.start();
-  globalForBoss.bossStarted = true;
+  await globalForBoss.bossStartPromise;
 }
 
 export async function stopQueue() {
-  if (!globalForBoss.bossStarted) {
-    return;
-  }
+  if (!globalForBoss.bossStartPromise) return;
 
+  await globalForBoss.bossStartPromise;
   await boss.stop();
-  globalForBoss.bossStarted = false;
+  globalForBoss.bossStartPromise = undefined;
 }

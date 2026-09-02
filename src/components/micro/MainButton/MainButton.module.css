@@ -50,7 +50,7 @@
 
 .button.secondary {
     background-color: var(--bg-00);
-    border: 1px solid var(--border-100);
+    border: 1px solid var(--border-200);
 }
 .button.secondary:hover {
     background-color: var(--bg-01);
@@ -58,7 +58,7 @@
 
 .button.tertiary {
     background-color: transparent;
-    border: 1px solid var(--border-100);
+    border: 1px solid var(--border-300);
 }
 .button.tertiary:hover {
     background-color: var(--bg-02);
