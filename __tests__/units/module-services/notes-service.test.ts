@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db/client";
 import { NotesService } from "@/modules/notes/service";
-import { RecordActivityService } from "@/modules/RecordModule/service/record-activity.service";
+import { RecordActivityService } from "@/modules/RecordModule/service/record.activity.service";
 
 jest.mock("@/modules/RecordModule/service/record-activity.service", () => ({
   RecordActivityService: {

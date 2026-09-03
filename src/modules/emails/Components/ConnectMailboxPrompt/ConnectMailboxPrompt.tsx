@@ -6,7 +6,7 @@ import { useWorkspaceData } from "@/modules/workspace/components/workspace-provi
 import Styles from "./ConnectMailboxPrompt.module.css";
 
 const ConnectMailboxPrompt = () => {
-  const { organizationId } = useWorkspaceData();
+  const { organization } = useWorkspaceData();
 
   return (
     <div className={Styles.container}>
@@ -20,7 +20,7 @@ const ConnectMailboxPrompt = () => {
           Emails are automatically linked to your contacts, deals, and companies.
         </p>
         <Link
-          href={`/app/${organizationId}/settings/accounts?tab=mailbox`}
+          href={`/app/${organization.slug}/settings/accounts?tab=mailbox`}
           className={Styles.connectBtn}
         >
           Go to Settings to Connect

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db/client";
 import { getSupabaseAdmin } from "@/lib/supabase/client";
 import { FilesService } from "@/modules/files/service";
-import { RecordActivityService } from "@/modules/RecordModule/service/record-activity.service";
+import { RecordActivityService } from "@/modules/RecordModule/service/record.activity.service";
 
 jest.mock("@/lib/db/client", () => ({
   prisma: {

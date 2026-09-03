@@ -3,7 +3,7 @@ import { z } from "zod";
 import RecordModuleService from "../service";
 import type { ParsedRecordValues } from "./types";
 
-const isEmptyValue = (value: unknown) =>
+export const isEmptyValue = (value: unknown) =>
 	value === null ||
 	value === undefined ||
 	value === "" ||

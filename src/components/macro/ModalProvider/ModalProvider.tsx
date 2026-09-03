@@ -12,12 +12,13 @@ import InviteMemberModal from "@/modules/workspace/components/InviteMemberModal/
 import CreateEventModal from "@/modules/calendar/components/CreateEventModal/CreateEventModal";
 import ComposeEmailModal from "@/modules/emails/Components/ComposeEmailModal/ComposeEmailModal";
 import QuickActions from "@/modules/workspace/components/QuickActions/QuickActions";
+import QuickCatcher from "@/modules/ai/features/catcher/ui/QuickCatcher";
 import CreateRecordModalLoader from "@/modules/RecordModule/ui/CreateRecordModal/CreateRecordModalLoader";
 import { RecordBrowserModal } from "@/components/macro/RecordBrowser";
 
 import Styles from "./ModalProvider.module.css";
 
-type ModalId = "quick_actions" | "new-deal" | "task" | "note" | "log-activity" | "new-company" | "new-contact" | "invite-member" | "calendar-event" | "compose-email" | "new-module" | "create-record" | "record-browser";
+type ModalId = "quick_actions" | "quick_catcher" | "new-deal" | "task" | "note" | "log-activity" | "new-company" | "new-contact" | "invite-member" | "calendar-event" | "compose-email" | "new-module" | "create-record" | "record-browser";
 
 type ModalState = {
     id: ModalId;
@@ -37,6 +38,7 @@ const MODAL_COMPONENTS: Record<ModalId, React.ComponentType<{ onClose: () => voi
     "create-record": CreateRecordModalLoader as React.ComponentType<{ onClose: () => void } & Record<string, unknown>>,
     "new-module": RecordModuleBuilder as React.ComponentType<{ onClose: () => void } & Record<string, unknown>>,
     "quick_actions": QuickActions as React.ComponentType<{ onClose: () => void } & Record<string, unknown>>,
+    "quick_catcher": QuickCatcher as React.ComponentType<{ onClose: () => void } & Record<string, unknown>>,
     "new-deal": NewDeal,
     "task": TaskModal as React.ComponentType<{ onClose: () => void } & Record<string, unknown>>,
     "note": NoteModal as React.ComponentType<{ onClose: () => void } & Record<string, unknown>>,
@@ -101,8 +103,8 @@ export function ModalProvider({ children }: { children: ReactNode }) {
         <ModalContext.Provider value={{ openModal, closeModal, getCurrentModalId }}>
             {children}
             {modal && ModalComponent && (
-                <div className={Styles.modalBackdrop} onClick={closeModal}>
-                    <div className={Styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                <div className={`${Styles.modalBackdrop} ${modal.id === "quick_catcher" ? Styles.custom_modal : ""}`} onClick={closeModal}>
+                    <div className={`${Styles.modalContent}`} onClick={(e) => e.stopPropagation()}>
                         <ModalComponent onClose={closeModal} onDataChanged={modal.onDataChanged} {...(modal.props ?? {})} />
                     </div>
                 </div>

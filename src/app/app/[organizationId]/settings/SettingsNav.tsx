@@ -20,8 +20,8 @@ type NavItem = {
 
 export default function SettingsNav() {
     const pathname = usePathname();
-    const { organizationId } = useWorkspaceData();
-    const base = `/app/${organizationId}/settings`;
+    const { organization } = useWorkspaceData();
+    const base = `/app/${organization.slug}/settings`;
 
     const personalItems: NavItem[] = [
         { label: "Profile", href: `${base}/profile`, icon: <PersonRegular /> },
@@ -35,7 +35,7 @@ export default function SettingsNav() {
 
     return (
         <nav className={Styles.nav}>
-            <Link href={`/app/${organizationId}/home`} className={Styles.navHeader}>
+            <Link href={`/app/${organization.slug}/home`} className={Styles.navHeader}>
                 <span className={Styles.backIcon}><ArrowLeftRegular /></span>
                 <h2>Settings</h2>
             </Link>

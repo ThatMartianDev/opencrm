@@ -2,12 +2,46 @@
 "use server";
 
 import crypto from "crypto";
-import { getSessionClaims } from "@/lib/auth/session";
+import { createSession, getSessionClaims } from "@/lib/auth/session";
 import { WorkspaceService } from "./service";
 import { MemberDataSize } from "./types";
 import { prisma } from "@/lib/db/client";
 import { MemberRole } from "@/generated/prisma/enums";
 import { sendEmail, templates } from "@/lib/email";
+
+export async function switchWorkspace(organizationId: string) {
+    const session = await getSessionClaims();
+    const membership = await prisma.member.findUnique({
+        where: {
+            userId_organizationId: {
+                userId: session.userId,
+                organizationId,
+            },
+        },
+        select: {
+            id: true,
+            organizationId: true,
+            role: true,
+            organization: { select: { slug: true } },
+        },
+    });
+
+    if (!membership) {
+        throw new Error("Workspace access denied");
+    }
+
+    await createSession({
+        userId: session.userId,
+        memberId: membership.id,
+        organizationId: membership.organizationId,
+        role: membership.role,
+    });
+
+    return {
+        organizationId: membership.organizationId,
+        workspaceSlug: membership.organization.slug,
+    };
+}
 
 export const getOrganizationData = async (organizationId: string) => {
     const session = await getSessionClaims();
@@ -135,7 +169,7 @@ export async function updateWorkspace(input: { name: string; slug: string }) {
         data: { name: input.name.trim(), slug },
     });
 
-    return { success: true };
+    return { success: true, workspaceSlug: slug };
 }
 
 export async function getWorkspaceSettings() {

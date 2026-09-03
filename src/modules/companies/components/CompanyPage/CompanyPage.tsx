@@ -20,6 +20,7 @@ import Link from "next/link";
 import TabsControlHeader from "@/components/macro/TabsControlHeader/TabsControlHeader";
 import AvatarFallback from "@/components/micro/AvatarFallback/AvatarFallback";
 import { useModal } from "@/components/macro/ModalProvider/ModalProvider";
+import { useWorkspaceData } from "@/modules/workspace/components/workspace-provider";
 import { getCompanyById } from "../../actions";
 import { CompanyWithRelations } from "../../types";
 import OverviewTab from "./tabs/Overview";
@@ -55,6 +56,7 @@ const CompanyPage = () => {
     const [company, setCompany] = useState<CompanyWithRelations | null>(null);
     const [activeTab, setActiveTab] = useState("overview");
     const { openModal } = useModal();
+    const { organization } = useWorkspaceData();
 
     const iconButtons = [
         {
@@ -89,7 +91,7 @@ const CompanyPage = () => {
         <div id={Styles.companyPage}>
             <header className="global_header">
                 <Link
-                    href={`/app/${company.organizationId}/companies`}
+                    href={`/app/${organization.slug}/companies`}
                     className="g_header_section_name"
                 >
                     <ArrowLeftRegular fontSize={14} />

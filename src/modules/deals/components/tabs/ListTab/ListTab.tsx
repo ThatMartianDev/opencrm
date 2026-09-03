@@ -14,10 +14,10 @@ type ListTabProps = {
 
 const ListItem = ({
   deal,
-  workSpaceId,
+  workspaceSlug,
 }: {
   deal: DealRow;
-  workSpaceId: string;
+  workspaceSlug: string;
 }) => {
   const router = useRouter();
 
@@ -26,7 +26,7 @@ const ListItem = ({
     : null;
 
   function handleClickDeal(dealId: string) {
-    router.push(`/app/${workSpaceId}/deals/${dealId}`);
+    router.push(`/app/${workspaceSlug}/deals/${dealId}`);
   }
 
   return (
@@ -121,7 +121,7 @@ const ListTab = ({ deals }: ListTabProps) => {
           <ListItem
             key={deal.id}
             deal={deal}
-            workSpaceId={workSpace.organizationId}
+            workspaceSlug={workSpace.organization.slug}
           />
         ))}
       </div>

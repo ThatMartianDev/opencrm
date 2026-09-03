@@ -326,7 +326,7 @@ const TaskList = ({
   if (loading) return null;
 
   return (
-    <div className={Styles.taskList}>
+    <div className={Styles.wrapper}>
       {showTabsHeader && (
         <TabsControlHeader
           tabs={[]}
@@ -344,173 +344,198 @@ const TaskList = ({
           </button>
         </div>
       )}
+      <div className={Styles.taskListContainer}>
+        <div className={Styles.taskList}>
+          {showInlineForm && (
+            <div className={Styles.inlineForm}>
+              <input
+                type="text"
+                placeholder="Task name..."
+                value={newTaskName}
+                onChange={(e) => setNewTaskName(e.target.value)}
+                onKeyDown={handleKeyDown}
+                autoFocus
+              />
+              <MainButton
+                type="primary"
+                text="Add"
+                onClick={handleInlineCreate}
+              />
+              <MainButton
+                type="secondary"
+                text="Cancel"
+                onClick={() => {
+                  setShowInlineForm(false);
+                  setNewTaskName("");
+                }}
+              />
+            </div>
+          )}
 
-      {showInlineForm && (
-        <div className={Styles.inlineForm}>
-          <input
-            type="text"
-            placeholder="Task name..."
-            value={newTaskName}
-            onChange={(e) => setNewTaskName(e.target.value)}
-            onKeyDown={handleKeyDown}
-            autoFocus
-          />
-          <MainButton type="primary" text="Add" onClick={handleInlineCreate} />
-          <MainButton
-            type="secondary"
-            text="Cancel"
-            onClick={() => {
-              setShowInlineForm(false);
-              setNewTaskName("");
-            }}
-          />
-        </div>
-      )}
-
-      {tasks.length === 0 && !showInlineForm && (
-        <div className={Styles.emptyState}>
-          <p>No tasks yet</p>
-          <button className={Styles.addBtn} onClick={handleOpenCreateModal}>
-            <AddRegular fontSize={14} />
-            Create your first task
-          </button>
-        </div>
-      )}
-
-      {tasks && tasks.length > 0 && (
-        <div className={Styles.tableHeader}>
-          <div onClick={toggleSelectAll} className={Styles.taskSelect}>
-            <button
-              className={`${Styles.taskSelectBtn} ${selectedIds.size === tasks.length ? Styles.selectBtnChecked : selectedIds.size > 0 ? Styles.selectBtnPartial : ""}`}
-            >
-              {selectedIds.size === tasks.length && (
-                <CheckmarkRegular fontSize={12} />
-              )}
-              {selectedIds.size > 0 && selectedIds.size < tasks.length && (
-                <span className={Styles.partialMark} />
-              )}
-            </button>
-          </div>
-          <div>
-            <span>Name</span>
-          </div>
-          <div>
-            <span>Status</span>
-          </div>
-          <div>
-            <span>Due Date</span>
-          </div>
-          <div>
-            <span>Linked Record</span>
-          </div>
-          <div>
-            <span>Assignee</span>
-          </div>
-        </div>
-      )}
-
-      {tasks &&
-        tasks.length > 0 &&
-        tasks.map((task) => (
-          <div
-            key={task.id}
-            className={`${Styles.taskItem} ${task.status === TaskStatus.COMPLETED ? Styles.completed : ""} ${selectedIds.has(task.id) ? Styles.selected : ""}`}
-            onClick={() => openModal("task", { id: task.id, recordId }, fetchTasks)}
-            style={{ cursor: "pointer" }}
-          >
-            <div onClick={(e) => toggleSelect(task.id, e)} className={Styles.taskSelect}>
-              <button
-                className={`${Styles.taskSelectBtn} ${selectedIds.has(task.id) ? Styles.selectBtnChecked : ""}`}
-              >
-                {selectedIds.has(task.id) && <CheckmarkRegular fontSize={12} />}
+          {tasks.length === 0 && !showInlineForm && (
+            <div className={Styles.emptyState}>
+              <p>No tasks yet</p>
+              <button className={Styles.addBtn} onClick={handleOpenCreateModal}>
+                <AddRegular fontSize={14} />
+                Create your first task
               </button>
             </div>
-            <div className={`${Styles.taskName}`}>
-              <div
-                className={`${Styles.checkbox} ${task.status === TaskStatus.COMPLETED ? Styles.checked : ""}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleToggleStatus(task);
-                }}
-              >
-                {task.status === TaskStatus.COMPLETED && (
-                  <CheckmarkCircleFilled color="#1f9c49" />
-                )}
+          )}
+
+          {tasks && tasks.length > 0 && (
+            <div className={Styles.tableHeader}>
+              <div onClick={toggleSelectAll} className={Styles.taskSelect}>
+                <button
+                  className={`${Styles.taskSelectBtn} ${selectedIds.size === tasks.length ? Styles.selectBtnChecked : selectedIds.size > 0 ? Styles.selectBtnPartial : ""}`}
+                >
+                  {selectedIds.size === tasks.length && (
+                    <CheckmarkRegular fontSize={12} />
+                  )}
+                  {selectedIds.size > 0 && selectedIds.size < tasks.length && (
+                    <span className={Styles.partialMark} />
+                  )}
+                </button>
               </div>
-
-              <p>{task.name}</p>
+              <div>
+                <span>Name</span>
+              </div>
+              <div>
+                <span>Status</span>
+              </div>
+              <div>
+                <span>Due Date</span>
+              </div>
+              <div>
+                <span>Linked Record</span>
+              </div>
+              <div>
+                <span>Assignee</span>
+              </div>
             </div>
-            <div>
-              <span
-                className={`${Styles.statusBadge} ${
-                  task.status === TaskStatus.TODO
-                    ? Styles.statusTodo
-                    : task.status === TaskStatus.IN_PROGRESS
-                      ? Styles.statusInProgress
-                      : Styles.statusCompleted
-                }`}
+          )}
+
+          {tasks &&
+            tasks.length > 0 &&
+            tasks.map((task) => (
+              <div
+                key={task.id}
+                className={`${Styles.taskItem} ${task.status === TaskStatus.COMPLETED ? Styles.completed : ""} ${selectedIds.has(task.id) ? Styles.selected : ""}`}
+                onClick={() =>
+                  openModal("task", { id: task.id, recordId }, fetchTasks)
+                }
+                style={{ cursor: "pointer" }}
               >
-                {STATUS_LABELS[task.status]}
-              </span>
-            </div>
-            <div
-              className={`${Styles.dueDate} ${isOverdue(task.dueDate) ? Styles.overdue : ""}`}
-            >
-              {formatDueDate(task.dueDate)}
-            </div>
-            <div className={Styles.linkedRecord}>
-              {task.record ? (
-                <span className={Styles.linkedBadge}>
-                  <span
-                    className={Styles.linkedModuleIcon}
-                    style={{ backgroundColor: task.record.module.accentColor || "#5670ff" }}
+                <div
+                  onClick={(e) => toggleSelect(task.id, e)}
+                  className={Styles.taskSelect}
+                >
+                  <button
+                    className={`${Styles.taskSelectBtn} ${selectedIds.has(task.id) ? Styles.selectBtnChecked : ""}`}
                   >
-                    <ModuleIcon name={task.record.module.icon} size={10} />
+                    {selectedIds.has(task.id) && (
+                      <CheckmarkRegular fontSize={12} />
+                    )}
+                  </button>
+                </div>
+                <div className={`${Styles.taskName}`}>
+                  <div
+                    className={`${Styles.checkbox} ${task.status === TaskStatus.COMPLETED ? Styles.checked : ""}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleStatus(task);
+                    }}
+                  >
+                    {task.status === TaskStatus.COMPLETED && (
+                      <CheckmarkCircleFilled color="#1f9c49" />
+                    )}
+                  </div>
+
+                  <p>{task.name}</p>
+                </div>
+                <div>
+                  <span
+                    className={`${Styles.statusBadge} ${
+                      task.status === TaskStatus.TODO
+                        ? Styles.statusTodo
+                        : task.status === TaskStatus.IN_PROGRESS
+                          ? Styles.statusInProgress
+                          : Styles.statusCompleted
+                    }`}
+                  >
+                    {STATUS_LABELS[task.status]}
                   </span>
-                  {task.record.displayName}
-                </span>
-              ) : (
-                <span style={{ opacity: 0.4 }}>—</span>
-              )}
-            </div>
-            <div className={Styles.assignee}>
-              {task.assignedTo ? (
-                <>
-                  <AvatarFallback
-                    name={task.assignedTo.user.name || "Unknown"}
-                    entityKind="member"
-                    entityId={task.assignedTo.id}
-                    size={20}
-                  />
-                  <span>{task.assignedTo.user.name || "Unknown"}</span>
-                </>
-              ) : (
-                <span style={{ opacity: 0.5 }}>Unassigned</span>
-              )}
-            </div>
-          </div>
-        ))}
+                </div>
+                <div
+                  className={`${Styles.dueDate} ${isOverdue(task.dueDate) ? Styles.overdue : ""}`}
+                >
+                  {formatDueDate(task.dueDate)}
+                </div>
+                <div className={Styles.linkedRecord}>
+                  {task.record ? (
+                    <span className={Styles.linkedBadge}>
+                      <span
+                        className={Styles.linkedModuleIcon}
+                        style={{
+                          backgroundColor:
+                            task.record.module.accentColor || "#5670ff",
+                        }}
+                      >
+                        <ModuleIcon name={task.record.module.icon} size={10} />
+                      </span>
+                      {task.record.displayName}
+                    </span>
+                  ) : (
+                    <span style={{ opacity: 0.4 }}>—</span>
+                  )}
+                </div>
+                <div className={Styles.assignee}>
+                  {task.assignedTo ? (
+                    <>
+                      <AvatarFallback
+                        name={task.assignedTo.user.name || "Unknown"}
+                        entityKind="member"
+                        entityId={task.assignedTo.id}
+                        size={20}
+                      />
+                      <span>{task.assignedTo.user.name || "Unknown"}</span>
+                    </>
+                  ) : (
+                    <span style={{ opacity: 0.5 }}>Unassigned</span>
+                  )}
+                </div>
+              </div>
+            ))}
 
-      {(page > 1 || taskPage.pagination.hasNext) && (
-        <nav className={Styles.pagination} aria-label="Task pages">
-          <button
-            type="button"
-            disabled={page === 1 || loading}
-            onClick={() => changePage(Math.max(1, page - 1))}
-          >
-            Previous
-          </button>
-          <span>Page {page}</span>
-          <button
-            type="button"
-            disabled={!taskPage.pagination.hasNext || loading}
-            onClick={() => changePage(page + 1)}
-          >
-            Next
-          </button>
-        </nav>
-      )}
+          {(page > 1 || taskPage.pagination.hasNext) && (
+            <nav className={Styles.pagination} aria-label="Task pages">
+              <button
+                type="button"
+                disabled={page === 1 || loading}
+                onClick={() => changePage(Math.max(1, page - 1))}
+              >
+                Previous
+              </button>
+              <span>Page {page}</span>
+              <button
+                type="button"
+                disabled={!taskPage.pagination.hasNext || loading}
+                onClick={() => changePage(page + 1)}
+              >
+                Next
+              </button>
+            </nav>
+          )}
 
+          {memberPicker.isOpen && memberPicker.triggerRect && (
+            <MemberPicker
+              organizationId={organizationId}
+              triggerRect={memberPicker.triggerRect}
+              onSelect={handleBulkAssign}
+              onClose={memberPicker.close}
+            />
+          )}
+        </div>
+      </div>
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
         <div className={Styles.bulkBar}>
@@ -560,15 +585,6 @@ const TaskList = ({
             </div>
           </div>
         </div>
-      )}
-
-      {memberPicker.isOpen && memberPicker.triggerRect && (
-        <MemberPicker
-          organizationId={organizationId}
-          triggerRect={memberPicker.triggerRect}
-          onSelect={handleBulkAssign}
-          onClose={memberPicker.close}
-        />
       )}
     </div>
   );

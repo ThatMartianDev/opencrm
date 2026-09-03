@@ -3,7 +3,17 @@
 import crypto from "crypto";
 import { loginSchema } from "./schema";
 import { AuthService } from "./service";
-import { createSession, clearSession, getSessionClaims } from "@/lib/auth/session";
+import {
+    clearSession,
+    clearWorkspaceCreationSession,
+    clearWorkspaceSelectionSession,
+    createSession,
+    createWorkspaceCreationSession,
+    createWorkspaceSelectionSession,
+    getSessionClaims,
+    getWorkspaceCreationUserId,
+    getWorkspaceSelectionUserId,
+} from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import actionError from "@/lib/action-utils/action-error";
 import { prisma } from "@/lib/db/client";
@@ -165,29 +175,51 @@ export async function setupProfile(data: { name: string; avatarUrl?: string }) {
     return { success: true };
 }
 
-//  Step 3: Workspace setup 
+async function getWorkspaceCreatorUserId() {
+    try {
+        return (await getSessionClaims()).userId;
+    } catch {
+        try {
+            return (await verifyRegistrationToken()).userId;
+        } catch {
+            return getWorkspaceCreationUserId();
+        }
+    }
+}
+
+export async function canCreateWorkspace() {
+    try {
+        await getWorkspaceCreatorUserId();
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+//  Workspace setup
 
 export async function setupWorkspace(data: { name: string; slug?: string }) {
-    // Support both email-signup flow (registration_token) and Google OAuth flow (pending_user_id)
     let userId: string;
-    let isGoogleFlow = false;
 
     try {
-        ({ userId } = await verifyRegistrationToken());
+        userId = await getWorkspaceCreatorUserId();
     } catch {
-        const pendingUserId = (await cookies()).get("pending_user_id")?.value;
-        if (!pendingUserId) {
-            return { error: "Registration session expired. Please start over." };
-        }
-        userId = pendingUserId;
-        isGoogleFlow = true;
+        return { error: "Your session expired. Please log in and try again." };
     }
 
     if (!data.name || data.name.trim().length < 3) {
         return { error: "Workspace name must be at least 3 characters" };
     }
 
-    const orgSlug = data.slug?.trim() || slugify(data.name);
+    const creationLimit = rateLimit(`workspace:${userId}`, 5, 60 * 60 * 1000);
+    if (!creationLimit.success) {
+        return { error: "Too many workspaces created. Please try again later." };
+    }
+
+    const orgSlug = slugify(data.slug?.trim() || data.name);
+    if (!orgSlug) {
+        return { error: "Workspace URL must contain letters or numbers" };
+    }
 
     // Check slug uniqueness
     const existingOrg = await prisma.organization.findUnique({ where: { slug: orgSlug } });
@@ -212,12 +244,9 @@ export async function setupWorkspace(data: { name: string; slug?: string }) {
         return { org, member };
     });
 
-    // Clear the appropriate auth cookie
-    if (isGoogleFlow) {
-        (await cookies()).delete("pending_user_id");
-    } else {
-        await clearRegistrationToken();
-    }
+    await clearRegistrationToken();
+    await clearWorkspaceCreationSession();
+    await clearWorkspaceSelectionSession();
 
     await createSession({
         userId,
@@ -226,7 +255,11 @@ export async function setupWorkspace(data: { name: string; slug?: string }) {
         role: result.member.role,
     });
 
-    return { success: true, organizationId: result.org.id };
+    return {
+        success: true,
+        organizationId: result.org.id,
+        workspaceSlug: result.org.slug,
+    };
 }
 
 //  Invitation: Accept 
@@ -289,7 +322,10 @@ export async function acceptInvitation(token: string) {
         role: member.role,
     });
 
-    return { organizationId: invitation.organizationId };
+    return {
+        organizationId: invitation.organizationId,
+        workspaceSlug: invitation.organization.slug,
+    };
 }
 
 //  Invitation: Get details 
@@ -313,7 +349,7 @@ export async function getInvitationByToken(token: string) {
 //  Login 
 
 export async function login(_prev: unknown, formData: FormData) {
-    let organizationId: string | null = null;
+    let destination: string | null = null;
 
     try {
         const input = loginSchema.parse(Object.fromEntries(formData));
@@ -324,19 +360,67 @@ export async function login(_prev: unknown, formData: FormData) {
             return actionError(new Error("Too many login attempts. Please try again later."));
         }
 
-        const { user, member } = await AuthService.login(input);
-        if (!member) throw new Error("Member not found");
-        await createSession({ userId: user.id, memberId: member.id, organizationId: member.organizationId, role: member.role });
-        organizationId = member.organizationId;
+        const { user, memberships } = await AuthService.login(input);
+        if (memberships.length === 0) {
+            await clearWorkspaceSelectionSession();
+            await createWorkspaceCreationSession(user.id);
+            destination = "/create-workspace";
+        } else if (memberships.length > 1) {
+            await clearWorkspaceCreationSession();
+            await createWorkspaceSelectionSession(user.id);
+            destination = "/select-workspace";
+        } else {
+            const [membership] = memberships;
+            await clearWorkspaceCreationSession();
+            await clearWorkspaceSelectionSession();
+            await createSession({
+                userId: user.id,
+                memberId: membership.id,
+                organizationId: membership.organizationId,
+                role: membership.role,
+            });
+            destination = `/app/${membership.organization.slug}/home`;
+        }
     } catch (error) {
         return actionError(error);
     }
 
-    if (!organizationId) {
+    if (!destination) {
         return actionError(new Error("Unable to determine organization"));
     }
 
-    redirect(`/app/${organizationId}/home`);
+    redirect(destination);
+}
+
+export async function selectWorkspaceAfterLogin(organizationId: string) {
+    const userId = await getWorkspaceSelectionUserId();
+    const membership = await prisma.member.findUnique({
+        where: { userId_organizationId: { userId, organizationId } },
+        select: {
+            id: true,
+            organizationId: true,
+            role: true,
+            organization: { select: { slug: true } },
+        },
+    });
+
+    if (!membership) {
+        throw new Error("Workspace access denied");
+    }
+
+    await createSession({
+        userId,
+        memberId: membership.id,
+        organizationId: membership.organizationId,
+        role: membership.role,
+    });
+    await clearWorkspaceCreationSession();
+    await clearWorkspaceSelectionSession();
+
+    return {
+        organizationId: membership.organizationId,
+        workspaceSlug: membership.organization.slug,
+    };
 }
 
 //  Auth Status 
@@ -363,5 +447,7 @@ export async function getAuthStatus() {
 
 export async function signOut() {
     await clearSession();
+    await clearWorkspaceCreationSession();
+    await clearWorkspaceSelectionSession();
     redirect("/login");
 }

@@ -4,6 +4,9 @@ import { SignJWT, jwtVerify } from "jose";
 import { SessionClaims, SessionPayload } from "./types";
 import { getJwtSecret, toSessionClaims } from "./token";
 import { prisma } from "../db/client";
+
+const WORKSPACE_SELECTION_COOKIE = "workspace_selection";
+const WORKSPACE_CREATION_COOKIE = "workspace_creation";
  
 async function encrypt(payload: SessionPayload, encodedKey: Uint8Array) {
   return new SignJWT(payload)
@@ -61,6 +64,88 @@ export async function refreshSession() {
 export async function clearSession() {
   const cookieStore = await cookies()
   cookieStore.delete('session')
+}
+
+export async function createWorkspaceSelectionSession(userId: string) {
+  const token = await new SignJWT({
+    userId,
+    purpose: "workspace-selection",
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("10m")
+    .sign(getJwtSecret());
+
+  (await cookies()).set(WORKSPACE_SELECTION_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 10,
+    path: "/",
+  });
+}
+
+export async function getWorkspaceSelectionUserId(): Promise<string> {
+  const token = (await cookies()).get(WORKSPACE_SELECTION_COOKIE)?.value;
+  if (!token) throw new Error("Workspace selection expired");
+
+  const { payload } = await jwtVerify(token, getJwtSecret(), {
+    algorithms: ["HS256"],
+  });
+
+  if (
+    payload.purpose !== "workspace-selection" ||
+    typeof payload.userId !== "string"
+  ) {
+    throw new Error("Invalid workspace selection");
+  }
+
+  return payload.userId;
+}
+
+export async function clearWorkspaceSelectionSession() {
+  (await cookies()).delete(WORKSPACE_SELECTION_COOKIE);
+}
+
+export async function createWorkspaceCreationSession(userId: string) {
+  const token = await new SignJWT({
+    userId,
+    purpose: "workspace-creation",
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("30m")
+    .sign(getJwtSecret());
+
+  (await cookies()).set(WORKSPACE_CREATION_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 30,
+    path: "/",
+  });
+}
+
+export async function getWorkspaceCreationUserId(): Promise<string> {
+  const token = (await cookies()).get(WORKSPACE_CREATION_COOKIE)?.value;
+  if (!token) throw new Error("Workspace creation session expired");
+
+  const { payload } = await jwtVerify(token, getJwtSecret(), {
+    algorithms: ["HS256"],
+  });
+
+  if (
+    payload.purpose !== "workspace-creation" ||
+    typeof payload.userId !== "string"
+  ) {
+    throw new Error("Invalid workspace creation session");
+  }
+
+  return payload.userId;
+}
+
+export async function clearWorkspaceCreationSession() {
+  (await cookies()).delete(WORKSPACE_CREATION_COOKIE);
 }
 
 export const getSessionClaims = cache(async (): Promise<SessionClaims> => {

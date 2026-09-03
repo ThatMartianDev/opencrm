@@ -1,0 +1,217 @@
+.panel {
+    display: grid;
+    width: min(520px, 100%);
+    gap: 28px;
+    padding: 32px;
+    background: var(--bg-00);
+    border: 1px solid var(--border-200);
+    border-radius: 8px;
+    box-shadow: 0 20px 55px rgba(17, 17, 17, 0.08);
+}
+
+.header {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: start;
+    gap: 14px;
+}
+
+.header h1 {
+    font-size: 1.5rem;
+    font-weight: 650;
+    line-height: 1.25;
+}
+
+.header p {
+    margin-top: 6px;
+    color: var(--grey-500);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+}
+
+.icon {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    color: #fff;
+    background: #242424;
+    border-radius: 8px;
+}
+
+.icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.form {
+    display: grid;
+    gap: 18px;
+}
+
+.slugField {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    min-height: 40px;
+    overflow: hidden;
+    background: var(--bg-00);
+    border: 1px solid var(--border-100);
+    border-radius: 8px;
+    transition: border-color 0.15s ease;
+}
+
+.slugField:focus-within {
+    border-color: var(--border-300);
+}
+
+.slugField > span {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    padding: 0 0 0 12px;
+    color: var(--grey-500);
+    font-size: var(--font-size-sm);
+    background: var(--bg-02);
+    border-right: 1px solid var(--border-100);
+}
+
+.slugField input {
+    min-width: 0;
+    padding: 10px;
+    color: var(--text-color);
+    font-size: var(--font-size-sm);
+}
+
+.error {
+    padding: 10px 12px;
+    color: #b42318;
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
+    background: #fef3f2;
+    border: 1px solid #fecdca;
+    border-radius: 6px;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 4px;
+}
+
+.cancel,
+.submit {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 14px;
+    border-radius: 8px;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.cancel {
+    color: var(--grey-500);
+}
+
+.cancel:hover {
+    color: var(--text-color);
+    background: var(--bg-03);
+}
+
+.submit {
+    gap: 8px;
+    color: #fff;
+    background: #242424;
+}
+
+.submit:hover:not(:disabled) {
+    background: #111;
+}
+
+.submit:disabled {
+    cursor: wait;
+    opacity: 0.72;
+}
+
+.submit svg {
+    width: 18px;
+    height: 18px;
+}
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 24px;
+    background: var(--bg-00);
+}
+
+.overlay p {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+}
+
+.overlay > span:last-child {
+    max-width: min(420px, 80vw);
+    overflow: hidden;
+    color: var(--grey-500);
+    font-size: var(--font-size-sm);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border-200);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 560px) {
+    .panel {
+        gap: 22px;
+        padding: 22px;
+    }
+
+    .header {
+        grid-template-columns: 38px minmax(0, 1fr);
+        gap: 12px;
+    }
+
+    .icon {
+        width: 38px;
+        height: 38px;
+    }
+
+    .slugField {
+        grid-template-columns: 1fr;
+    }
+
+    .slugField > span {
+        min-height: 32px;
+        border-right: 0;
+        border-bottom: 1px solid var(--border-100);
+    }
+
+    .actions {
+        align-items: stretch;
+        flex-direction: column-reverse;
+    }
+}

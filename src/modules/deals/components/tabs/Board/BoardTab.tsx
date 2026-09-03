@@ -22,13 +22,13 @@ type BoardTabProps = {
     deals: DealRow[];
 };
 
-const DealCard = ({ deal, workspaceId }: { deal: DealRow; workspaceId: string }) => {
+const DealCard = ({ deal, workspaceSlug }: { deal: DealRow; workspaceSlug: string }) => {
     const router = useRouter();
 
     return (
         <div
             className={Styles.deal_card}
-            onClick={() => router.push(`/app/${workspaceId}/deals/${deal.id}`)}
+            onClick={() => router.push(`/app/${workspaceSlug}/deals/${deal.id}`)}
         >
             <div className={Styles.card_header}>
                 <AvatarFallback
@@ -72,10 +72,10 @@ const BoardTab = ({ deals }: BoardTabProps) => {
                 .filter((deal) => deal.stage === stage.value)
                 .map((deal) => ({
                     id: deal.id,
-                    element: <DealCard deal={deal} workspaceId={workspace.organizationId} />,
+                    element: <DealCard deal={deal} workspaceSlug={workspace.organization.slug} />,
                 })),
         }));
-    }, [deals, workspace.organizationId]);
+    }, [deals, workspace.organization.slug]);
 
     const handleCardMove = async (
         cardId: string,
@@ -92,7 +92,7 @@ const BoardTab = ({ deals }: BoardTabProps) => {
                 description: `"${deal?.title || "Deal"}" moved to ${stageName}.`,
                 duration: 4000,
                 actions: [
-                    { label: "View deal", onClick: () => window.location.href = `/app/${workspace.organizationId}/deals/${cardId}`, primary: true },
+                    { label: "View deal", onClick: () => window.location.href = `/app/${workspace.organization.slug}/deals/${cardId}`, primary: true },
                 ],
             });
             return true;

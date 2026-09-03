@@ -4,7 +4,7 @@ import { ModuleFeature } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db/client";
 import { assertCrmLinksBelongToOrganization } from "@/lib/dal/crm-links";
 import { getSupabaseAdmin, STORAGE_BUCKET } from "@/lib/supabase/client";
-import { RecordActivityService } from "@/modules/RecordModule/service/record-activity.service";
+import { RecordActivityService } from "@/modules/RecordModule/service/record.activity.service";
 import type { CreateFolderInput, CreateExternalFileInput, EntityScope } from "./types";
 
 const assertRecordFilesEnabled = async (

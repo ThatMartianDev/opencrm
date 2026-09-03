@@ -39,6 +39,7 @@ model Organization {
   recordModules       RecordModule[]
   recordItems         RecordItem[]
   recordRelationships RecordRelationship[]
+  aiThreads           AiThread[]
 
   @@map("organizations")
 }
@@ -116,6 +117,7 @@ model Member {
   createdRecords           RecordItem[]       @relation("RecordItemCreator")
   ownedRecords             RecordItem[]       @relation("RecordItemOwner")
   notifications            Notification[]
+  aiThreads                AiThread[]
 
   @@unique([userId, organizationId])
   @@map("members")
@@ -126,6 +128,97 @@ enum MemberRole {
   ADMIN
   MANAGER
   MEMBER
+}
+
+// ─── AI Platform ───
+
+model AiThread {
+  id             String         @id @default(cuid())
+  organizationId String
+  memberId       String
+  feature        String
+  title          String?
+  status         AiThreadStatus @default(ACTIVE)
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member       Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  runs         AiRun[]
+
+  @@index([organizationId, memberId, feature, status])
+  @@index([memberId, updatedAt])
+}
+
+model AiRun {
+  id          String      @id @default(cuid())
+  threadId    String
+  status      AiRunStatus @default(PENDING)
+  input       Json
+  context     Json        @default("{}")
+  response    Json?
+  error       String?
+  model       String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  thread  AiThread      @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  actions AiRunAction[]
+
+  @@index([threadId, createdAt])
+  @@index([status, createdAt])
+}
+
+model AiRunAction {
+  id             String            @id @default(cuid())
+  runId          String
+  actionKey      String
+  type           String
+  ordinal        Int
+  payload        Json
+  status         AiRunActionStatus @default(PROPOSED)
+  idempotencyKey String            @unique
+  result         Json?
+  error          String?
+  approvedAt     DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  run AiRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, actionKey])
+  @@unique([runId, ordinal])
+  @@index([runId, status])
+}
+
+enum AiThreadStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum AiRunStatus {
+  PENDING
+  RUNNING
+  AWAITING_INPUT
+  AWAITING_APPROVAL
+  EXECUTING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum AiRunActionStatus {
+  PROPOSED
+  APPROVED
+  REJECTED
+  EXECUTING
+  COMPLETED
+  FAILED
 }
 
 model Invitation {

@@ -5,6 +5,7 @@
     border-right: 1px solid var(--border-100);
     position: relative;
     transition: all 0.3s ease;
+    height: 100%;
 }
 
 #sideBar.open {
@@ -476,6 +477,11 @@
     background: var(--bg-03);
 }
 
+.orgMenuItem:disabled {
+    cursor: default;
+    opacity: 1;
+}
+
 .orgMenuItem svg {
     width: 18px;
     height: 18px;
@@ -491,6 +497,47 @@
     color: #0078d4;
     width: 16px !important;
     height: 16px !important;
+}
+
+.workspaceSwitchOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: var(--bg-00);
+}
+
+.workspaceSwitchOverlay p {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+}
+
+.workspaceSwitchOverlay > span:last-child {
+    max-width: min(420px, 80vw);
+    overflow: hidden;
+    color: var(--grey-500);
+    font-size: var(--font-size-sm);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.workspaceSwitchSpinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border-200);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: workspaceSwitchSpin 0.75s linear infinite;
+}
+
+@keyframes workspaceSwitchSpin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 

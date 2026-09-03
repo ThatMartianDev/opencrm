@@ -1,5 +1,5 @@
 import { ActivitySource, ActivityType } from "@/generated/prisma/enums";
-import { RecordActivityService } from "@/modules/RecordModule/service/record-activity.service";
+import { RecordActivityService } from "@/modules/RecordModule/service/record.activity.service";
 import { ActivityLogService } from "@/modules/activity-log/service";
 
 jest.mock("@/modules/activity-log/service", () => ({

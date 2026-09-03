@@ -15,10 +15,11 @@ type SendEmailOptions = {
     subject: string;
     html: string;
     text?: string;
+    replyTo?: string;
 };
 
-export async function sendEmail({ to, subject, html, text }: SendEmailOptions) {
+export async function sendEmail({ to, subject, html, text, replyTo }: SendEmailOptions) {
     const from = process.env.SMTP_FROM || "OpenCRM <noreply@opencrm.app>";
 
-    await transporter.sendMail({ from, to, subject, html, text });
+    await transporter.sendMail({ from, to, subject, html, text, replyTo });
 }

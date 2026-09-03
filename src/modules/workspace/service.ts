@@ -2,7 +2,45 @@ import { prisma } from "@/lib/db/client";
 import { AppError } from "@/lib/errors";
 import { MemberDataSize, WorkspaceBootstrap } from "./types";
 
+async function getUserWorkspaces(userId: string) {
+  const memberships = await prisma.member.findMany({
+    where: { userId },
+    select: {
+      role: true,
+      organization: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          logoUrl: true,
+        },
+      },
+    },
+    orderBy: { joinedAt: "asc" },
+  });
+
+  return memberships.map(({ organization, role }) => ({
+    ...organization,
+    role,
+  }));
+}
+
 export const WorkspaceService = {
+  getUserWorkspaces,
+
+  async getWorkspaceSlug(organizationId: string, userId: string) {
+    const membership = await prisma.member.findUnique({
+      where: { userId_organizationId: { userId, organizationId } },
+      select: { organization: { select: { slug: true } } },
+    });
+
+    if (!membership) {
+      throw new AppError("Workspace access denied", "FORBIDDEN", 403);
+    }
+
+    return membership.organization.slug;
+  },
+
   async getWorkspaceBootstrap(
     organizationId: string,
     userId: string,
@@ -49,6 +87,8 @@ export const WorkspaceService = {
       throw new AppError("Workspace access denied", "FORBIDDEN", 403);
     }
 
+    const workspaces = await getUserWorkspaces(userId);
+
     return {
       organizationId: member.organization.id,
       user: {
@@ -69,6 +109,7 @@ export const WorkspaceService = {
         plan: member.organization.plan,
         logoUrl: member.organization.logoUrl,
       },
+      workspaces,
       recordModules: member.organization.recordModules,
     };
   },

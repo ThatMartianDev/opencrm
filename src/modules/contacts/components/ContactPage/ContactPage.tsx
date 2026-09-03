@@ -20,10 +20,10 @@ import Link from "next/link";
 import TabsControlHeader from "@/components/macro/TabsControlHeader/TabsControlHeader";
 import AvatarFallback from "@/components/micro/AvatarFallback/AvatarFallback";
 import { useModal } from "@/components/macro/ModalProvider/ModalProvider";
+import { useWorkspaceData } from "@/modules/workspace/components/workspace-provider";
 import { getContactById } from "../../actions";
 import { ContactWithRelations } from "../../types";
 import OverviewTab from "./tabs/Overview";
-import DealsTab from "./tabs/Deals";
 import NotesTab from "./tabs/Notes";
 import FilesTab from "./tabs/Files";
 import Styles from "./ContactPage.module.css";
@@ -56,6 +56,7 @@ const ContactPage = () => {
     const [contact, setContact] = useState<ContactWithRelations | null>(null);
     const [activeTab, setActiveTab] = useState("overview");
     const { openModal } = useModal();
+    const { organization } = useWorkspaceData();
 
     const iconButtons = [
         {
@@ -90,7 +91,7 @@ const ContactPage = () => {
         <div id={Styles.contactPage}>
             <header className="global_header">
                 <Link
-                    href={`/app/${contact.organizationId}/contacts`}
+                    href={`/app/${organization.slug}/contacts`}
                     className="g_header_section_name"
                 >
                     <ArrowLeftRegular fontSize={14} />

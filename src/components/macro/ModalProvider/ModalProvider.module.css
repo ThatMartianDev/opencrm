@@ -15,6 +15,20 @@
     animation: fadeContent 0.3s ease forwards;
 }
 
+.custom_modal {
+    display: unset;
+    justify-content: unset;
+    align-items: unset;
+    background-color: transparent;
+}
+
+.custom_modal .modalContent {
+    animation: unset;
+    width: 100%;
+    height: 100%;
+}
+
+
 @keyframes fadeContent {
     from {
         opacity: 0;

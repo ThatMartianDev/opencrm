@@ -1,0 +1,19 @@
+.page {
+    display: grid;
+    min-height: 100vh;
+    place-items: center;
+    padding: 24px;
+    background-color: #f7f7f5;
+    background-image:
+        linear-gradient(rgba(17, 17, 17, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(17, 17, 17, 0.035) 1px, transparent 1px);
+    background-size: 28px 28px;
+}
+
+@media (max-width: 560px) {
+    .page {
+        align-items: start;
+        padding: 16px;
+        padding-top: 48px;
+    }
+}
