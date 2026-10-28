@@ -2,6 +2,9 @@ import { prisma } from "@/lib/db/client";
 import { ActivityType } from "@/generated/prisma/enums";
 import { ActivityLogService } from "@/modules/activity-log/service";
 import { assertCrmLinksBelongToOrganization } from "@/lib/dal/crm-links";
+import { z } from "zod";
+
+const editableFieldSchema = z.enum(["name", "email", "phone", "jobTitle", "source"]);
 
 export const ContactsService = {
     async getAllContacts(organizationId: string) {
@@ -64,12 +67,14 @@ export const ContactsService = {
         organizationId: string,
         memberId: string,
     ) {
+        field = editableFieldSchema.parse(field);
+        value = z.string().parse(value);
         const contact = await prisma.contact.findFirst({ where: { id: contactId, organizationId, deletedAt: null } });
         if (!contact) throw new Error("Contact not found");
         const oldValue = contact[field];
 
         const updated = await prisma.contact.update({
-            where: { id: contactId },
+            where: { id: contactId, organizationId, deletedAt: null },
             data: { [field]: value || null },
         });
 

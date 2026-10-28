@@ -1,3 +1,5 @@
+import "server-only";
+
 import { prisma } from "@/lib/db/client";
 import { CatcherActionProps, CatcherRequest, CatcherResponse } from "../types";
 import { CATCHER_FEATURE, statusForResponse, toJson } from "./helpers";
@@ -170,10 +172,16 @@ export const RunServices = {
       throw new Error("AI_SERVICE_URL is not configured.");
     }
 
+    const serviceToken = process.env.AI_SERVICE_AUTH_TOKEN?.trim();
+    if (!serviceToken) {
+      throw new Error("AI_SERVICE_AUTH_TOKEN is not configured.");
+    }
+
     const response = await fetch(`${serviceUrl}/catcher/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceToken}`,
       },
       body: JSON.stringify(request),
     });

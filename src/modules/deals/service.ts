@@ -6,6 +6,10 @@ import {
   assertCrmLinksBelongToOrganization,
   assertMemberBelongsToOrganization,
 } from "@/lib/dal/crm-links";
+import { z } from "zod";
+
+const editableFieldSchema = z.enum(["title", "value", "source", "lostReason"]);
+const relationFieldSchema = z.enum(["contactId", "companyId"]);
 
 export const DealsService = {
   async getAllDeals(organizationId: string) {
@@ -166,6 +170,8 @@ export const DealsService = {
     organizationId: string,
     memberId: string,
   ) {
+    field = editableFieldSchema.parse(field);
+    value = z.string().parse(value);
     const deal = await prisma.deal.findFirst({
       where: { id: dealId, organizationId, deletedAt: null },
     });
@@ -173,7 +179,7 @@ export const DealsService = {
     const oldValue = deal[field];
 
     const updated = await prisma.deal.update({
-      where: { id: dealId },
+      where: { id: dealId, organizationId, deletedAt: null },
       data: { [field]: value || null },
     });
 
@@ -246,6 +252,8 @@ export const DealsService = {
     organizationId: string,
     memberId: string,
   ) {
+    field = relationFieldSchema.parse(field);
+    value = z.string().nullable().parse(value);
     await assertCrmLinksBelongToOrganization(organizationId, {
       [field]: value,
     });
@@ -256,7 +264,7 @@ export const DealsService = {
     if (!deal) throw new Error("Deal not found");
 
     const updated = await prisma.deal.update({
-      where: { id: dealId },
+      where: { id: dealId, organizationId, deletedAt: null },
       data: { [field]: value },
     });
 

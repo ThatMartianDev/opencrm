@@ -86,6 +86,84 @@
   padding: 14px;
 }
 
+.receipt {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.receiptHeading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.successIcon,
+.warningIcon {
+  display: flex;
+  flex: 0 0 22px;
+  padding-top: 1px;
+}
+
+.successIcon {
+  color: #24804a;
+}
+
+.warningIcon {
+  color: #a56315;
+}
+
+.receiptText {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+
+.receiptDetail {
+  margin: 0;
+  color: #696c78;
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+
+.failedActions,
+.completedActions ul {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.failedActions li {
+  display: grid;
+  gap: 4px;
+  padding-left: 12px;
+  border-left: 2px solid #d99393;
+  overflow-wrap: anywhere;
+  font-size: var(--font-size-sm);
+}
+
+.failedActions li span {
+  color: #a13737;
+  line-height: 1.45;
+}
+
+.completedActions {
+  color: #696c78;
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.completedActions summary {
+  cursor: pointer;
+}
+
+.completedActions ul {
+  padding-top: 10px;
+}
+
 .responseMessage {
   margin: 0;
   font-size: var(--font-size-base);

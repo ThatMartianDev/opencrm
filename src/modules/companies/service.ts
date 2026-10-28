@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/db/client";
 import { ActivityType } from "@/generated/prisma/enums";
 import { ActivityLogService } from "@/modules/activity-log/service";
+import { z } from "zod";
+
+const editableFieldSchema = z.enum(["name", "email", "phone", "website", "industry", "size", "address"]);
 
 export const CompaniesService = {
     async getAllCompanies(organizationId: string) {
@@ -60,12 +63,14 @@ export const CompaniesService = {
         organizationId: string,
         memberId: string,
     ) {
+        field = editableFieldSchema.parse(field);
+        value = z.string().parse(value);
         const company = await prisma.company.findFirst({ where: { id: companyId, organizationId, deletedAt: null } });
         if (!company) throw new Error("Company not found");
         const oldValue = company[field];
 
         const updated = await prisma.company.update({
-            where: { id: companyId },
+            where: { id: companyId, organizationId, deletedAt: null },
             data: { [field]: value || null },
         });
 

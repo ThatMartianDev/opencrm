@@ -1,11 +1,23 @@
 import "server-only";
+import { z } from "zod";
 
 import { ModuleFeature } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db/client";
 import { assertCrmLinksBelongToOrganization } from "@/lib/dal/crm-links";
 import { getSupabaseAdmin, STORAGE_BUCKET } from "@/lib/supabase/client";
 import { RecordActivityService } from "@/modules/RecordModule/service/record.activity.service";
-import type { CreateFolderInput, CreateExternalFileInput, EntityScope } from "./types";
+import type {
+  CreateFolderInput,
+  CreateExternalFileInput,
+  EntityScope,
+} from "./types";
+
+const entityScopeSchema = z.strictObject({
+  dealId: z.string().min(1).optional(),
+  contactId: z.string().min(1).optional(),
+  companyId: z.string().min(1).optional(),
+  recordId: z.string().min(1).optional(),
+});
 
 const assertRecordFilesEnabled = async (
   organizationId: string,
@@ -28,10 +40,7 @@ const assertRecordFilesEnabled = async (
   if (!record) throw new Error("Record not found or files are not enabled.");
 };
 
-const assertFileScope = async (
-  organizationId: string,
-  scope: EntityScope,
-) => {
+const assertFileScope = async (organizationId: string, scope: EntityScope) => {
   await Promise.all([
     assertCrmLinksBelongToOrganization(organizationId, scope),
     assertRecordFilesEnabled(organizationId, scope),
@@ -64,16 +73,14 @@ export const FilesService = {
   /**
    * Search files by name across the entire entity scope (ignores folder nesting).
    */
-  async searchFiles(
-    organizationId: string,
-    scope: EntityScope,
-    query: string,
-  ) {
+  async searchFiles(organizationId: string, scope: EntityScope, query: string) {
+    scope = entityScopeSchema.parse(scope);
+    query = z.string().parse(query);
     await assertFileScope(organizationId, scope);
     return prisma.file.findMany({
       where: {
-        organizationId,
         ...scope,
+        organizationId,
         name: { contains: query, mode: "insensitive" },
       },
       orderBy: [{ type: "asc" }, { name: "asc" }],
@@ -88,13 +95,15 @@ export const FilesService = {
     scope: EntityScope,
     parentId: string | null,
   ) {
+    scope = entityScopeSchema.parse(scope);
+    parentId = z.string().min(1).nullable().parse(parentId);
     await assertFileScope(organizationId, scope);
     await assertParentFolderMatchesScope(organizationId, parentId, scope);
     return prisma.file.findMany({
       where: {
+        ...scope,
         organizationId,
         parentId: parentId ?? null,
-        ...scope,
       },
       orderBy: [{ type: "asc" }, { name: "asc" }], // Folders first, then alphabetical
     });
@@ -160,14 +169,19 @@ export const FilesService = {
           : scope.recordId
             ? "records"
             : "general";
-    const entityId = scope.dealId ?? scope.contactId ?? scope.companyId ?? scope.recordId ?? "shared";
+    const entityId =
+      scope.dealId ??
+      scope.contactId ??
+      scope.companyId ??
+      scope.recordId ??
+      "shared";
     const timestamp = Date.now();
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const storagePath = `${organizationId}/${entityType}/${entityId}/${timestamp}_${sanitizedName}`;
 
     // Upload to Supabase Storage
-    const { error } = await getSupabaseAdmin().storage
-      .from(STORAGE_BUCKET)
+    const { error } = await getSupabaseAdmin()
+      .storage.from(STORAGE_BUCKET)
       .upload(storagePath, file, {
         contentType: file.type,
         upsert: false,
@@ -261,18 +275,22 @@ export const FilesService = {
       return file.externalUrl;
     }
 
-    const { data, error } = await getSupabaseAdmin().storage
-      .from(STORAGE_BUCKET)
+    const { data, error } = await getSupabaseAdmin()
+      .storage.from(STORAGE_BUCKET)
       .createSignedUrl(file.storagePath, 3600, { download: file.name }); // 1 hour expiry, forces download
 
-    if (error) throw new Error(`Failed to generate download URL: ${error.message}`);
+    if (error)
+      throw new Error(`Failed to generate download URL: ${error.message}`);
     return data.signedUrl;
   },
 
   /**
    * Get signed URLs for multiple image files (for thumbnails).
    */
-  async getImageUrls(fileIds: string[], organizationId: string): Promise<Record<string, string>> {
+  async getImageUrls(
+    fileIds: string[],
+    organizationId: string,
+  ): Promise<Record<string, string>> {
     const files = await prisma.file.findMany({
       where: {
         id: { in: fileIds },
@@ -289,8 +307,8 @@ export const FilesService = {
         if (file.externalUrl) urls[file.id] = file.externalUrl;
         continue;
       }
-      const { data } = await getSupabaseAdmin().storage
-        .from(STORAGE_BUCKET)
+      const { data } = await getSupabaseAdmin()
+        .storage.from(STORAGE_BUCKET)
         .createSignedUrl(file.storagePath, 3600);
       if (data?.signedUrl) urls[file.id] = data.signedUrl;
     }
@@ -339,13 +357,15 @@ export const FilesService = {
 
     // Delete from storage if it's a Supabase file
     if (file.source === "SUPABASE" && file.storagePath) {
-      await getSupabaseAdmin().storage
-        .from(STORAGE_BUCKET)
+      await getSupabaseAdmin()
+        .storage.from(STORAGE_BUCKET)
         .remove([file.storagePath]);
     }
 
     // Delete the DB record
-    const deletedFile = await prisma.file.delete({ where: { id: data.fileId } });
+    const deletedFile = await prisma.file.delete({
+      where: { id: data.fileId },
+    });
     if (deletedFile.type === "FILE" && deletedFile.recordId) {
       await RecordActivityService.fileDeleted({
         organizationId: data.organizationId,
@@ -360,12 +380,19 @@ export const FilesService = {
   /**
    * Build breadcrumb path from a file/folder to root.
    */
-  async getBreadcrumbs(fileId: string, organizationId: string): Promise<{ id: string; name: string }[]> {
+  async getBreadcrumbs(
+    fileId: string,
+    organizationId: string,
+  ): Promise<{ id: string; name: string }[]> {
     const breadcrumbs: { id: string; name: string }[] = [];
     let currentId: string | null = fileId;
 
     while (currentId) {
-      const record: { id: string; name: string; parentId: string | null } | null = await prisma.file.findFirst({
+      const record: {
+        id: string;
+        name: string;
+        parentId: string | null;
+      } | null = await prisma.file.findFirst({
         where: { id: currentId, organizationId },
         select: { id: true, name: true, parentId: true },
       });
@@ -376,5 +403,4 @@ export const FilesService = {
 
     return breadcrumbs;
   },
-
 };

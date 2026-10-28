@@ -8,6 +8,13 @@ import { MemberDataSize } from "./types";
 import { prisma } from "@/lib/db/client";
 import { MemberRole } from "@/generated/prisma/enums";
 import { sendEmail, templates } from "@/lib/email";
+import { z } from "zod";
+
+const assignableRoleSchema = z.enum(["ADMIN", "MANAGER", "MEMBER"]);
+const invitationSchema = z.object({
+    email: z.string().trim().email(),
+    role: assignableRoleSchema,
+});
 
 export async function switchWorkspace(organizationId: string) {
     const session = await getSessionClaims();
@@ -75,6 +82,11 @@ export async function inviteMember(input: { email: string; role: MemberRole }) {
     // Only OWNER, ADMIN, and MANAGER can invite members
     if (!["OWNER", "ADMIN", "MANAGER"].includes(session.role)) {
         throw new Error("You don't have permission to invite members");
+    }
+
+    input = invitationSchema.parse(input);
+    if (session.role === "MANAGER" && input.role !== "MEMBER") {
+        throw new Error("Managers can only invite members");
     }
 
     // Check if already a member
@@ -234,14 +246,14 @@ export async function updateMemberRole(memberId: string, role: MemberRole) {
         throw new Error("Only owners and admins can change roles");
     }
 
+    role = assignableRoleSchema.parse(role);
+
     const target = await prisma.member.findFirst({
         where: { id: memberId, organizationId: session.organizationId },
     });
 
     if (!target) throw new Error("Member not found");
     if (target.role === "OWNER") throw new Error("Cannot change the owner's role");
-    if (role === "OWNER") throw new Error("Cannot assign owner role");
-
     await prisma.member.update({
         where: { id: memberId },
         data: { role },

@@ -7,12 +7,14 @@ import { inviteMember } from "../../actions";
 import MainButton from "@/components/micro/MainButton/MainButton";
 import Styles from "./InviteMemberModal.module.css";
 import SharedStyles from "@/components/macro/ModalProvider/SharedStyles.module.css";
+import { useWorkspaceData } from "../workspace-provider";
 
 type InviteMemberModalProps = {
     onClose: () => void;
 };
 
 export default function InviteMemberModal({ onClose }: InviteMemberModalProps) {
+    const { member } = useWorkspaceData();
     const [email, setEmail] = useState("");
     const [role, setRole] = useState<MemberRole>(MemberRole.MEMBER);
     const [loading, setLoading] = useState(false);
@@ -68,8 +70,12 @@ export default function InviteMemberModal({ onClose }: InviteMemberModalProps) {
                         onChange={(e) => setRole(e.target.value as MemberRole)}
                     >
                         <option value={MemberRole.MEMBER}>Member</option>
-                        <option value={MemberRole.MANAGER}>Manager</option>
-                        <option value={MemberRole.ADMIN}>Admin</option>
+                        {member.role !== MemberRole.MANAGER && (
+                            <>
+                                <option value={MemberRole.MANAGER}>Manager</option>
+                                <option value={MemberRole.ADMIN}>Admin</option>
+                            </>
+                        )}
                     </select>
                 </div>
                 {error && <p className={Styles.error}>{error}</p>}

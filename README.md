@@ -29,7 +29,25 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Authorization boundaries
+
+- Owners and admins can invite admins, managers, and members. Managers can only
+  invite members. Invitations and role changes cannot grant the owner role.
+- File listing/search scopes accept only CRM entity IDs; workspace and folder
+  constraints cannot be overridden by client-supplied query properties.
+- Contact, company, and deal field updates validate editable field names and
+  values at runtime, and keep writes scoped to the authenticated workspace.
+
+## Deployment
+
+### AI service authentication
+
+Configure `AI_SERVICE_URL` on the Next.js server and set
+`AI_SERVICE_AUTH_TOKEN` to the same random secret in both Next.js and the AI
+service. Next.js sends it in a server-side Bearer authorization header and
+refuses to call the service if it is missing or blank. Never expose the token
+through a `NEXT_PUBLIC_` variable. The AI service refuses to start without it.
+See the AI service README for generation, rotation, and network guidance.
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 

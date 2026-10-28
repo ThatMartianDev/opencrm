@@ -2,6 +2,8 @@
 
 import {
   BotSparkleRegular,
+  CheckmarkCircleRegular,
+  WarningRegular,
   NoteRegular,
   TaskListSquareLtrRegular,
 } from "@fluentui/react-icons";
@@ -56,7 +58,10 @@ function formatDetailValue(label: string, value: string) {
 export function getPanelViewState(
   response: CatcherResponse | null,
   isPending: boolean,
+  executionResults: CatcherExecutionResult[] = [],
 ) {
+  const hasExecutionResults =
+    response?.kind === "proposal" && executionResults.length > 0;
   const clarificationFields =
     response?.kind === "clarification" ? (response.fields ?? []) : [];
   const textClarifications = clarificationFields.filter(
@@ -111,6 +116,7 @@ export function getPanelViewState(
   const focusComposer =
     !isPending &&
     (!response ||
+      hasExecutionResults ||
       response.kind === "error" ||
       useComposerForClarification ||
       (response.kind === "clarification" &&
@@ -175,6 +181,71 @@ export default function Panel({
     panelClarification,
     focusPanel,
   } = viewState;
+
+  if (response?.kind === "proposal" && executionResults.length > 0 && !isPending) {
+    const completed = executionResults.filter((result) => result.status === "completed");
+    const failed = executionResults.filter((result) => result.status === "failed");
+    const singleAction = completed.length === 1
+      ? response.actions.find((action) => action.id === completed[0].actionId)
+      : undefined;
+    const successLabels: Record<CatcherAction["type"], string> = {
+      "record.create": "Record created",
+      "record.patch_fields": "Record updated",
+      "task.create": "Task created",
+      "note.create": "Note created",
+    };
+    const title = failed.length > 0
+      ? completed.length > 0
+        ? `${completed.length} of ${executionResults.length} actions completed`
+        : "No actions completed"
+      : singleAction
+        ? successLabels[singleAction.type]
+        : `${completed.length} actions completed`;
+
+    return (
+      <div className={Styles.body} onClick={(event) => event.stopPropagation()}>
+        <div className={`${Styles.result} ${Styles.receipt}`} role="status" aria-live="polite">
+          <div className={Styles.receiptHeading}>
+            <span className={failed.length > 0 ? Styles.warningIcon : Styles.successIcon} aria-hidden="true">
+              {failed.length > 0 ? <WarningRegular fontSize={22} /> : <CheckmarkCircleRegular fontSize={22} />}
+            </span>
+            <div className={Styles.receiptText}>
+              <p className={Styles.responseMessage}>{title}</p>
+              {failed.length === 0 && singleAction && (
+                <p className={Styles.receiptDetail}>{actionTitle(singleAction)}</p>
+              )}
+            </div>
+          </div>
+          {failed.length > 0 && (
+            <>
+              <ul className={Styles.failedActions}>
+                {failed.map((result) => {
+                  const action = response.actions.find((candidate) => candidate.id === result.actionId);
+                  return (
+                    <li key={result.actionId}>
+                      <strong>{action ? actionTitle(action) : ACTION_LABELS[result.type]}</strong>
+                      <span>{result.error || "This action could not be completed."}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+              {completed.length > 0 && (
+                <details className={Styles.completedActions}>
+                  <summary>{completed.length} completed</summary>
+                  <ul>
+                    {completed.map((result) => {
+                      const action = response.actions.find((candidate) => candidate.id === result.actionId);
+                      return <li key={result.actionId}>{action ? actionTitle(action) : ACTION_LABELS[result.type]}</li>;
+                    })}
+                  </ul>
+                </details>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -484,9 +555,11 @@ export default function Panel({
             <p className={Styles.responseMessage}>{response.message}</p>
           )}
           {response?.kind === "error" && (
-            <p className={`${Styles.responseMessage} ${Styles.error}`}>
-              {response.error}
-            </p>
+            <div className={Styles.responseBlock} role="alert">
+              <p className={`${Styles.responseMessage} ${Styles.error}`}>
+                {response.error}
+              </p>
+            </div>
           )}
         </div>
       )}

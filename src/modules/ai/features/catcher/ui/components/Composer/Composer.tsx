@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
   ArrowUpFilled,
@@ -64,6 +64,13 @@ export default function QuickCatcherComposer({
     useState<DOMRect | null>(null);
   const [isTextareaFocused, setIsTextareaFocused] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (focused && !disabled && isVisible) {
+      textareaRef.current?.focus({ preventScroll: true });
+    }
+  }, [focused, disabled, isVisible]);
 
   useEffect(() => {
     const revealTimer = window.setTimeout(() => setIsVisible(true), 900);
@@ -85,6 +92,8 @@ export default function QuickCatcherComposer({
               {prompt}
             </p>
             <textarea
+              ref={textareaRef}
+              aria-label={prompt}
               value={input}
               onChange={(event) => onInputChange(event.target.value)}
               onFocus={() => setIsTextareaFocused(true)}

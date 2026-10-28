@@ -227,7 +227,7 @@ export default function QuickCatcher({ onClose }: { onClose: () => void }) {
     });
   }
 
-  const panelViewState = getPanelViewState(response, isPending);
+  const panelViewState = getPanelViewState(response, isPending, executionResults);
   const { composerPrompt, panelClarification, focusComposer } = panelViewState;
 
   return (
